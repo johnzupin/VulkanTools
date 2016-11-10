@@ -16,34 +16,56 @@ export LD_LIBRARY_PATH=${PWD}/../loader:${LD_LIBRARY_PATH}
 export VK_LAYER_PATH=${PWD}/../layersvt
 
 function trace_replay {
-	PGM=$1
-	VKTRACE=${PWD}/../vktrace/vktrace
-	VKREPLAY=${PWD}/../vktrace/vkreplay
-	APPDIR=${PWD}/../demos
-	printf "$GREEN[ TRACE    ]$NC ${PGM}\n"
-	${VKTRACE}	--Program ${APPDIR}/${PGM} \
-			--Arguments "--c 100" \
-			--WorkingDir ${APPDIR} \
-			--OutputTrace ${PGM}.vktrace \
-			-s 1
-	printf "$GREEN[ REPLAY   ]$NC ${PGM}\n"
-	${VKREPLAY}	--TraceFile ${PGM}.vktrace \
-			-s 1
-	rm -f ${PGM}.vktrace
-	cmp -s 1.ppm ${APPDIR}/1.ppm
-	RES=$?
-	rm 1.ppm ${APPDIR}/1.ppm
-	if [ $RES -eq 0 ] ; then
-	   printf "$GREEN[  PASSED  ]$NC ${PGM}\n"
-	else
-	   printf "$RED[  FAILED  ]$NC screenshot file compare failed\n"
-	   printf "$RED[  FAILED  ]$NC ${PGM}\n"
-	   printf "TEST FAILED\n"
-	   exit 1
-	fi
+    PGM=$1
+    VKTRACE=${PWD}/../vktrace/vktrace
+    VKREPLAY=${PWD}/../vktrace/vkreplay
+    APPDIR=${PWD}/../demos
+    printf "$GREEN[ TRACE    ]$NC ${PGM}\n"
+    ${VKTRACE}  --Program ${APPDIR}/${PGM} \
+            --Arguments "--c 100" \
+            --WorkingDir ${APPDIR} \
+            --OutputTrace ${PGM}.vktrace \
+            -s 1
+    printf "$GREEN[ REPLAY   ]$NC ${PGM}\n"
+    ${VKREPLAY} --TraceFile ${PGM}.vktrace \
+            -s 1
+    rm -f ${PGM}.vktrace
+    cmp -s 1.ppm ${APPDIR}/1.ppm
+    RES=$?
+    rm 1.ppm ${APPDIR}/1.ppm
+    if [ $RES -eq 0 ] ; then
+       printf "$GREEN[  PASSED  ]$NC ${PGM}\n"
+    else
+       printf "$RED[  FAILED  ]$NC screenshot file compare failed\n"
+       printf "$RED[  FAILED  ]$NC ${PGM}\n"
+       printf "TEST FAILED\n"
+       exit 1
+    fi
+}
+
+function replay_old {
+    OLD=$1
+    ${VKREPLAY} --TraceFile ${OLD}.vktrace \
+            -s 1
+    cmp -s 1.ppm {OLD}.ppm
+    RES=$?
+    rm 1.ppm
+    if [ $RES -eq 0 ] ; then
+        printf "$GREEN[  PASSED  ]$NC ${OLD}\n"
+    else
+        printf "$RED[  FAILED  ]$NC screenshot file compare failed\n"
+        printf "%RED[  FAILED  ]$NC ${OLD}\n"
+        printf "TEST FAILED\n"
+        exit 1
+    fi
 }
 
 trace_replay cube
+
+#trace_replay smoketest
+
+if [ $1 -eq "-Debug" ] ; then
+    trace_old $2
 
 exit 0
 

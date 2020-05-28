@@ -42,6 +42,7 @@ Description: Extra vulkan development layers from LunarG
 Package: lunarg-vktrace
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends},
+ libxcb-ewmh-dev,
  libvulkan-dev (>=__VKAPIVERSION__),
  lunarg-vulkan-layers (>=__VKAPIVERSION__)
 Description: LunarG vulkan API capture and replay tools

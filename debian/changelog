@@ -1,3 +1,9 @@
+lunarg-tools (1.2.141.0~rc3-1ubuntu16.04.1.1) xenial; urgency=medium
+
+  * Automated package build
+
+ -- John Zupin <john@odin>  Thu, 04 Jun 2020 18:36:13 -0600
+
 lunarg-tools (1.2.141.0~rc2-1ubuntu16.04.1.1) xenial; urgency=medium
 
   * Automated package build

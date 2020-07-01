@@ -29,8 +29,48 @@ Homepage: https://github.com/LunarG/VulkanTools
 Vcs-Git: https://github.com/LunarG/VulkanTools
 Vcs-Browser: https://github.com/LunarG/VulkanTools
 
-Package: lunarg-tools
+Package: lunarg-vulkan-layers
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: This project provides various Vulkan tools
- from LunarG
+Depends: ${shlibs:Depends}, ${misc:Depends},
+ libvulkan-dev
+Description: Extra Vulkan development layers from LunarG
+ This package contains extra development layers for Vulkan from LunarG.  These
+ include Api_dump, screenshot, device_simulation, and vktrace layers.
+
+Package: lunarg-vktrace
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends},
+ libxcb-ewmh-dev,
+ libvulkan-dev,
+ lunarg-vulkan-layers 
+Description: LunarG vulkan API capture and replay tools
+ This package contains the vktrace and vkreplay tools, used to capture and
+ replay Vulkan API calls from an application.
+
+Package: lunarg-via
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends},
+ libvulkan-dev,
+ vulkan-validationlayers 
+Description: LunarG Vulkan Installation Analyzer
+ VIA is a tool that can:
+ 1. Determine the state of Vulkan components on your system
+ 2. Validate that your Vulkan Loader and drivers are installed properly
+ 3. Capture your system state in a form that can be used as an attachment
+    when submitting bugs
+
+Package: lunarg-vkconfig
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends},
+ libvulkan-dev,
+ vulkan-validationlayers,
+ libqt5core5a,
+ libqt5gui5,
+ libqt5widgets5
+Description: LunarG GUI tool to configure Vulkan layers
+ The Vulkan configuration tool is a graphical application that allows a user to
+ specify which layers will be loaded by Vulkan applications at runtime. It
+ provides an alternative to setting layers through environment variables or an
+ application's layer selection. In addition, it allows using layers from non-
+ standard locations, selecting the ordering for implicit layers, and specifying
+ settings for layers that vkconfig supports.

@@ -1,0 +1,36 @@
+Source: lunarg-tools
+Section: graphics
+Priority: optional
+Maintainer: John Zupin <johnz@lunarg.com>
+Build-Depends: debhelper (>= 10),
+ cmake,
+ glslang-tools,
+ vulkan-headers,
+ vulkan-validationlayers-dev,
+ libvulkan-dev,
+ bison,
+ libx11-xcb-dev,
+ libxcb1-dev,
+ libxcb-keysyms1-dev,
+ libxkbcommon-dev,
+ libwayland-dev,
+ libegl1-mesa-dev,
+ libx11-dev,
+ libxcb1-dev,
+ libxcb-ewmh-dev,
+ libxrandr-dev,
+ qtbase5-dev,
+ libqt5svg5-dev,
+ pkg-config,
+ python3,
+ qtwebengine5-dev
+Standards-Version: 4.1.2
+Homepage: https://github.com/LunarG/VulkanTools
+Vcs-Git: https://github.com/LunarG/VulkanTools
+Vcs-Browser: https://github.com/LunarG/VulkanTools
+
+Package: lunarg-tools
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: This project provides various Vulkan tools
+ from LunarG

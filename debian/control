@@ -37,16 +37,6 @@ Description: Extra Vulkan development layers from LunarG
  This package contains extra development layers for Vulkan from LunarG.  These
  include Api_dump, screenshot, device_simulation, and vktrace layers.
 
-Package: lunarg-vktrace
-Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends},
- libxcb-ewmh-dev,
- libvulkan-dev,
- lunarg-vulkan-layers 
-Description: LunarG vulkan API capture and replay tools
- This package contains the vktrace and vkreplay tools, used to capture and
- replay Vulkan API calls from an application.
-
 Package: lunarg-via
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends},

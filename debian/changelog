@@ -1,3 +1,148 @@
+lunarg-tools (1.2.148.0-1lunarg20.04-1) focal; urgency=medium
+
+  [ David Pinedo ]
+  * Monitor Layer: Dynamically load the xcb library
+  * repo: Remove vktrace from VulkanTools
+
+  [ David Carlier ]
+  * Basic BSD system support.
+
+  [ Jeremy Kniager ]
+  * build: Add Vulkan-Loader to macOS Build
+  * via: Add ability for macOS to find installed SDK
+
+  [ KarenGhavam-lunarG ]
+  * Docs: Modifications to use new Logo
+  * Docs: Modifications for New Logos
+  * Docs: New Logo Update
+  * Docs: Update api_dump_layer.md
+  * Docs: Update monitor_layer.md
+  * Docs: Update screenshot_layer.md
+  * Docs: Update README.md
+  * Docs: Update vkconfig.md
+
+  [ John Zupin ]
+  * vkvia: update search for installed sdk packages
+
+  [ KarenGhavam-lunarG ]
+  * Docs: Update logo on via artwork
+
+  [ David Pinedo ]
+  * repo: Change project technical lead contact info
+
+  [ KarenGhavam-lunarG ]
+  * Docs: Fix missing newline messing up with Creative Commons logo
+
+  [ Jeremy Kniager ]
+  * via: Update VIA HTML graphics
+
+  [ Tony-LunarG ]
+  * docs: Remove validation layer references from README.md
+  * build: Changes for 1.2.145 header
+
+  [ Christophe ]
+  * vkconfig2: Redesign of vkconfig
+
+  [ John Zupin ]
+  * patch: update Vulkan-ValidationLayers_INCLUDE_DIR to use */vukan
+  * package: split into various packages like they were before
+  * package: remove vktrace/vkreplay
+
+  [ Bob Ellison ]
+  * scripts: udpate_deps retry on clone or fetch failure
+
+  [ richard-lunarg ]
+  * vkconfig: Address layer discovery issue raised in Alpha 21 Issue #378
+  * vkconfig: Fixed regression for  IsUserAdmin
+  * vkconfig: Fixed log window overflow issue
+
+  [ John Zupin ]
+  * control: add version to deps
+
+  [ richard-lunarg ]
+  * vkconfig: Fix for issue 416 with invalid configs
+
+  [ Christophe ]
+  * vkconfig: Fix init when the version run for the first time
+
+  [ Bob Ellison ]
+  * scripts: fix update_deps retry clone
+
+  [ Christophe ]
+  * vkconfig2: Enable Synchronization validation default configuration
+
+  [ richard-lunarg ]
+  * vkconfig: Cleaning up merge errors
+  * vkconfig: Allow Linux build w/Qt5.5.1
+  * vkconfig: formatting error
+  * vkconfig: Lowered Qt version requirments in CMakeLists.txt
+  * vkconfig: Fixed linux directory regression
+  * vkconfig: Fix cmake regression for macOS builds
+  * vkconfig: Only allow one instance to run
+  * vkconfig: Updated to include network module
+  * vkconfig: Case change in cmake file
+  * vkconfig: Linux path fixes
+  * vkconfig: Coding style changes
+  * vkconfig: Fix for issue 421
+  * vkconfig: Formatting error
+  * vkconfig: Fixes for issue 413
+  * vkconfig: Fixed regression with cmake file that prevented builds
+
+  [ Christophe ]
+  * vkconfig: Fix CMake link error
+
+  [ Jeremy Kniager ]
+  * vkconfig: Fix CMake Link Errors macOS
+
+  [ Christophe ]
+  * vkconfig: Clean up
+
+  [ John Zupin ]
+  * copyright: updated for release
+
+  [ richard-lunarg ]
+  * vkconfig: Beta 4 updates
+  * vkconfig: last minute fixes-post beta4 post
+  * vkconfig: Code readability changes
+
+  [ Christophe ]
+  * vkconfig: Updated screenshots
+  * vkconfig: clean up images
+  * vkconfig: --validate prevent emitting log
+  * vkconfig: Fix copyright
+  * vkconfig: Fix links and consistency
+  * doc: Improve layout for vkconfig doc
+
+  [ Tony-LunarG ]
+  * build: Changes for 1.2.148 header
+
+  [ richard-lunarg ]
+  * vkconfig: Mostly mac fixes, one log file issue
+  * vkconfig: VUID enhancements and other fixes
+
+  [ Christophe ]
+  * vkconfig:
+  * vkconfig: doc update
+  * vkconfig: Preparing the release
+
+  [ richard-lunarg ]
+  * vkconfig: Save tree state w/custom layers
+  * vkconfig: Removed email address from doc
+  * vkconfig: Fix for scaling issues
+  * vkconfig: Added version check and HDPI for Linux
+  * vkconfig: Scaling regressions
+  * vkconfig: Scaling regressions2
+  * vkconfig: Scaling regressions2
+  * vkconfig: Scaling regressions2
+  * vkconfig: clang-format fix
+  * vkconfig: Fixed initialization error
+
+  [ John Zupin ]
+  * copyright: updated for lunarg debian files
+  * control: update required headers to 1.2.148.0
+
+ -- John Zupin <john@odin>  Mon, 27 Jul 2020 17:25:23 -0600
+
 lunarg-tools (1.2.141-1) unstable; urgency=medium
 
   * Initial release

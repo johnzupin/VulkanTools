@@ -19,8 +19,7 @@
 
 add_executable(vkconfig
     MACOSX_BUNDLE
-    ${LAYERMGR_SRCS}
-    ${CMAKE_CURRENT_SOURCE_DIR}/macOS/vkconfig.sh
+    ${FILES_ALL}
     ${CMAKE_CURRENT_SOURCE_DIR}/macOS/Resources/LunarGIcon.icns
     )
 #set_target_properties(vkconfig PROPERTIES MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/macOS/Info.plist)
@@ -29,7 +28,7 @@ set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/macOS/Resources/LunarGIc
                             PROPERTIES
                             MACOSX_PACKAGE_LOCATION
                             "Resources")
-target_link_libraries(vkconfig Qt5::Core Qt5::Gui Qt5::Widgets Qt5::WebEngineWidgets)
+target_link_libraries(vkconfig Qt5::Core Qt5::Gui Qt5::Widgets Qt5::Network)
 target_link_libraries(vkconfig "-framework Cocoa -framework QuartzCore")
 
 get_target_property(QMAKE_EXE Qt5::qmake IMPORTED_LOCATION)

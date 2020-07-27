@@ -68,6 +68,9 @@ def makeGenOpts(args):
     # Output target directory
     directory = args.directory
 
+    # Path to generated files, particularly api.py
+    genpath = args.genpath
+
     # Descriptive names for various regexp patterns used to select
     # versions and extensions
     allFeatures     = allExtensions = '.*'
@@ -89,7 +92,7 @@ def makeGenOpts(args):
     # Copyright text prefixing all headers (list of strings).
     prefixStrings = [
         '/*',
-        '** Copyright (c) 2015-2017 The Khronos Group Inc.',
+        '** Copyright (c) 2015-2020 The Khronos Group Inc.',
         '**',
         '** Licensed under the Apache License, Version 2.0 (the "License");',
         '** you may not use this file except in compliance with the License.',
@@ -128,6 +131,7 @@ def makeGenOpts(args):
             conventions       = conventions,
             filename          = 'layer_factory.h',
             directory         = directory,
+            genpath           = None,
             apiname           = 'vulkan',
             profile           = None,
             versions          = featuresPat,
@@ -152,6 +156,7 @@ def makeGenOpts(args):
             conventions       = conventions,
             filename          = 'layer_factory.cpp',
             directory         = directory,
+            genpath           = None,
             apiname           = 'vulkan',
             profile           = None,
             versions          = featuresPat,
@@ -177,6 +182,7 @@ def makeGenOpts(args):
             input             = COMMON_CODEGEN,
             filename          = 'api_dump.cpp',
             apiname           = 'vulkan',
+            genpath           = None,
             profile           = None,
             versions          = featuresPat,
             emitversions      = featuresPat,
@@ -205,6 +211,7 @@ def makeGenOpts(args):
             input             = TEXT_CODEGEN,
             filename          = 'api_dump_text.h',
             apiname           = 'vulkan',
+            genpath           = None,
             profile           = None,
             versions          = featuresPat,
             emitversions      = featuresPat,
@@ -233,6 +240,7 @@ def makeGenOpts(args):
             input             = HTML_CODEGEN,
             filename          = 'api_dump_html.h',
             apiname           = 'vulkan',
+            genpath           = None,
             profile           = None,
             versions          = featuresPat,
             emitversions      = featuresPat,
@@ -261,6 +269,7 @@ def makeGenOpts(args):
             input             = JSON_CODEGEN,
             filename          = 'api_dump_json.h',
             apiname           = 'vulkan',
+            genpath           = None,
             profile           = None,
             versions          = featuresPat,
             emitversions      = featuresPat,
@@ -281,204 +290,6 @@ def makeGenOpts(args):
             expandEnumerants  = False)
     ]
 
-    # VkTrace file generator options for vkreplay_vk_objmapper.h
-    genOpts['vkreplay_vk_objmapper.h'] = [
-          VkTraceFileOutputGenerator,
-          VkTraceFileOutputGeneratorOptions(
-            conventions       = conventions,
-            filename          = 'vkreplay_vk_objmapper.h',
-            directory         = directory,
-            apiname           = 'vulkan',
-            profile           = None,
-            versions          = featuresPat,
-            emitversions      = featuresPat,
-            defaultExtensions = 'vulkan',
-            addExtensions     = addExtensionsPat,
-            removeExtensions  = removeExtensionsPat,
-            emitExtensions    = emitExtensionsPat,
-            prefixText        = prefixStrings + vkPrefixStrings,
-            apicall           = 'VKAPI_ATTR ',
-            apientry          = 'VKAPI_CALL ',
-            apientryp         = 'VKAPI_PTR *',
-            alignFuncParam    = 48,
-            vktrace_file_type  = 'vkreplay_objmapper_header',
-            expandEnumerants  = False)
-        ]
-
-    # VkTrace file generator options for vkreplay_vk_func_ptrs.h
-    genOpts['vkreplay_vk_func_ptrs.h'] = [
-          VkTraceFileOutputGenerator,
-          VkTraceFileOutputGeneratorOptions(
-            conventions       = conventions,
-            filename          = 'vkreplay_vk_func_ptrs.h',
-            directory         = directory,
-            apiname           = 'vulkan',
-            profile           = None,
-            versions          = featuresPat,
-            emitversions      = featuresPat,
-            defaultExtensions = 'vulkan',
-            addExtensions     = addExtensionsPat,
-            removeExtensions  = removeExtensionsPat,
-            emitExtensions    = emitExtensionsPat,
-            prefixText        = prefixStrings + vkPrefixStrings,
-            apicall           = 'VKAPI_ATTR ',
-            apientry          = 'VKAPI_CALL ',
-            apientryp         = 'VKAPI_PTR *',
-            alignFuncParam    = 48,
-            vktrace_file_type  = 'vkreplay_funcptr_header',
-            expandEnumerants  = False)
-        ]
-
-    # VkTrace file generator options for vkreplay_vk_replay_gen.cpp
-    genOpts['vkreplay_vk_replay_gen.cpp'] = [
-          VkTraceFileOutputGenerator,
-          VkTraceFileOutputGeneratorOptions(
-            conventions       = conventions,
-            filename          = 'vkreplay_vk_replay_gen.cpp',
-            directory         = directory,
-            apiname           = 'vulkan',
-            profile           = None,
-            versions          = featuresPat,
-            emitversions      = featuresPat,
-            defaultExtensions = 'vulkan',
-            addExtensions     = addExtensionsPat,
-            removeExtensions  = removeExtensionsPat,
-            emitExtensions    = emitExtensionsPat,
-            prefixText        = prefixStrings + vkPrefixStrings,
-            apicall           = 'VKAPI_ATTR ',
-            apientry          = 'VKAPI_CALL ',
-            apientryp         = 'VKAPI_PTR *',
-            alignFuncParam    = 48,
-            vktrace_file_type  = 'vkreplay_replay_gen_source',
-            expandEnumerants  = False)
-        ]
-
-    # VkTrace file generator options for vktracedump_vk_dump_gen.cpp
-    genOpts['vktracedump_vk_dump_gen.cpp'] = [
-          VkTraceFileOutputGenerator,
-          VkTraceFileOutputGeneratorOptions(
-            conventions       = conventions,
-            filename          = 'vktracedump_vk_dump_gen.cpp',
-            directory         = directory,
-            apiname           = 'vulkan',
-            profile           = None,
-            versions          = featuresPat,
-            emitversions      = featuresPat,
-            defaultExtensions = 'vulkan',
-            addExtensions     = addExtensionsPat,
-            removeExtensions  = removeExtensionsPat,
-            emitExtensions    = emitExtensionsPat,
-            prefixText        = prefixStrings + vkPrefixStrings,
-            protectFeature    = False,
-            genFuncPointers   = True,
-            apicall           = 'VKAPI_ATTR ',
-            apientry          = 'VKAPI_CALL ',
-            apientryp         = 'VKAPI_PTR *',
-            alignFuncParam    = 48,
-            vktrace_file_type  = 'vktrace_dump_gen_source',
-            expandEnumerants  = False)
-        ]
-
-
-    # VkTrace file generator options for vktrace_vk_packet_id.h
-    genOpts['vktrace_vk_packet_id.h'] = [
-          VkTraceFileOutputGenerator,
-          VkTraceFileOutputGeneratorOptions(
-            conventions       = conventions,
-            filename          = 'vktrace_vk_packet_id.h',
-            directory         = directory,
-            apiname           = 'vulkan',
-            profile           = None,
-            versions          = featuresPat,
-            emitversions      = featuresPat,
-            defaultExtensions = 'vulkan',
-            addExtensions     = addExtensionsPat,
-            removeExtensions  = removeExtensionsPat,
-            emitExtensions    = emitExtensionsPat,
-            prefixText        = prefixStrings + vkPrefixStrings,
-            apicall           = 'VKAPI_ATTR ',
-            apientry          = 'VKAPI_CALL ',
-            apientryp         = 'VKAPI_PTR *',
-            alignFuncParam    = 48,
-            vktrace_file_type  = 'vktrace_packet_id_header',
-            expandEnumerants  = False)
-        ]
-
-    # VkTrace file generator options for vktrace_vk_vk.h
-    genOpts['vktrace_vk_vk.h'] = [
-          VkTraceFileOutputGenerator,
-          VkTraceFileOutputGeneratorOptions(
-            conventions       = conventions,
-            filename          = 'vktrace_vk_vk.h',
-            directory         = directory,
-            apiname           = 'vulkan',
-            profile           = None,
-            versions          = featuresPat,
-            emitversions      = featuresPat,
-            defaultExtensions = 'vulkan',
-            addExtensions     = addExtensionsPat,
-            removeExtensions  = removeExtensionsPat,
-            emitExtensions    = emitExtensionsPat,
-            prefixText        = prefixStrings + vkPrefixStrings,
-            apicall           = 'VKAPI_ATTR ',
-            apientry          = 'VKAPI_CALL ',
-            apientryp         = 'VKAPI_PTR *',
-            alignFuncParam    = 48,
-            vktrace_file_type  = 'vktrace_vk_header',
-            expandEnumerants  = False)
-        ]
-
-    # VkTrace file generator options for vktrace_vk_vk.cpp
-    genOpts['vktrace_vk_vk.cpp'] = [
-          VkTraceFileOutputGenerator,
-          VkTraceFileOutputGeneratorOptions(
-            conventions       = conventions,
-            filename          = 'vktrace_vk_vk.cpp',
-            directory         = directory,
-            apiname           = 'vulkan',
-            profile           = None,
-            versions          = featuresPat,
-            emitversions      = featuresPat,
-            defaultExtensions = 'vulkan',
-            addExtensions     = addExtensionsPat,
-            removeExtensions  = removeExtensionsPat,
-            emitExtensions    = emitExtensionsPat,
-            prefixText        = prefixStrings + vkPrefixStrings,
-            protectFeature    = False,
-            apicall           = 'VKAPI_ATTR ',
-            apientry          = 'VKAPI_CALL ',
-            apientryp         = 'VKAPI_PTR *',
-            alignFuncParam    = 48,
-            vktrace_file_type  = 'vktrace_vk_source',
-            expandEnumerants  = False)
-        ]
-
-    # VkTrace file generator options for vktrace_vk_vk_packets.h
-    genOpts['vktrace_vk_vk_packets.h'] = [
-          VkTraceFileOutputGenerator,
-          VkTraceFileOutputGeneratorOptions(
-            conventions       = conventions,
-            filename          = 'vktrace_vk_vk_packets.h',
-            directory         = directory,
-            apiname           = 'vulkan',
-            profile           = None,
-            versions          = featuresPat,
-            emitversions      = featuresPat,
-            defaultExtensions = 'vulkan',
-            addExtensions     = addExtensionsPat,
-            removeExtensions  = removeExtensionsPat,
-            emitExtensions    = emitExtensionsPat,
-            prefixText        = prefixStrings + vkPrefixStrings,
-            protectFile       = protect,
-            protectFeature    = False,
-            apicall           = 'VKAPI_ATTR ',
-            apientry          = 'VKAPI_CALL ',
-            apientryp         = 'VKAPI_PTR *',
-            alignFuncParam    = 48,
-            vktrace_file_type  = 'vktrace_vk_packets_header',
-            expandEnumerants  = False)
-        ]
-
     # Helper file generator options for vk_struct_size_helper.h
     genOpts['vk_struct_size_helper.h'] = [
           ToolHelperFileOutputGenerator,
@@ -487,6 +298,7 @@ def makeGenOpts(args):
             filename          = 'vk_struct_size_helper.h',
             directory         = directory,
             apiname           = 'vulkan',
+            genpath           = None,
             profile           = None,
             versions          = featuresPat,
             emitversions      = featuresPat,
@@ -511,6 +323,7 @@ def makeGenOpts(args):
             filename          = 'vk_struct_size_helper.c',
             directory         = directory,
             apiname           = 'vulkan',
+            genpath           = None,
             profile           = None,
             versions          = featuresPat,
             emitversions      = featuresPat,
@@ -610,6 +423,8 @@ if __name__ == '__main__':
                         help='Enable timing')
     parser.add_argument('-validate', action='store_true',
                         help='Enable group validation')
+    parser.add_argument('-genpath', action='store', default='gen',
+                        help='Path to generated files')
     parser.add_argument('-o', action='store', dest='directory',
                         default='.',
                         help='Create target and related files in specified directory')
@@ -635,7 +450,6 @@ if __name__ == '__main__':
     # VulkanTools generator additions
     from tool_helper_file_generator import ToolHelperFileOutputGenerator, ToolHelperFileOutputGeneratorOptions
     from api_dump_generator import ApiDumpGeneratorOptions, ApiDumpOutputGenerator, COMMON_CODEGEN, TEXT_CODEGEN, HTML_CODEGEN, JSON_CODEGEN
-    from vktrace_file_generator import VkTraceFileOutputGenerator, VkTraceFileOutputGeneratorOptions
     from layer_factory_generator import LayerFactoryGeneratorOptions, LayerFactoryOutputGenerator
     from vkconventions import VulkanConventions
 

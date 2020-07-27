@@ -7,7 +7,7 @@ Copyright: Copyright 2020 LunarG Inc.
 License: Apache-2.0
 
 Files: debian/*
-Copyright: 2016 Timo Aaltonen <tjaalton@debian.org>
+Copyright: 2020 LunarG <johnz@lunarg.com>
 License: GPL-3 or MIT or BSD-3-clause
 
 Files: VkLayer_api_dump.json

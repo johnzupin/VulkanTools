@@ -5,9 +5,9 @@ Maintainer: John Zupin <johnz@lunarg.com>
 Build-Depends: debhelper (>= 10),
  cmake,
  glslang-tools,
- vulkan-headers (>= 1.2.141.0),
- vulkan-validationlayers-dev (>= 1.2.141.0),
- libvulkan-dev (>= 1.2.141.0),
+ vulkan-headers (>= 1.2.148.0),
+ vulkan-validationlayers-dev (>= 1.2.148.0),
+ libvulkan-dev (>= 1.2.148.0),
  bison,
  libx11-xcb-dev,
  libxcb1-dev,
@@ -32,7 +32,7 @@ Vcs-Browser: https://github.com/LunarG/VulkanTools
 Package: lunarg-vulkan-layers
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends},
- libvulkan-dev (>= 1.2.141.0)
+ libvulkan-dev (>= 1.2.148.0)
 Description: Extra Vulkan development layers from LunarG
  This package contains extra development layers for Vulkan from LunarG.  These
  include Api_dump, screenshot, device_simulation, and vktrace layers.
@@ -40,8 +40,8 @@ Description: Extra Vulkan development layers from LunarG
 Package: lunarg-via
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends},
- libvulkan-dev (>= 1.2.141.0),
- vulkan-validationlayers (>= 1.2.141.0)
+ libvulkan-dev (>= 1.2.148.0),
+ vulkan-validationlayers (>= 1.2.148.0)
 Description: LunarG Vulkan Installation Analyzer
  VIA is a tool that can:
  1. Determine the state of Vulkan components on your system
@@ -52,8 +52,8 @@ Description: LunarG Vulkan Installation Analyzer
 Package: lunarg-vkconfig
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends},
- libvulkan-dev (>= 1.2.141.0),
- vulkan-validationlayers (>= 1.2.141.0),
+ libvulkan-dev (>= 1.2.148.0),
+ vulkan-validationlayers (>= 1.2.148.0),
  libqt5core5a,
  libqt5gui5,
  libqt5widgets5

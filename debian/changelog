@@ -1,3 +1,10 @@
+lunarg-tools (1.2.148.0-1lunarg18.04-2) bionic; urgency=medium
+
+  * install: fix json file install location
+  * patch: rebased and exported
+
+ -- John Zupin <john@odin>  Tue, 28 Jul 2020 12:10:47 -0600
+
 lunarg-tools (1.2.148.0-1lunarg18.04-1) bionic; urgency=medium
 
   [ David Pinedo ]

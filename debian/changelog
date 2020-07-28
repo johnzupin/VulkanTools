@@ -1,3 +1,10 @@
+lunarg-tools (1.2.148.0-1lunarg20.04-2) focal; urgency=medium
+
+  * patch: rebased and exported
+  * install: fix json file install location
+
+ -- John Zupin <john@odin>  Tue, 28 Jul 2020 12:13:57 -0600
+
 lunarg-tools (1.2.148.0-1lunarg20.04-1) focal; urgency=medium
 
   [ David Pinedo ]

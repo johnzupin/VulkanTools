@@ -35,7 +35,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends},
  libvulkan-dev (>= 1.2.148.0)
 Description: Extra Vulkan development layers from LunarG
  This package contains extra development layers for Vulkan from LunarG.  These
- include Api_dump, screenshot, device_simulation, and vktrace layers.
+ include Api_dump, screenshot, and device_simulation.
 
 Package: lunarg-via
 Architecture: any

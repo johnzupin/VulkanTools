@@ -32,6 +32,7 @@ Vcs-Browser: https://github.com/LunarG/VulkanTools
 Package: lunarg-vulkan-layers
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends},
+ libxcb1-dev,
  libvulkan-dev (>= 1.2.148.0)
 Description: Extra Vulkan development layers from LunarG
  This package contains extra development layers for Vulkan from LunarG.  These

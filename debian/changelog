@@ -1,3 +1,30 @@
+lunarg-tools (1.2.148.0-1ubuntu20.04-3) focal; urgency=medium
+
+  [ KarenGhavam-lunarG ]
+  * docs: Reference Vulkan Configurator
+
+  [ richard-lunarg ]
+  * vkconfig: Fixed crashing bug. Layout improvements
+  * vkconfig: Linux regressions and confusion
+  * vkconfig Linux fix
+  * vkconfig Missing .txt for log file
+  * vkconfig Removed dead code
+  * vkconfig: Spelling and comments updates
+
+  [ John Zupin ]
+  * control: remove vktrace reference
+  * control: add libxcb1-dev as run-time dep for layers
+  * debian: remove README.Debian
+
+  [ richard-lunarg ]
+  * vkconfig: Warnings, misspellings, singleton fix
+  * vkconfig: Removed spaces from QSettings default
+  * vkconfig: Fixed missing folder on linux
+  * vkconfig: HDPI and log path fixes
+  * vkconfig: other last minute fixes combined
+
+ -- John Zupin <john@odin>  Fri, 31 Jul 2020 17:22:54 -0600
+
 lunarg-tools (1.2.148.0-1lunarg20.04-2) focal; urgency=medium
 
   * patch: rebased and exported

@@ -227,6 +227,12 @@ Configurator::Configurator()
         home.cd("vulkan");
     }
 
+    if (!home.cd("implicit_layer.d")) {
+        home.mkpath("implicit_layer.d");
+        home.cd("implicit_layer.d");
+    }
+
+    home.cd("..");
     if (!home.cd("settings.d")) {
         home.mkpath("settings.d");
         home.cd("settings.d");
@@ -354,7 +360,7 @@ QString Configurator::CheckVulkanSetup() const {
     if (local.exists())
         log += QString().asprintf("- SDK path: %s\n", search_path.toUtf8().constData());
     else
-        log += "- SDK path: Not detected\n";
+        log += "- VULKAN_SDK environment variable not set\n";
 
         // Check loader version
         // Different names and rules for each OS
@@ -708,7 +714,7 @@ QString Configurator::GetPath(Path requested_path) const {
     const QString path = _paths[requested_path];
 
     if (!path.isEmpty()) {
-        return path;
+        return QDir::toNativeSeparators(path);
     }
 
     // Use export path when import path is empty and import path when export path is empty
@@ -836,6 +842,15 @@ void Configurator::FindVkCube() {
     }
 
     Application *application = new Application(local.absoluteFilePath(), "--suppress_popups");
+
+    // On all operating systems, but Windows we keep running into problems with this ending up
+    // somewhere the user isn't allowed to create and write files. For consistncy sake, the log
+    // initially will be set to the users home folder across all OS's. This is highly visible
+    // in the application launcher and should not present a usability issue. The developer can
+    // easily change this later to anywhere they like.
+    QDir dir = QDir::homePath();
+    application->log_file = QDir::homePath() + QDir::toNativeSeparators("/vkcube.txt");
+
     _overridden_application_list.push_back(application);
 }
 
@@ -844,12 +859,14 @@ void Configurator::FindVkCube() {
 /// file.
 void Configurator::LoadOverriddenApplicationList() {
     /////////////////////////////////////////////////////////////
-    // Now, use the list
-    QString application_list_json = GetPath(ConfigurationPath) + "/applist.json";
+    // Now, use the list. If the file doesn't exist, this is not an error
+    QString data;
+    QString application_list_json = GetPath(ConfigurationPath) + QDir::toNativeSeparators("/applist.json");
     QFile file(application_list_json);
-    file.open(QFile::ReadOnly);
-    QString data = file.readAll();
-    file.close();
+    if (file.open(QFile::ReadOnly)) {
+        data = file.readAll();
+        file.close();
+    }
 
     QJsonDocument json_app_list;
     json_app_list = QJsonDocument::fromJson(data.toLocal8Bit());
@@ -923,7 +940,7 @@ void Configurator::SaveOverriddenApplicationList() {
         root.insert(QFileInfo(_overridden_application_list[i]->executable_path).fileName(), application_object);
     }
 
-    QString app_list_json = GetPath(ConfigurationPath) + "/applist.json";
+    QString app_list_json = GetPath(ConfigurationPath) + QDir::toNativeSeparators("/applist.json");
     QFile file(app_list_json);
     file.open(QFile::WriteOnly);
     QJsonDocument doc(root);
@@ -953,11 +970,11 @@ void Configurator::LoadAllInstalledLayers() {
     if (lp != 0)
         for (int i = 0; i < lp; i++) LoadLayersFromPath(VK_LAYER_PATH[i], _available_Layers);
 
-    // SECOND: Standard layer paths, in standard locations
-    for (std::size_t i = 0, n = vku::countof(szSearchPaths); i < n; i++) LoadLayersFromPath(szSearchPaths[i], _available_Layers);
-
-    // THIRD: Any custom paths? Search for those too
+    // SECOND: Any custom paths? Search for those too
     for (int i = 0; i < _custom_layers_paths.size(); i++) LoadLayersFromPath(_custom_layers_paths[i], _available_Layers);
+
+    // THIRD: Standard layer paths, in standard locations. The above has always taken precedence.
+    for (std::size_t i = 0, n = vku::countof(szSearchPaths); i < n; i++) LoadLayersFromPath(szSearchPaths[i], _available_Layers);
 
     // FOURTH: Finally, see if thee is anyting in the VULKAN_SDK path that wasn't already found elsewhere
     QString vulkanSDK = qgetenv("VULKAN_SDK");
@@ -1314,6 +1331,11 @@ bool Configurator::SaveConfiguration(Configuration *configuration) {
 
                 case LAYER_SETTINGS_FILE:
                     setting.insert("type", "save_file");
+                    setting.insert("default", layer_settings->settings_value);
+                    break;
+
+                case LAYER_SETTINGS_LOAD_FILE:
+                    setting.insert("type", "load_file");
                     setting.insert("default", layer_settings->settings_value);
                     break;
 

@@ -1,3 +1,11 @@
+lunarg-tools (1.2.148.0-1ubuntu18.04-4) bionic; urgency=medium
+
+  [ richard-lunarg ]
+  * vkconfig: API Dump is now the default configuration
+  * vkconfig2: API dump and doc updates
+
+ -- John Zupin <john@odin>  Mon, 03 Aug 2020 16:05:20 -0600
+
 lunarg-tools (1.2.148.0-1ubuntu18.04-3) bionic; urgency=medium
 
   [ KarenGhavam-lunarG ]

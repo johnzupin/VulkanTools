@@ -1,3 +1,13 @@
+lunarg-tools (1.2.148.0-1ubuntu18.04-5) bionic; urgency=medium
+
+  [ richard-lunarg ]
+  * vkconfig: Post SDK cleanup Debug-Printf configuration now uses gpu printf functionality Fixed spacing issues with radio buttons in main configuration list Corrected attempting to write to log file that was not open
+  * vkconfig: Tweak for Linux control behavior
+  * vkconfig: Fixes for synchronization validation
+  * vkconfig: Hotfixes for 1.2.148 SDK release
+
+ -- John Zupin <john@odin>  Mon, 10 Aug 2020 11:41:16 -0600
+
 lunarg-tools (1.2.148.0-1ubuntu18.04-4) bionic; urgency=medium
 
   [ richard-lunarg ]

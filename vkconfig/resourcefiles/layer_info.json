@@ -58,6 +58,12 @@
                 "type": "save_file",
                 "default": "stdout"
             },
+            "duplicate_message_limit": {
+                "name": "Duplicated messages limit",
+                "description": "Limit the number of times any single validation message would be reported. Empty is unlimited.",
+                "type": "string",
+                "default": "10"
+            },
             "message_id_filter": {
                 "name": "Message Filter",
                 "description": "VUID's to ignore",
@@ -82,7 +88,7 @@
                 "VALIDATION_CHECK_DISABLE_OBJECT_IN_USE": "Object in Use",
                 "VALIDATION_CHECK_DISABLE_IDLE_DESCRIPTOR_SET": "Idle Descritor Set"
                 },
-                "default": []
+                "default": [ "VK_VALIDATION_FEATURE_DISABLE_THREAD_SAFETY_EXT" ]
             },
             "enables": {
                 "name": "Enables",
@@ -221,7 +227,7 @@
         },
         "VK_LAYER_LUNARG_device_simulation": {
             "filename": {
-                "name": "Filename",
+                "name": "Devsim JSON configuration file",
                 "description": "Name of one or more configuration file(s) to load.",
                 "type": "load_file",
                 "default": ""
@@ -229,6 +235,12 @@
             "debug_enable": {
                 "name": "Debug Enable",
                 "description": "Enables debug message output.",
+                "type": "bool_numeric",
+                "default": "0"
+            },
+            "emulate_portability": {
+                "name": "Emulate VK_KHR_portability_subset",
+                "description": "Emulate that VK_KHR_portability_subset extension is supported by the device.",
                 "type": "bool_numeric",
                 "default": "0"
             },

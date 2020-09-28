@@ -21,18 +21,21 @@
 
 #pragma once
 
+#include "../vkconfig_core/layer.h"
+
+#include "widget_mute_message.h"
+
 #include <QTreeWidget>
 #include <QTreeWidgetItem>
 #include <QRadioButton>
-#include <layerfile.h>
 
-#include "mutemessagewidget.h"
+#include <vector>
 
 class KhronosSettingsAdvanced : public QObject {
     Q_OBJECT
 
    public:
-    explicit KhronosSettingsAdvanced(QTreeWidget *main_tree, QTreeWidgetItem *parent, QVector<LayerSettings *> &layer_Settings);
+    explicit KhronosSettingsAdvanced(QTreeWidget *main_tree, QTreeWidgetItem *parent, std::vector<LayerSetting> &settings);
     ~KhronosSettingsAdvanced();
 
     bool CollectSettings();
@@ -42,8 +45,8 @@ class KhronosSettingsAdvanced : public QObject {
     QTreeWidgetItem *_main_parent;
     QTreeWidgetItem *_core_checks_parent;
 
-    LayerSettings *_disables;
-    LayerSettings *_enables;
+    LayerSetting &_disables;
+    LayerSetting &_enables;
 
     QTreeWidgetItem *_synchronization_box;
     QTreeWidgetItem *_shader_based_box;
@@ -62,4 +65,8 @@ class KhronosSettingsAdvanced : public QObject {
 
    Q_SIGNALS:
     void settingChanged();
+
+   private:
+    KhronosSettingsAdvanced(const KhronosSettingsAdvanced &) = delete;
+    KhronosSettingsAdvanced &operator=(const KhronosSettingsAdvanced &) = delete;
 };

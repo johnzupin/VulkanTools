@@ -22,6 +22,8 @@
 #include "dlgvulkananalysis.h"
 #include "ui_dlgvulkananalysis.h"
 
+#include "../vkconfig_core/platform.h"
+
 #include <stdlib.h>
 #include <QProcess>
 #include <QDir>
@@ -57,7 +59,7 @@ void dlgVulkanAnalysis::RunTool() {
     ui->physicalDevicesTable->clear();
 
     QProcess *via = new QProcess(this);
-#ifdef __APPLE__
+#if PLATFORM_MACOS
     via->setProgram("/usr/local/bin/vkvia");
 #else
     via->setProgram("vkvia");
@@ -170,9 +172,9 @@ void dlgVulkanAnalysis::RunTool() {
         ui->externalTestsTable->setColumnCount(1);
         ui->externalTestsTable->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
         ui->externalTestsTable->setShowGrid(false);
-        QTableWidgetItem *pItem = new QTableWidgetItem();
-        pItem->setText(tr("No SDK found by VIA, skipping test section"));
-        ui->externalTestsTable->setItem(0, 0, pItem);
+        QTableWidgetItem *item = new QTableWidgetItem();
+        item->setText(tr("No SDK found by VIA, skipping test section"));
+        ui->externalTestsTable->setItem(0, 0, item);
     }
 
     show();

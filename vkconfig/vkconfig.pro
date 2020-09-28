@@ -24,61 +24,71 @@ Release: DEFINES += QT_NO_DEBUG_OUTPUT QT_NO_WARNING_OUTPUT
 linux: QMAKE_CXXFLAGS += -Wunused-variable
 
 SOURCES += \
-    appsingleton.cpp \
-    boolsettingwidget.cpp \
+    ..\vkconfig_core\application_singleton.cpp \
+    ..\vkconfig_core\configuration.cpp \
+    ..\vkconfig_core\command_line.cpp \
+    ..\vkconfig_core\environment.cpp \
+    ..\vkconfig_core\util.cpp \
+    ..\vkconfig_core\version.cpp \
+    ..\vkconfig_core\layer.cpp \
+    ..\vkconfig_core\layer_setting.cpp \
+    ..\vkconfig_core\layer_type.cpp \
+    ..\vkconfig_core\path_manager.cpp \
+    vulkan.cpp \
+    alert.cpp \
+    widget_bool_setting.cpp \
+    widget_enum_setting.cpp \
+    widget_multi_enum_setting.cpp \
+    widget_filesystem_setting.cpp \
+    widget_string_setting.cpp \
+    widget_mute_message.cpp \
+    widget_tree_friendly_combobox.cpp \
+    widget_vuid_search.cpp \
     dlgabout.cpp \
     dlgcreateassociation.cpp \
     dlgcustompaths.cpp \
     dlgprofileeditor.cpp \
     dlgvulkananalysis.cpp \
     dlgvulkaninfo.cpp \
-    enumsettingwidget.cpp \
-    filenamesettingwidget.cpp \
-    foldersettingwidget.cpp \
     khronossettingsadvanced.cpp \
-    layerfile.cpp \
     main.cpp \
     mainwindow.cpp \
-    multienumsetting.cpp \
-    mutemessagewidget.cpp \
-    configuration.cpp \
     preferences.cpp \
     settingstreemanager.cpp \
-    stringsettingwidget.cpp \
-    treefriendlycombobox.cpp \
-    vuidsearchwidget.cpp \
-    configurator.cpp \
-    command_line.cpp \
-    vku.cpp \
-    test.cpp
+    configurator.cpp
 
 HEADERS += \
-    appsingleton.h \
-    boolsettingwidget.h \
+    ..\vkconfig_core\application_singleton.h \
+    ..\vkconfig_core\configuration.h \
+    ..\vkconfig_core\command_line.h \
+    ..\vkconfig_core\environment.h \
+    ..\vkconfig_core\util.h \
+    ..\vkconfig_core\version.h \
+    ..\vkconfig_core\layer.h \
+    ..\vkconfig_core\layer_setting.h \
+    ..\vkconfig_core\layer_type.h \
+    ..\vkconfig_core\path_manager.h \
+    vulkan.h \
+    alert.h \
+    widget_bool_setting.h \
+    widget_enum_setting.h \
+    widget_multi_enum_setting.h \
+    widget_filesystem_setting.h \
+    widget_string_setting.h \
+    widget_mute_message.h \
+    widget_tree_friendly_combobox.h \
+    widget_vuid_search.h \
     dlgabout.h \
     dlgcreateassociation.h \
     dlgcustompaths.h \
     dlgprofileeditor.h \
     dlgvulkananalysis.h \
     dlgvulkaninfo.h \
-    enumsettingwidget.h \
-    filenamesettingwidget.h \
-    foldersettingwidget.h \
     khronossettingsadvanced.h \
-    layerfile.h \
     mainwindow.h \
-    multienumsetting.h \
-    mutemessagewidget.h \
-    configuration.h \
     preferences.h \
     settingstreemanager.h \
-    stringsettingwidget.h \
-    treefriendlycombobox.h \
-    vuidsearchwidget.h \
-    configurator.h \
-    command_line.h \
-    vku.h \
-    test.h
+    configurator.h
 
 FORMS += \
     dlgabout.ui \

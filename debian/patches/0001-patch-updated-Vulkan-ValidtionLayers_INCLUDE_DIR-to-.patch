@@ -7,10 +7,10 @@ Subject: patch: updated Vulkan-ValidtionLayers_INCLUDE_DIR to */vulkan
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 1affbf8..fdf05e2 100644
+index 7b45791..9101a3a 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -74,7 +74,7 @@ endif()
+@@ -76,7 +76,7 @@ endif()
  message(STATUS "Using Vulkan-ValidationLayers install located at ${VULKAN_VALIDATIONLAYERS_INSTALL_DIR}")
  
  file(TO_CMAKE_PATH "${VULKAN_VALIDATIONLAYERS_INSTALL_DIR}" VULKAN_VALIDATIONLAYERS_INSTALL_DIR)

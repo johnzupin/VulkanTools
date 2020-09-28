@@ -46,41 +46,47 @@ QT_END_NAMESPACE
 /// with a list widget item.
 class ConfigurationListItem : public QTreeWidgetItem {
    public:
-    Configuration *configuration;
+    ConfigurationListItem(const QString &configuration_name) : configuration_name(configuration_name) {}
+    QString configuration_name;
     QRadioButton *radio_button;
+
+   private:
+    ConfigurationListItem(const ConfigurationListItem &) = delete;
+    ConfigurationListItem &operator=(const ConfigurationListItem &) = delete;
 };
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
 
+    Ui::MainWindow *ui;
+
    public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+    void UpdateUI();
+    void UpdateConfiguration();
+
    protected:
     SettingsTreeManager _settings_tree_manager;
-    QSettings _settings;
 
     QProcess *_launch_application;  // Keeps track of the monitored app
-    QFile *_log_file;               // Log file for layer output
+    QFile _log_file;                // Log file for layer output
 
     void LoadConfigurationList();
     void SetupLaunchTree();
 
-    void ChangeActiveConfiguration(Configuration *configuration);
-
     virtual void closeEvent(QCloseEvent *event) override;
     virtual void showEvent(QShowEvent *event) override;
     virtual void resizeEvent(QResizeEvent *event) override;
-
     virtual bool eventFilter(QObject *target, QEvent *event) override;
 
     dlgVulkanAnalysis *_vk_via;
     dlgVulkanInfo *_vk_info;
 
    private:
-    Ui::MainWindow *ui;
-    ConfigurationListItem *_selected_configuration_item;
+    void Log(const QString &log);
+
     ConfigurationListItem *GetCheckedItem();
 
     QComboBox *_launcher_apps_combo;
@@ -88,14 +94,14 @@ class MainWindow : public QMainWindow {
     QLineEdit *_launcher_working;
     QLineEdit *_launcher_log_file_edit;
     QPushButton *_launcher_apps_browse_button;
-    QPushButton *_launchWorkingFolderButton;
-    QPushButton *_launcher_log_file_button;
+    QPushButton *_launcher_working_browse_button;
+    QPushButton *_launcher_log_file_browse_button;
 
-    void ResetLaunchOptions();
+    bool SelectConfigurationItem(const QString &configuration_name);
 
-    ConfigurationListItem *SaveLastItem(void);
+    ConfigurationListItem *SaveLastItem();
     bool RestoreLastItem(const char *szOverride = nullptr);
-    QString _lastItem;
+    QString _last_item;
 
     void RemoveClicked(ConfigurationListItem *item);
     void RenameClicked(ConfigurationListItem *item);
@@ -117,7 +123,7 @@ class MainWindow : public QMainWindow {
     void helpShowVulkanSpec(bool checked);
     void helpShowLayerSpec(bool checked);
 
-    void addCustomPaths();  // Fired by menu
+    void addCustomPaths();
 
     void editorExpanded(QTreeWidgetItem *item);
 
@@ -125,17 +131,20 @@ class MainWindow : public QMainWindow {
     void launchItemCollapsed(QTreeWidgetItem *item);
     void launchItemChanged(int index);
     void launchSetLogFile();
+    void launchSetWorkingFolder();
     void launchChangeLogFile(const QString &new_text);
+    void launchChangeWorkingFolder(const QString &new_text);
     void launchArgsEdited(const QString &new_text);
+
     void on_pushButtonLaunch_clicked();
     void on_pushButtonClearLog_clicked();
-
     void on_radioFully_clicked();
     void on_radioOverride_clicked();
     void on_checkBoxApplyList_clicked();
     void on_checkBoxPersistent_clicked();
-
+    void on_checkBoxClearOnLaunch_clicked();
     void on_pushButtonAppList_clicked();
+    void on_pushButtonEditProfile_clicked();
 
     void profileItemChanged(QTreeWidgetItem *item, int column);
     void profileTreeChanged(QTreeWidgetItem *current, QTreeWidgetItem *previous);
@@ -145,9 +154,11 @@ class MainWindow : public QMainWindow {
     void OnConfigurationTreeClicked(QTreeWidgetItem *item, int column);
     void OnConfigurationSettingsTreeClicked(QTreeWidgetItem *item, int column);
 
-    void on_pushButtonEditProfile_clicked();
-
     void standardOutputAvailable();                                 // stdout output is available
     void errorOutputAvailable();                                    // Layeroutput is available
     void processClosed(int exitCode, QProcess::ExitStatus status);  // app died
+
+   private:
+    MainWindow(const MainWindow &) = delete;
+    MainWindow &operator=(const MainWindow &) = delete;
 };

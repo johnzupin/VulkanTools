@@ -28,6 +28,8 @@
 #include <QCloseEvent>
 #include <QCheckBox>
 
+#include <cassert>
+
 //////////////////////////////////////////////////////////////////////////////
 dlgCreateAssociation::dlgCreateAssociation(QWidget *parent)
     : QDialog(parent), ui(new Ui::dlgCreateAssociation), _last_selected_application_index(-1) {
@@ -35,19 +37,18 @@ dlgCreateAssociation::dlgCreateAssociation(QWidget *parent)
     setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
 
     Configurator &configurator = Configurator::Get();
-    configurator._override_application_list_updated = false;
 
     // The header is hidden by default and stays hidden when no checkboxes are used.
-    if (!configurator.HasActiveOverrideOnApplicationListOnly())
+    if (!configurator.environment.UseApplicationListOverrideMode())
         setWindowTitle("Applications Launcher Shortcuts");
     else {
         ui->treeWidget->setHeaderHidden(false);
-        ui->treeWidget->setHeaderLabel("Uncheck to use for launcher shortcut only");
+        ui->treeWidget->setHeaderLabel("Check to override Vulkan layers");
     }
 
     // Show the current list
-    for (int i = 0; i < configurator._overridden_application_list.size(); i++)
-        CreateApplicationItem(*configurator._overridden_application_list[i]);
+    const std::vector<Application> &applications = configurator.environment.GetApplications();
+    for (std::size_t i = 0, n = applications.size(); i < n; i++) CreateApplicationItem(applications[i]);
 
     ui->treeWidget->installEventFilter(this);
 
@@ -57,6 +58,15 @@ dlgCreateAssociation::dlgCreateAssociation(QWidget *parent)
     connect(ui->lineEditCmdArgs, SIGNAL(textEdited(const QString &)), this, SLOT(editCommandLine(const QString &)));
     connect(ui->lineEditWorkingFolder, SIGNAL(textEdited(const QString &)), this, SLOT(editWorkingFolder(const QString &)));
     connect(ui->lineEditLogFile, SIGNAL(textEdited(const QString &)), this, SLOT(editLogFile(const QString &)));
+
+    // If there is an item in the tree (nullptr is okay here), make it the currently selected item.
+    // This is a work around for macOS, where the currentItemChanged() signal is being emitted (by something)
+    // after this constructor, without actually selecting the first row. The effect there is, the remove button is
+    // enabled, and the first item is selected, but not visibly so. Repainting does not fix the issue either. This
+    // is a macOS only fix, but is put in for all platforms so that the GUI behavior is consistent across all
+    // platforms.
+    QTreeWidgetItem *pItem = ui->treeWidget->topLevelItem(0);
+    ui->treeWidget->setCurrentItem(pItem);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -81,15 +91,16 @@ bool dlgCreateAssociation::eventFilter(QObject *target, QEvent *event) {
 ///////////////////////////////////////////////////////////////////////////////
 /// Make sure any changes are saved
 void dlgCreateAssociation::closeEvent(QCloseEvent *event) {
-    Configurator &configurator = Configurator::Get();
+    Environment &environment = Configurator::Get().environment;
 
-    configurator.SaveOverriddenApplicationList();
     event->accept();
 
     // When we don't use overridden list only, no need to alert the user about empty list cases.
-    if (!configurator._overridden_application_list_only) return;
+    if (!environment.UseApplicationListOverrideMode()) return;
 
-    if (configurator._overridden_application_list.empty() || !configurator.HasOverriddenApplications()) {
+    if (environment.GetApplications().empty() || !environment.HasOverriddenApplications()) {
+        environment.SetMode(OVERRIDE_MODE_LIST, false);
+
         QMessageBox alert;
         alert.setIcon(QMessageBox::Warning);
         alert.setWindowTitle("Vulkan Layers overriding will apply globally.");
@@ -105,24 +116,11 @@ void dlgCreateAssociation::on_pushButtonAdd_clicked()  // Pick the test applicat
 {
     Configurator &configurator = Configurator::Get();
 
-    QString filter = ("Applications (*)");  // Linux default
-
-#ifdef __APPLE__
-    filter = QString("Applications (*.app, *");
-#endif
-
-#ifdef _WIN32
-    filter = QString("Applications (*.exe)");
-#endif
-
-    // Go get it.
-    QString full_suggested_path = configurator.GetPath(Configurator::LastExecutablePath);
-    QString executable_full_path = QFileDialog::getOpenFileName(this, "Select a Vulkan Executable", full_suggested_path, filter);
+    const QString suggested_path = configurator.path.GetPath(PATH_EXECUTABLE);
+    QString executable_full_path = configurator.path.SelectPath(this, PATH_EXECUTABLE, suggested_path);
 
     // If they have selected something!
     if (!executable_full_path.isEmpty()) {
-        configurator.SetPath(Configurator::LastExecutablePath, executable_full_path);
-
         // On macOS, they may have selected a binary, or they may have selected an app bundle.
         // If the later, we need to drill down to the actuall applicaiton
         if (executable_full_path.right(4) == QString(".app")) {
@@ -130,16 +128,14 @@ void dlgCreateAssociation::on_pushButtonAdd_clicked()  // Pick the test applicat
             GetExecutableFromAppBundle(executable_full_path);
         }
 
-        Application *new_application = new Application(executable_full_path, "");
-        configurator._overridden_application_list.push_back(new_application);
+        Application new_application(executable_full_path, "");
+        configurator.environment.AppendApplication(new_application);
 
-        QTreeWidgetItem *item = CreateApplicationItem(*new_application);
+        QTreeWidgetItem *item = CreateApplicationItem(new_application);
 
-        configurator.SaveSettings();
-        configurator.SaveOverriddenApplicationList();
         configurator.RefreshConfiguration();
         ui->treeWidget->setCurrentItem(item);
-        _last_selected_application_index = ui->treeWidget->indexOfTopLevelItem(item);
+        configurator.environment.SelectActiveApplication(ui->treeWidget->indexOfTopLevelItem(item));
     }
 }
 
@@ -149,7 +145,7 @@ QTreeWidgetItem *dlgCreateAssociation::CreateApplicationItem(const Application &
     QTreeWidgetItem *item = new QTreeWidgetItem();
     ui->treeWidget->addTopLevelItem(item);
 
-    if (configurator.HasActiveOverrideOnApplicationListOnly()) {
+    if (configurator.environment.UseApplicationListOverrideMode()) {
         QCheckBox *check_box = new QCheckBox(application.executable_path);
         check_box->setChecked(application.override_layers);
         ui->treeWidget->setItemWidget(item, 0, check_box);
@@ -164,15 +160,15 @@ QTreeWidgetItem *dlgCreateAssociation::CreateApplicationItem(const Application &
 ///////////////////////////////////////////////////////////////////////////////
 /// Easy enough, just remove the selected program from the list
 void dlgCreateAssociation::on_pushButtonRemove_clicked() {
-    QTreeWidgetItem *pCurrent = ui->treeWidget->currentItem();
-    int iSel = ui->treeWidget->indexOfTopLevelItem(pCurrent);
-    if (iSel < 0) return;
+    QTreeWidgetItem *current = ui->treeWidget->currentItem();
+    int selection = ui->treeWidget->indexOfTopLevelItem(current);
+    assert(selection >= 0 && selection < ui->treeWidget->topLevelItemCount());
 
     Configurator &configurator = Configurator::Get();
 
-    ui->treeWidget->takeTopLevelItem(iSel);
+    ui->treeWidget->takeTopLevelItem(selection);
     ui->treeWidget->setCurrentItem(nullptr);
-    configurator._overridden_application_list.removeAt(iSel);
+    configurator.environment.RemoveApplication(selection);
 
     ui->groupLaunchInfo->setEnabled(false);
     ui->pushButtonRemove->setEnabled(false);
@@ -181,10 +177,8 @@ void dlgCreateAssociation::on_pushButtonRemove_clicked() {
     ui->lineEditWorkingFolder->setText("");
     ui->lineEditLogFile->setText("");
 
-    configurator.SaveOverriddenApplicationList();
     configurator.RefreshConfiguration();
     ui->treeWidget->update();
-    _last_selected_application_index = -1;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -192,8 +186,10 @@ void dlgCreateAssociation::on_pushButtonRemove_clicked() {
 // the launcher.
 void dlgCreateAssociation::on_pushButtonSelect_clicked() {
     Configurator &configurator = Configurator::Get();
-    QTreeWidgetItem *pItem = ui->treeWidget->currentItem();
-    if (pItem != nullptr) configurator.SelectLaunchApplication(ui->treeWidget->indexOfTopLevelItem(pItem));
+    QTreeWidgetItem *item = ui->treeWidget->currentItem();
+    if (item != nullptr) {
+        configurator.environment.SelectActiveApplication(ui->treeWidget->indexOfTopLevelItem(item));
+    }
 
     close();
 }
@@ -203,26 +199,24 @@ void dlgCreateAssociation::on_pushButtonSelect_clicked() {
 /// be removed. Also the working folder and command line arguments are updated
 void dlgCreateAssociation::selectedPathChanged(QTreeWidgetItem *current_item, QTreeWidgetItem *previous_item) {
     (void)previous_item;
-    _last_selected_application_index = ui->treeWidget->indexOfTopLevelItem(current_item);
-    if (_last_selected_application_index < 0) {
-        ui->groupLaunchInfo->setEnabled(false);
-        ui->pushButtonRemove->setEnabled(false);
-        ui->pushButtonSelect->setEnabled(false);
+    int application_index = ui->treeWidget->indexOfTopLevelItem(current_item);
+
+    ui->groupLaunchInfo->setEnabled(application_index >= 0);
+    ui->pushButtonRemove->setEnabled(application_index >= 0);
+    ui->pushButtonSelect->setEnabled(application_index >= 0);
+
+    if (application_index < 0) {
         ui->lineEditCmdArgs->setText("");
         ui->lineEditWorkingFolder->setText("");
         ui->lineEditWorkingFolder->setText("");
         return;
     }
 
-    ui->groupLaunchInfo->setEnabled(true);
-    ui->pushButtonRemove->setEnabled(true);
-    ui->pushButtonSelect->setEnabled(true);
+    const Application &application = Configurator::Get().environment.GetApplication(application_index);
 
-    Configurator &configurator = Configurator::Get();
-
-    ui->lineEditWorkingFolder->setText(configurator._overridden_application_list[_last_selected_application_index]->working_folder);
-    ui->lineEditCmdArgs->setText(configurator._overridden_application_list[_last_selected_application_index]->arguments);
-    ui->lineEditLogFile->setText(configurator._overridden_application_list[_last_selected_application_index]->log_file);
+    ui->lineEditWorkingFolder->setText(application.working_folder);
+    ui->lineEditCmdArgs->setText(application.arguments);
+    ui->lineEditLogFile->setText(application.log_file);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -230,8 +224,7 @@ void dlgCreateAssociation::itemChanged(QTreeWidgetItem *item, int column) {
     _last_selected_application_index = ui->treeWidget->indexOfTopLevelItem(item);
     QCheckBox *check_box = dynamic_cast<QCheckBox *>(ui->treeWidget->itemWidget(item, column));
     if (check_box != nullptr) {
-        Configurator &configurator = Configurator::Get();
-        configurator._overridden_application_list[_last_selected_application_index]->override_layers = check_box->isChecked();
+        Configurator::Get().environment.GetApplication(_last_selected_application_index).override_layers = check_box->isChecked();
     }
 }
 
@@ -244,20 +237,16 @@ void dlgCreateAssociation::itemChanged(QTreeWidgetItem *item, int column) {
 void dlgCreateAssociation::itemClicked(bool clicked) {
     (void)clicked;
 
-    Configurator &configurator = Configurator::Get();
-    bool need_checkbox = configurator.HasActiveOverrideOnApplicationListOnly();
+    Environment &environment = Configurator::Get().environment;
+    const bool need_checkbox = environment.UseApplicationListOverrideMode();
     if (!need_checkbox) return;
 
     // Loop through the whole list and reset the checkboxes
     for (int i = 0; i < ui->treeWidget->topLevelItemCount(); i++) {
         QTreeWidgetItem *item = ui->treeWidget->topLevelItem(i);
         QCheckBox *check_box = dynamic_cast<QCheckBox *>(ui->treeWidget->itemWidget(item, 0));
-        Q_ASSERT(check_box != nullptr);
-        bool is_checked = check_box->isChecked();
-        if (configurator._overridden_application_list[i]->override_layers != is_checked) {  // We've changed
-            configurator._overridden_application_list[i]->override_layers = is_checked;
-            ui->treeWidget->setCurrentItem(item);
-        }
+        assert(check_box != nullptr);
+        environment.GetApplication(i).override_layers = check_box->isChecked();
     }
 }
 
@@ -267,7 +256,7 @@ void dlgCreateAssociation::editCommandLine(const QString &cmdLine) {
     _last_selected_application_index = ui->treeWidget->indexOfTopLevelItem(current);
     if (_last_selected_application_index < 0) return;
 
-    Configurator::Get()._overridden_application_list[_last_selected_application_index]->arguments = cmdLine;
+    Configurator::Get().environment.GetApplication(_last_selected_application_index).arguments = cmdLine;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -276,7 +265,7 @@ void dlgCreateAssociation::editWorkingFolder(const QString &workingFolder) {
     _last_selected_application_index = ui->treeWidget->indexOfTopLevelItem(current);
     if (_last_selected_application_index < 0) return;
 
-    Configurator::Get()._overridden_application_list[_last_selected_application_index]->working_folder = workingFolder;
+    Configurator::Get().environment.GetApplication(_last_selected_application_index).working_folder = workingFolder;
 }
 
 void dlgCreateAssociation::editLogFile(const QString &logFile) {
@@ -284,7 +273,7 @@ void dlgCreateAssociation::editLogFile(const QString &logFile) {
     _last_selected_application_index = ui->treeWidget->indexOfTopLevelItem(current);
     if (_last_selected_application_index < 0) return;
 
-    Configurator::Get()._overridden_application_list[_last_selected_application_index]->log_file = logFile;
+    Configurator::Get().environment.GetApplication(_last_selected_application_index).log_file = logFile;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -293,7 +282,8 @@ void dlgCreateAssociation::editLogFile(const QString &logFile) {
 /// you find in the /MacOS folder is the executable.
 /// The initial path is the folder where info.plist resides, and the
 /// path is completed to the executable upon completion.
-void dlgCreateAssociation::GetExecutableFromAppBundle(QString &path) {
+void dlgCreateAssociation::GetExecutableFromAppBundle(QString &app_path) {
+    QString path = app_path;
     path += "/Contents/";
     QString list_file = path + "Info.plist";
     QFile file(list_file);
@@ -323,6 +313,10 @@ void dlgCreateAssociation::GetExecutableFromAppBundle(QString &path) {
             // Complete the partial path
             path += QString("MacOS/");
             path += QString(cExeName);
+
+            // Return original if not found, but root if found
+            app_path = path;
+
             delete[] cExeName;
             break;
         }

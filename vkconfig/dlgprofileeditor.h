@@ -21,53 +21,80 @@
 
 #pragma once
 
-#include "treefriendlycombobox.h"
-#include "configuration.h"
+#include "widget_tree_friendly_combobox.h"
+
+#include "../vkconfig_core/configuration.h"
 
 #include <QDialog>
 #include <QTreeWidgetItem>
 #include <QResizeEvent>
 #include <QShowEvent>
 
+#include <cassert>
+#include <memory>
+
 namespace Ui {
 class dlgProfileEditor;
 }
+
+class TreeWidgetItemParameter : public QTreeWidgetItem {
+   public:
+    TreeWidgetItemParameter(const QString &layer_name) : layer_name(layer_name) { assert(!layer_name.isEmpty()); }
+
+    QString layer_name;
+};
 
 class dlgProfileEditor : public QDialog {
     Q_OBJECT
 
    public:
-    explicit dlgProfileEditor(QWidget *parent, Configuration *configuration);
+    explicit dlgProfileEditor(QWidget *parent, const Configuration &configuration);
     ~dlgProfileEditor();
 
-    // Load all layers into the list box
-    void LoadLayerDisplay(int selection = -1);
+    void LoadAvailableLayersUI();
+    void LoadSortedLayersUI();
+
+    QString GetConfigurationName() const;
 
    private:
-    Ui::dlgProfileEditor *ui;
+    std::unique_ptr<Ui::dlgProfileEditor> ui;
 
-    Configuration *_configuration;
+    Configuration configuration;
 
     virtual void resizeEvent(QResizeEvent *event) override;
     virtual void showEvent(QShowEvent *) override;
 
-    void AddMissingLayers(Configuration *configuration);
-
-    void PopulateCustomTree();
+    void UpdateUI();
 
    public Q_SLOTS:
     virtual void accept() override;
 
     void currentLayerChanged(QTreeWidgetItem *current, QTreeWidgetItem *previous);
 
-    void customTreeItemActivated(QTreeWidgetItem *item, int column);
-
     void on_pushButtonResetLayers_clicked();
-    void on_pushButtonAddLayers_clicked();
-    void on_pushButtonRemoveLayers_clicked();
+    void on_pushButtonCustomLayers_clicked();
+    void on_pushButtonUp_clicked();
+    void on_pushButtonDown_clicked();
 
-    void on_toolButtonUp_clicked();
-    void on_toolButtonDown_clicked();
+    void OnLayerTreeSortedClicked(QTreeWidgetItem *item, int column);
 
     void layerUseChanged(QTreeWidgetItem *item, int selection);
+
+   private:
+    dlgProfileEditor(const dlgProfileEditor &) = delete;
+    dlgProfileEditor &operator=(const dlgProfileEditor &) = delete;
+
+    void AddLayerItem(const Parameter &parameter);
+
+    void StoreParameters();
+    void BuildParameters();
+    void OrderParameter();
+    std::vector<Parameter>::iterator FindParameter(const QString &layer_name);
+
+    void OverrideAllExplicitLayers();
+    void OverrideOrder(const QString layer_name, const TreeWidgetItemParameter *below, const TreeWidgetItemParameter *above);
+
+    std::vector<Parameter> parameters;  // List of available layers and configuration layers
+    QString selected_available_layer_name;
+    QString selected_sorted_layer_name;
 };

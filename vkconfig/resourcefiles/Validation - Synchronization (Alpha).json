@@ -75,6 +75,7 @@
                     "default": [
                         "error",
                         "perf",
+                        "info",
                         "warn"
                     ],
                     "description": "The message severity the layer should report back",

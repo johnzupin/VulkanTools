@@ -19,14 +19,16 @@
  * - Christophe Riccio <christophe@lunarg.com>
  */
 
+#include "mainwindow.h"
+
+#include "../vkconfig_core/application_singleton.h"
+#include "../vkconfig_core/command_line.h"
+
 #include <QApplication>
 #include <QCheckBox>
 #include <QMessageBox>
 
-#include "mainwindow.h"
-#include "appsingleton.h"
-#include "command_line.h"
-#include "test.h"
+#ifndef UNIT_TEST
 
 int main(int argc, char* argv[]) {
     const CommandLine command_line(argc, argv);
@@ -60,8 +62,8 @@ int main(int argc, char* argv[]) {
 
             // This has to go after the construction of QApplication in
             // order to use a QMessageBox and avoid some QThread warnings.
-            AppSingleton singleApp("vkconfig_single_instance");
-            if (!singleApp.IsFirstApp()) {
+            const ApplicationSingleton singleton("vkconfig_single_instance");
+            if (!singleton.IsFirstInstance()) {
                 QMessageBox alert(nullptr);
                 alert.setWindowTitle("Cannot start another instance of vkconfig");
                 alert.setIcon(QMessageBox::Critical);
@@ -70,26 +72,8 @@ int main(int argc, char* argv[]) {
                 return -1;
             }
 
-            // SDK release 1.2.148.5 and earlier had some bad tokens in the default configurations and this was the only way to
-            // "repair" them. In the future, we will be more surgical about this when it occurs, or when upates
-            // are made to support additional validation layer settings. The initial first run key was "Initialized", which
-            // set to false also was non-intuitive (it was backwards), so good to change that as well. The logic below will
-            // not show this dialog to everyone, only those who installed the SDK on the first week of release.
-            QSettings settings;
-            if (!settings.value("Initialized", true).toBool() && settings.value(VKCONFIG_KEY_INITIALIZE_FILES, true).toBool()) {
-                QMessageBox alert;
-                alert.setText(
-                    "Vulkan Configurator needs to be reset. "
-                    "All standard configurations are being reset to their default state, and user "
-                    "configurations need to be recreated. Future releases will allow for repair of faulty configuration files.");
-                alert.setWindowTitle("Vulkan Configurator");
-                alert.setIcon(QMessageBox::Warning);
-                alert.exec();
-                // DO NOT set VKCONFIG_KEY_INITIALIZED_FILES to false here
-            }
-
             // We simply cannot run without any layers
-            if (Configurator::Get().InitializeConfigurator() == false) return -1;
+            if (Configurator::Get().Init() == false) return -1;
 
             // The main GUI is driven here
             MainWindow main_window;
@@ -101,8 +85,7 @@ int main(int argc, char* argv[]) {
             command_line.usage();
             return 0;
         }
-        case CommandLine::ModeRunTest: {
-            return test();
-        }
     }
 }
+
+#endif  // UNIT_TEST

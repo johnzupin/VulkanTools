@@ -1,3 +1,232 @@
+lunarg-tools (1.2.154.0-1lunarg20.04-1) focal; urgency=medium
+
+  [ richard-lunarg ]
+  * vkconfig: Fixed initialization error
+
+  [ KarenGhavam-lunarG ]
+  * docs: Reference Vulkan Configurator
+
+  [ richard-lunarg ]
+  * vkconfig: Fixed crashing bug. Layout improvements
+  * vkconfig: Linux regressions and confusion
+  * vkconfig Linux fix
+  * vkconfig Missing .txt for log file
+  * vkconfig Removed dead code
+  * vkconfig: Spelling and comments updates
+
+  [ KarenGhavam-lunarG ]
+  * Docs: Via. Fixed spelling error
+
+  [ richard-lunarg ]
+  * vkconfig: Warnings, misspellings, singleton fix
+  * vkconfig: Removed spaces from QSettings default
+  * vkconfig: Fixed missing folder on linux
+  * vkconfig: HDPI and log path fixes
+  * vkconfig: other last minute fixes combined
+  * vkconfig: API Dump is now the default configuration
+  * vkconfig2: API dump and doc updates
+  * vkconfig: Post SDK cleanup Debug-Printf configuration now uses gpu printf functionality Fixed spacing issues with radio buttons in main configuration list Corrected attempting to write to log file that was not open
+  * vkconfig: Tweak for Linux control behavior
+  * vkconfig: Fixes for synchronization validation
+  * vkconfig: Hotfixes for 1.2.148 SDK release
+  * vkconfig: Comments were wrong about SDK version
+  * vkconfig: Modified comments about SDK bug
+
+  [ Christophe ]
+  * vkconfig: Bring back default settings states
+  * vkconfig: Bring back "Standard validation" to default
+  * vkconfig: Using soft language instead.
+
+  [ Charles Giessen ]
+  * apidump: Make options case-insensitive
+
+  [ richard-lunarg ]
+  * vkconfig: Fixed several post SDK issues
+  * vkconfig: Log file location/working folder browser
+
+  [ christophe-lunarg ]
+  * vkconfig: Initial unit using Google Test
+
+  [ richard-lunarg ]
+  * vkconfig: Updates for custom paths
+  * vkconfig: GUI fixes and tweaks
+
+  [ christophe-lunarg ]
+  * vkconfig: Coding conventions - pushing a trivial change to relaunch C.I..
+  * vkconfig: Fix whitespace is custome path and clean up
+  * vkconfig: Add asserts to layer setting widgets
+  * vkconfig: More assert and refactoring of widget
+  * vkconfig: A single place for setting token
+  * vkconfig: more consistent naming
+
+  [ richard-lunarg ]
+  * vkconfig: Edit of description and fix for pro file
+
+  [ christophe-lunarg ]
+  * vkconfig: added path manager with tests
+  * vkconfig: Removed VulkanLayerManager temp directory
+  * vkconfig: ignore dependency repositories changes
+  * vkconfig: removed legacy override path
+  * vkconfig: generate build error when the platform is not detected
+  * vkconfig: Removed untested path system
+  * vkconfig: Fix launcher browsed files
+  * vkconfig: fix QtCreator build
+  * vkconfig: Added custom path storage
+  * vkconfig: Fix gerrit linux build
+  * vkconfig: Fixed Linux build error
+  * vkconfig: Basically all folder window have previous path cache
+  * vkconfig: Fix command_line tests on linux
+  * vkconfig: Fix log not written #1108
+  * vkconfig: Streamline launch log to improve robustness
+  * vkconfig: clean up
+  * vkconfig: add changelog and build version
+  * vkconfig: Improve default applications handling #1092
+  * vkconfig: Filter out VK_DBG_LAYER_ACTION_DEBUG_OUTPUT on Linux and macOS #1086
+
+  [ Bob Ellison ]
+  * android: NDK 21d
+
+  [ christophe-lunarg ]
+  * vkconfig: Configuration::IsValid is not a persistent state
+  * vkconfig: admin is a persistant state
+  * vkconfig: Added utility function SortByRank
+  * vkconfig: Refactor setting memory management
+  * vkconfig: check the validity of layers settings
+  * vkconfig: copie protection
+  * vkconfig: Move configuration load and save in the configuration files with version management
+  * vkconfig: clean up Configuration::load
+  * vkconfig: Fix  configuration name #1102
+  * vkconfig: Import and export parse the configuration file
+  * vkconfig: Fix path maanger tests
+  * vkconfig: Fix appveyor
+  * vkconfig: Updated ignore list to ignore CTest testing directory
+  * vkconfig: convert debug_action enum to multienum in build 1003
+  * vkconfig: Fix internal C.I.
+
+  [ richard-lunarg ]
+  * vkconfig: Multiple debug actions simultaneously
+
+  [ christophe-lunarg ]
+  * vkconfig: update changelog
+
+  [ Charles Giessen ]
+  * apidump: Make pNext chain printing more legible
+
+  [ christophe-lunarg ]
+  * vkconfig: added application singleton unit tests
+  * vkconfig: Loader version checking is dynamic, no need to restart
+  * vkconfig: it uses its own version, used for the configuration file version
+  * vkconfig: Move main window states to
+  * vkconfig: fix GitHub C.I.
+  * vkconfig: Fix GitHub C.I.
+  * vkconfig: Move custom paths to environment and added tests for it
+  * vkconfig: Clean up dead code
+  * vkconfig: Add environment reset
+  * vkconfig: remove special code path mode for environment test
+  * vkconfig: Move configuration to vkconfig_core
+  * vkconfig: Add extension enable support for sync val #1118
+  * vkconfig: Load and Save settings from the same file
+  * vkconfig: clean up
+  * vkconfig: Fix duplicated vkcube corner case
+  * vkconfig: add applications to environment
+  * vkconfig: Fix corner case where vkconfig can be added multiple times
+  * vkconfig: Using the application filename as root keys make changes crashing on 'forward vkconfig compatbility'
+  * vkconfig: When opening newer configure files, try to open anyway.
+  * vkconfig: disabling all the configurations with using old version of vkconfig is too strong
+  * vkconfig: Indicate the version for which gfxrecon requires a different prefix
+  * vkconfig: Fix custon path #1122
+  * vkconfig: Better express the behavior of implicit layers #1124
+  * vkconfig: Fix asserts on environment that ran old version of vkconfig
+  * vkconfig: Replace pointer by configuration name
+  * vkconfig: Improve new configuration name creation
+  * vkconfig: Fix setting updates
+  * vkconfig: Fix display of settings when duplicating or creating a new config
+  * vkconfig: Fix AppVeyor build.
+  * vkconfig: Add QtCreator project build
+  * vkconfig: Remove QtCreator build, not working
+  * vkconfig: Fix setting UI on Reset
+  * vkconfig: Fix setting display after 'Select Layers... click'
+  * vkconfig: Mode to discard shader based configuration and presets #1130
+  * vkconfig: Separated the configuration parameter from the layer
+  * vkconfig: Remove useless code
+  * vkconfig: Where layers are missing, we can click on Select Layers button
+  * vkconfig: Display layers available on the system
+  * vkconfig: Clean up
+  * vkconfig: Save configuration window settings
+  * vkconfig: Clean of layer window
+  * vkconfig: Fix reload configuration when adding custom path
+  * vkconfig: Clean up debug code
+  * vkconfig: fix appveyor build
+  * vkconfig: Fix gerrit build
+  * vkconfig: Fix active configuration having no effect
+  * vkconfig: Fix active configuration with no setting
+  * vkconfig: Remove debug code
+  * vkconfig: Clean up dead code
+  * vkconfig: fix Vulkan status
+  * vkconfig: Fix assert because only Windows has executable suffix #1138
+  * vkconfig: Fix assert when the applist.json file was deleted #1136
+  * vkconfig: Add layers configuration tests
+  * vkconfig: Fix configuration renaming #1144
+  * vkconfig: Clear log on launch enabled by default #1143
+  * vkconfig: Fix exit notification not being saved
+  * vkconfig: Fix no setting when switch between exclude and override #1150
+
+  [ richard-lunarg ]
+  * vkconfig: macOS regressions
+
+  [ christophe-lunarg ]
+  * vkconfig: Fix application list always disabled #1153
+
+  [ richard-lunarg ]
+  * vkconfig: Fix gui update issue on macOS
+
+  [ christophe-lunarg ]
+  * vkconfig: Fix layers window reset button #1162
+  * vkconfig: Don't reset systematically settings
+  * vkconfig: Fix the display of numeric bool #1166
+  * vkconfig: Search vkcube at the package install path #1088
+
+  [ Tony-LunarG ]
+  * build: Changes for 1.2.153 header
+
+  [ christophe-lunarg ]
+  * vkconfig: Initial work for devsim with vk portability
+  * vkconfig: Sort layers automatically and add settings to devsim
+  * vkconfig: Reset also set the preset to none
+  * vkconfig: Fix Vulkan Dev status disabled by mistake
+  * vkconfig: better display implicit layers exec order
+  * vkconfig: Reset make a configuration empty
+  * vkconfig: suggest to the user to add validation with devsim
+  * vkconfig: Refactor to give access to the layer name in the layer settings loading and saving
+  * vkconfig: Hide emulate_portability setting on version 1.3.0 and earlier
+  * vkconfig: Reenabled Vulkan status
+  * vkconfig: Expose duplicate_message_limit #1174
+  * vkconfig: prevent action_debug_output to be lost #1173
+  * vkconfig: Fix unit test, settings were not sorted consistenly
+
+  [ richard-lunarg ]
+  * vkconfig: Mac regression fixes
+
+  [ christophe-lunarg ]
+  * vkconfig: Manual sorting for overridden layers
+
+  [ Tony-LunarG ]
+  * build: Changes for 1.2.154 header
+
+  [ christophe-lunarg ]
+  * vkconfig: Fix Capture Frame Range configuration #1184 #1185
+  * vkconfig: Fix crash when no configuration is actived
+
+  [ Tony-LunarG ]
+  * build: Update Android build to 154 headers
+  * build: Point to VVL sdk branch
+
+  [ John Zupin ]
+  * packaging: updated patches
+  * packaging: remove auto testing
+
+ -- John Zupin <john@odin>  Mon, 28 Sep 2020 17:42:09 -0600
+
 lunarg-tools (1.2.148.0-1ubuntu20.04-5) focal; urgency=medium
 
   [ richard-lunarg ]

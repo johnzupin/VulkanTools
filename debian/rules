@@ -27,6 +27,7 @@ override_dh_auto_configure:
 				-DVULKAN_VALIDATIONLAYERS_INSTALL_DIR=/usr \
 				-DBUILD_VLF="NO" \
 				-DBUILD_VKTRACEVIEWER=OFF \
-				-DBUILD_TESTS="OFF"
+				-DBUILD_TESTS="OFF" \
+				-DINSTALL_GTEST="OFF"
 
 override_dh_auto_test: ;

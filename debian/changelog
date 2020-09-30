@@ -1,3 +1,11 @@
+lunarg-tools (1.2.154.0-1lunarg20.04-2) focal; urgency=medium
+
+  * Packaging: Don't build tests
+  * packaging: Disable installing gtests
+  * package: update deps version
+
+ -- John Zupin <john@odin>  Wed, 30 Sep 2020 16:55:36 -0600
+
 lunarg-tools (1.2.154.0-1lunarg20.04-1) focal; urgency=medium
 
   [ richard-lunarg ]

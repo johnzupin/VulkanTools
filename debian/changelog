@@ -1,3 +1,11 @@
+lunarg-tools (1.2.154.0-1lunarg18.04-2) bionic; urgency=medium
+
+  * Packaging: Don't build tests
+  * packaging: Disable installing gtests
+  * package: update deps version
+
+ -- John Zupin <john@odin>  Wed, 30 Sep 2020 16:52:17 -0600
+
 lunarg-tools (1.2.154.0-1lunarg18.04-1) bionic; urgency=medium
 
   [ richard-lunarg ]

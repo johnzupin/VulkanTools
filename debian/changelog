@@ -1,3 +1,38 @@
+lunarg-tools (1.2.154.0-1lunarg20.04-3) focal; urgency=medium
+
+  [ Jeremy Kniager ]
+  * devsim: Add emulation for portability extension
+
+  [ christophe-lunarg ]
+  * vkconfig: Fix ParameterRank
+
+  [ Jeremy Kniager ]
+  * devsim: Fix manifest JSON file
+
+  [ Tony-LunarG ]
+  * build: Point to VVL sdk branch
+
+  [ richard-lunarg ]
+  * macOS fixes for cmake builds
+
+  [ Jeremy Kniager ]
+  * doc: Add link to DevSim documentation
+
+  [ christophe-lunarg ]
+  * vkconfig: Fix configurations with no name
+  * vkconfig: Updated changelog
+  * vkconfig: Fix terminate of hang launched application
+  * vkconfig: Fix working directory selection
+  * vkconfig: Fix invalid message box about the application state
+  * vkconfig: Fix settings collect high overhead message box
+
+  [ richard-lunarg ]
+  * vkconfig: Fixed macOS regression for vkcube search
+  * vkconfig: PLATFORM_MACOS convention change
+  * vkconfig: format change.
+
+ -- John Zupin <john@odin>  Thu, 01 Oct 2020 15:45:30 -0600
+
 lunarg-tools (1.2.154.0-1lunarg20.04-2) focal; urgency=medium
 
   * Packaging: Don't build tests

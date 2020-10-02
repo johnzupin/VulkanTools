@@ -1,3 +1,16 @@
+lunarg-tools (1.2.154.0-1lunarg18.04-5) bionic; urgency=medium
+
+  [ christophe-lunarg ]
+  * vkconfig: Updated changelog
+
+  [ Dustin Graves ]
+  * devsim: Update API version check
+
+  [ christophe-lunarg ]
+  * vkconfig: Updated screenshots
+
+ -- John Zupin <john@odin>  Fri, 02 Oct 2020 16:22:59 -0600
+
 lunarg-tools (1.2.154.0-1lunarg18.04-4) bionic; urgency=medium
 
   [ christophe-lunarg ]

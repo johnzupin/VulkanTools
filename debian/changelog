@@ -1,3 +1,15 @@
+lunarg-tools (1.2.154.0-1lunarg18.04-4) bionic; urgency=medium
+
+  [ christophe-lunarg ]
+  * vkconfig: Fix default key for frame capture config
+  * vkconfig: Use home directory by default for frame capture
+  * vkconfig: Fix gfxrecon invalid path
+
+  [ John Zupin ]
+  * package: build as RelWithDebInfo to disable asserts
+
+ -- John Zupin <john@odin>  Fri, 02 Oct 2020 10:08:11 -0600
+
 lunarg-tools (1.2.154.0-1lunarg18.04-3) bionic; urgency=medium
 
   [ Jeremy Kniager ]

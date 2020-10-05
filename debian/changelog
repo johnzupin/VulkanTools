@@ -1,3 +1,12 @@
+lunarg-tools (1.2.154.0-1lunarg20.04-6) focal; urgency=medium
+
+  [ christophe-lunarg ]
+  * vkconfig: Fix selecting layers when override is disabled
+  * vkconfig: Updated image with the wrong size
+  * vkconfig: Fix backslack paths for custom path
+
+ -- John Zupin <john@odin>  Mon, 05 Oct 2020 10:36:16 -0600
+
 lunarg-tools (1.2.154.0-1lunarg20.04-5) focal; urgency=medium
 
   [ christophe-lunarg ]

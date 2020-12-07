@@ -22,46 +22,19 @@
 #pragma once
 
 #include "../vkconfig_core/layer.h"
+#include "../vkconfig_core/layer_manager.h"
 #include "../vkconfig_core/path_manager.h"
 #include "../vkconfig_core/environment.h"
 #include "../vkconfig_core/configuration.h"
+#include "../vkconfig_core/platform.h"
 
-#ifdef _WIN32
-#include <windows.h>
-#include <winreg.h>
-#include <Cfgmgr32.h>
-#define WIN_BUFFER_SIZE 1024
-#endif
 #include <QString>
-#include <QVector>
 #include <QDir>
 #include <QTreeWidget>
 
 #include <vulkan/vulkan.h>
 
 #include <vector>
-
-////////////////////////////////////////////////////////////////////////////////
-/// Going back and forth between the Windows registry and looking for files
-/// in specific folders is just a mess. This class consolidates all that into
-/// one single abstraction that knows whether to look in the registry or in
-/// a folder with QDir.
-/// This is a little weird because generally QSettings is for going back
-/// and forth between the Registry or .ini files. Here, I'm going from
-/// the registry to directory entries.
-class PathFinder {
-   public:
-#ifdef _WIN32
-    PathFinder(const QString& path, bool force_file_system = false);
-#else
-    PathFinder(const QString& path, bool force_file_system = true);
-#endif
-    int FileCount() { return file_list_.size(); }
-    QString GetFileName(int i) { return file_list_[i]; }
-
-   private:
-    QStringList file_list_;
-};
 
 // This is a master list of layer settings. All the settings
 // for what layers can have user modified settings. It contains
@@ -79,37 +52,25 @@ class Configurator {
     static Configurator& Get();
     bool Init();
 
-   private:
-    const bool _running_as_administrator;  // Are we being "Run as Administrator"
-
-    /////////////////////////////////////////////////////////////////////////
     // Validation Preset
    public:
     const char* GetValidationPresetName(ValidationPreset preset) const;
     const char* GetValidationPresetLabel(ValidationPreset preset) const;
 
-    /////////////////////////////////////////////////////////////////////////
     // Additional places to look for layers
    public:
     void BuildCustomLayerTree(QTreeWidget* tree_widget);
 
-    QStringList VK_LAYER_PATH;  // If this environment variable is set, this contains
-                                // a list of paths that should be searched first for
-                                // Vulkan layers. (Named as environment variable for
-                                // clarity as to where this comes from).
-
-    /////////////////////////////////////////////////////////////////////////
     // The list of applications affected
    public:
     // If return_loader_version is not null, the function will return the loader version
     // If quiet is false, message box will be generate
-    bool SupportApplicationList(bool quiet = true, Version* return_loader_version = nullptr) const;
+    bool SupportApplicationList(Version* return_loader_version = nullptr) const;
 
     bool HasActiveOverrideOnApplicationListOnly() const {
         return SupportApplicationList() && environment.UseApplicationListOverrideMode();
     }
 
-    ////////////////////////////////////////////////////////////////////////
     // A readonly list of layer names with the associated settings
     // and their default values. This is for reference by individual profile
     // objects.
@@ -117,39 +78,21 @@ class Configurator {
     void LoadDefaultLayerSettings();
     const LayerSettingsDefaults* FindLayerSettings(const QString& layer_name) const;
 
-    ////////////////////////////////////////////////////////////////////////
-    // Look for all installed layers. This contains their path, version info, etc.
-    // but does not contain settings information. The default settings are stored
-    // in the above (defaultLayerSettings). The binding of a layer with it's
-    // particular settings is done in the profile (Configuration - in configuration list).
-    // This includes all found implicit, explicit, or layers found in custom folders
-    QVector<Layer*> _available_Layers;  // All the found layers, lumped together
-    void LoadAllInstalledLayers();
-    bool IsLayerAvailable(const QString& layer_name) const;
-    Layer* FindLayerNamed(QString layer_name);
-    void LoadLayersFromPath(const QString& path, QVector<Layer*>& layers);
-
-    QVector<Configuration*> _available_configurations;
-
-    Configuration* CreateEmptyConfiguration();
-    Configuration* FindConfiguration(const QString& configuration_name) const;
+    std::vector<Configuration> available_configurations;
     void LoadAllConfigurations();  // Load all the .profile files found
     void ImportConfiguration(const QString& full_import_path);
     void ExportConfiguration(const QString& source_file, const QString& full_export_path);
-    bool HasMissingLayers(const Configuration& configuration) const;
+    void ResetDefaultsConfigurations();
 
     bool HasLayers() const;
 
     // Set this as the current override configuration
-    void SetActiveConfiguration(Configuration* active_configuration);
+    std::vector<Configuration>::iterator GetActiveConfiguration() const { return _active_configuration; }
+    void SetActiveConfiguration(std::vector<Configuration>::iterator active_configuration);
     void SetActiveConfiguration(const QString& configuration_name);
-    Configuration* GetActiveConfiguration() const { return _active_configuration; }
-    void RefreshConfiguration() {
-        if (_active_configuration) SetActiveConfiguration(_active_configuration);
-    }
-    bool HasActiveConfiguration() const {
-        return _active_configuration != nullptr ? !HasMissingLayers(*_active_configuration) : false;
-    }
+    void RefreshConfiguration();
+    void RemoveConfiguration(const QString& configuration_name);
+    bool HasActiveConfiguration() const;
 
    private:
     Configurator();
@@ -158,21 +101,12 @@ class Configurator {
     Configurator(const Configurator&) = delete;
     Configurator& operator=(const Configurator&) = delete;
 
-    Configuration* _active_configuration;
-
-    void ClearLayerLists();
-
-#ifdef _WIN32
-    void LoadDeviceRegistry(DEVINST id, const QString& entry, QVector<Layer*>& layerList, LayerType type);
-    void LoadRegistryLayers(const QString& path, QVector<Layer*>& layerList, LayerType type);
-
-    void AddRegistryEntriesForLayers(QString qsJSONFile, QString qsSettingsFile);
-    void RemoveRegistryEntriesForLayers(QString qsJSONFile, QString qsSettingsFile);
-#endif
+    std::vector<Configuration>::iterator _active_configuration;
 
    public:
     PathManager path;
     Environment environment;
+    LayerManager layers;
 };
 
 ValidationPreset GetValidationPreset(const QString& configuration_name);

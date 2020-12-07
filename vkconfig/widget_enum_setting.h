@@ -15,8 +15,8 @@
  * limitations under the License.
  *
  * Authors:
- * - Richard S. Wright Jr.
- * - Christophe Riccio
+ * - Richard S. Wright Jr. <richard@lunarg.com>
+ * - Christophe Riccio <christophe@lunarg.com>
  */
 
 #pragma once
@@ -30,11 +30,9 @@
 
 class EnumSettingWidget : public QComboBox {
     Q_OBJECT
+
    public:
     explicit EnumSettingWidget(QTreeWidgetItem* item, LayerSetting& layer_setting);
-
-   private:
-    LayerSetting& _layer_setting;
 
    public Q_SLOTS:
     void indexChanged(int index);
@@ -45,4 +43,6 @@ class EnumSettingWidget : public QComboBox {
    private:
     EnumSettingWidget(const EnumSettingWidget&) = delete;
     EnumSettingWidget& operator=(const EnumSettingWidget&) = delete;
+
+    LayerSetting& _layer_setting;
 };

@@ -5,8 +5,8 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets network
 CONFIG += c++11
 CONFIG += sdk_no_version_check
 
-INCLUDEPATH += $$(VULKAN_SDK)/include
-
+INCLUDEPATH += ../Vulkan-Headers/include
+INCLUDEPATH += ../Build/Vulkan-Headers/include
 
 # The following define makes your compiler emit warnings if you use
 # any Qt feature that has been marked deprecated (the exact warnings
@@ -24,16 +24,26 @@ Release: DEFINES += QT_NO_DEBUG_OUTPUT QT_NO_WARNING_OUTPUT
 linux: QMAKE_CXXFLAGS += -Wunused-variable
 
 SOURCES += \
+    ../vkconfig_core/application.cpp \
     ../vkconfig_core/application_singleton.cpp \
-    ../vkconfig_core/configuration.cpp \
     ../vkconfig_core/command_line.cpp \
+    ../vkconfig_core/configuration.cpp \
     ../vkconfig_core/environment.cpp \
-    ../vkconfig_core/util.cpp \
-    ../vkconfig_core/version.cpp \
+    ../vkconfig_core/help.cpp \
     ../vkconfig_core/layer.cpp \
+    ../vkconfig_core/layer_manager.cpp \
     ../vkconfig_core/layer_setting.cpp \
     ../vkconfig_core/layer_type.cpp \
+    ../vkconfig_core/override.cpp \
+    ../vkconfig_core/parameter.cpp \
+    ../vkconfig_core/path.cpp \
     ../vkconfig_core/path_manager.cpp \
+    ../vkconfig_core/platform.cpp \
+    ../vkconfig_core/setting_value.cpp \
+    ../vkconfig_core/setting_type.cpp \
+    ../vkconfig_core/registry.cpp \
+    ../vkconfig_core/util.cpp \
+    ../vkconfig_core/version.cpp \
     vulkan.cpp \
     alert.cpp \
     widget_bool_setting.cpp \
@@ -44,30 +54,38 @@ SOURCES += \
     widget_mute_message.cpp \
     widget_tree_friendly_combobox.cpp \
     widget_vuid_search.cpp \
-    dlgabout.cpp \
-    dlgcreateassociation.cpp \
-    dlgcustompaths.cpp \
-    dlgprofileeditor.cpp \
-    dlgvulkananalysis.cpp \
-    dlgvulkaninfo.cpp \
-    khronossettingsadvanced.cpp \
+    dialog_about.cpp \
+    dialog_applications.cpp \
+    dialog_custom_paths.cpp \
+    dialog_layers.cpp \
+    dialog_vulkan_analysis.cpp \
+    dialog_vulkan_info.cpp \
     main.cpp \
+    main_gui.cpp \
+    main_layers.cpp \
     mainwindow.cpp \
-    preferences.cpp \
     settingstreemanager.cpp \
+    khronossettingsadvanced.cpp \
     configurator.cpp
 
 HEADERS += \
-    ..\vkconfig_core\application_singleton.h \
-    ..\vkconfig_core\configuration.h \
-    ..\vkconfig_core\command_line.h \
-    ..\vkconfig_core\environment.h \
-    ..\vkconfig_core\util.h \
-    ..\vkconfig_core\version.h \
-    ..\vkconfig_core\layer.h \
-    ..\vkconfig_core\layer_setting.h \
-    ..\vkconfig_core\layer_type.h \
-    ..\vkconfig_core\path_manager.h \
+    ../vkconfig_core/application.h \
+    ../vkconfig_core/application_singleton.h \
+    ../vkconfig_core/command_line.h \
+    ../vkconfig_core/configuration.h \
+    ../vkconfig_core/environment.h \
+    ../vkconfig_core/help.h \
+    ../vkconfig_core/layer.h \
+    ../vkconfig_core/layer_manager.h \
+    ../vkconfig_core/layer_setting.h \
+    ../vkconfig_core/layer_type.h \
+    ../vkconfig_core/override.h \
+    ../vkconfig_core/parameter.h \
+    ../vkconfig_core/path.h \
+    ../vkconfig_core/path_manager.h \
+    ../vkconfig_core/registry.h \
+    ../vkconfig_core/util.h \
+    ../vkconfig_core/version.h \
     vulkan.h \
     alert.h \
     widget_bool_setting.h \
@@ -78,25 +96,26 @@ HEADERS += \
     widget_mute_message.h \
     widget_tree_friendly_combobox.h \
     widget_vuid_search.h \
-    dlgabout.h \
-    dlgcreateassociation.h \
-    dlgcustompaths.h \
-    dlgprofileeditor.h \
-    dlgvulkananalysis.h \
-    dlgvulkaninfo.h \
+    dialog_about.h \
+    dialog_applications.h \
+    dialog_custom_paths.h \
+    dialog_layers.h \
+    dialog_vulkan_analysis.h \
+    dialog_vulkan_info.h \
     khronossettingsadvanced.h \
+    main_gui.h \
+    main_layers.h \
     mainwindow.h \
-    preferences.h \
     settingstreemanager.h \
     configurator.h
 
 FORMS += \
-    dlgabout.ui \
-    dlgcreateassociation.ui \
-    dlgcustompaths.ui \
-    dlgprofileeditor.ui \
-    dlgvulkananalysis.ui \
-    dlgvulkaninfo.ui \
+    dialog_about.ui \
+    dialog_applications.ui \
+    dialog_custom_paths.ui \
+    dialog_layers.ui \
+    dialog_vulkan_analysis.ui \
+    dialog_vulkan_info.ui \
     mainwindow.ui
 
 TRANSLATIONS += \

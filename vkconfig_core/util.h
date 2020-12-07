@@ -15,8 +15,8 @@
  * limitations under the License.
  *
  * Authors:
- * - Richard S. Wright Jr.
- * - Christophe Riccio
+ * - Richard S. Wright Jr. <richard@lunarg.com>
+ * - Christophe Riccio <christophe@lunarg.com>
  */
 
 #pragma once
@@ -29,6 +29,7 @@
 
 #include <cstddef>
 #include <cstdio>
+#include <cassert>
 #include <string>
 #include <array>
 #include <vector>
@@ -52,11 +53,35 @@ inline constexpr std::size_t countof(C<T, Alloc> const& data) noexcept {
 
 std::string format(const char* message, ...);
 
-// Create a directory from the home directory if it doesn't exist
-void CheckHomePathsExist(const QString& path);
+bool IsNumber(const std::string& s);
 
-// Replace "$HOME" built-in variable by the actual system home directory
-std::string ReplacePathBuiltInVariables(const std::string& path);
+template <typename T>
+typename std::vector<T>::iterator Find(std::vector<T>& container, const QString& name) {
+    assert(!name.isEmpty());
 
-// Exact the filename and change the path to "$HOME" directory if necessary
-std::string ValidatePath(const std::string& path);
+    for (auto it = container.begin(), end = container.end(); it != end; ++it)
+        if (it->name == name) return it;
+    return container.end();
+}
+
+template <typename T>
+typename std::vector<T>::const_iterator Find(const std::vector<T>& container, const QString& name) {
+    assert(!name.isEmpty());
+
+    for (auto it = container.begin(), end = container.end(); it != end; ++it) {
+        if (it->name == name) return it;
+    }
+
+    return container.end();
+}
+
+template <typename T>
+bool IsFound(const std::vector<T>& container, const QString& name) {
+    assert(!name.isEmpty());
+
+    for (auto it = container.begin(), end = container.end(); it != end; ++it) {
+        if (name == it->name) return true;
+    }
+
+    return false;
+}

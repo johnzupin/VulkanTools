@@ -33,23 +33,9 @@
 
 #include <cassert>
 #include <cstdio>
+#include <algorithm>
 
-Configuration::Configuration() : _name("New Configuration"), _preset(ValidationPresetNone) {}
-
-///////////////////////////////////////////////////////////
-// Find the layer if it exists.
-Parameter* Configuration::FindParameter(const QString& layer_name) {
-    assert(!layer_name.isEmpty());
-
-    for (std::size_t i = 0, n = parameters.size(); i < n; ++i) {
-        Parameter& parameter = parameters[i];
-        if (parameter.name == layer_name) {
-            return &parameters[i];
-        }
-    }
-
-    return nullptr;
-}
+Configuration::Configuration() : name("New Configuration"), _preset(ValidationPresetNone) {}
 
 static Version GetConfigurationVersion(const QJsonValue& value) {
     if (SUPPORT_VKCONFIG_2_0_1) {
@@ -60,8 +46,6 @@ static Version GetConfigurationVersion(const QJsonValue& value) {
     }
 }
 
-///////////////////////////////////////////////////////////////////////////////
-// Load from a configuration file (.json really)
 bool Configuration::Load(const QString& full_path) {
     assert(!full_path.isEmpty());
 
@@ -89,7 +73,7 @@ bool Configuration::Load(const QString& full_path) {
     const QJsonValue& configuration_entry_value = json_top_object.value(key[0]);
     const QJsonObject& configuration_entry_object = configuration_entry_value.toObject();
 
-    if (SUPPORT_VKCONFIG_2_0_1 && !HAS_SHADER_BASED) {
+    if (SUPPORT_VKCONFIG_2_0_1 && VKC_PLATFORM == VKC_PLATFORM_MACOS) {
         if (full_path.contains("Validation - Shader Printf.json") || full_path.contains("Validation - Debug Printf.json") ||
             full_path.contains("Validation - GPU-Assisted.json")) {
             return false;
@@ -97,19 +81,22 @@ bool Configuration::Load(const QString& full_path) {
     }
 
     if (SUPPORT_VKCONFIG_2_0_1 && version <= Version("2.0.1")) {
-        _name = filename.left(filename.length() - 5);
-        if (_name == "Validation - Shader Printf") {
-            _name = "Validation - Debug Printf";
-            std::remove(full_path.toStdString().c_str());
+        name = filename.left(filename.length() - 5);
+        if (name == "Validation - Shader Printf") {
+            name = "Validation - Debug Printf";
+            if (!full_path.startsWith(":/resourcefiles")) {
+                const int result = std::remove(full_path.toStdString().c_str());
+                assert(result == 0);
+            }
         }
     } else {
         const QJsonValue& json_name_value = configuration_entry_object.value("name");
         assert(json_name_value != QJsonValue::Undefined);
-        _name = json_name_value.toString();
+        name = json_name_value.toString();
     }
 
-    if (_name.isEmpty()) {
-        _name = "Configuration";
+    if (name.isEmpty()) {
+        name = "Configuration";
         const int result = std::remove(full_path.toStdString().c_str());
         assert(result == 0);
     }
@@ -147,7 +134,7 @@ bool Configuration::Load(const QString& full_path) {
         alert.setWindowTitle("Vulkan Configurator version is too old...");
         alert.setText(format("The \"%s\" configuration was created with a newer version of %s. Use %s from the "
                              "latest Vulkan SDK to resolve the issue. ",
-                             _name.toUtf8().constData(), VKCONFIG_NAME, VKCONFIG_NAME)
+                             name.toUtf8().constData(), VKCONFIG_NAME, VKCONFIG_NAME)
                           .c_str());
         alert.setInformativeText("Do you want to continue?");
         alert.setIcon(QMessageBox::Warning);
@@ -161,15 +148,17 @@ bool Configuration::Load(const QString& full_path) {
         const QJsonObject& layer_object = layer_value.toObject();
         const QJsonValue& layer_rank = layer_object.value("layer_rank");
 
-        Parameter* parameter = FindParameter(layers[layer_index]);
-        if (parameter) {
-            parameter->overridden_rank = layer_rank == QJsonValue::Undefined ? Parameter::UNRANKED : layer_rank.toInt();
+        const int overridden_rank = layer_rank == QJsonValue::Undefined ? Parameter::UNRANKED : layer_rank.toInt();
+
+        auto parameter = FindParameter(parameters, layers[layer_index]);
+        if (parameter != parameters.end()) {
+            parameter->overridden_rank = overridden_rank;
             LoadSettings(layer_object, *parameter);
         } else {
             Parameter parameter;
             parameter.name = layers[layer_index];
             parameter.state = LAYER_STATE_OVERRIDDEN;
-            parameter.overridden_rank = Parameter::UNRANKED;
+            parameter.overridden_rank = overridden_rank;
             LoadSettings(layer_object, parameter);
             parameters.push_back(parameter);
         }
@@ -212,7 +201,7 @@ bool Configuration::Save(const QString& full_path) const {
     }
 
     QJsonObject json_configuration;
-    json_configuration.insert("name", _name);
+    json_configuration.insert("name", name);
     json_configuration.insert("blacklisted_layers", excluded_list);
     json_configuration.insert("description", _description);
     json_configuration.insert("preset", _preset);
@@ -222,23 +211,61 @@ bool Configuration::Save(const QString& full_path) const {
 
     QJsonDocument doc(root);
 
-    ///////////////////////////////////////////////////////////
-    // Write it out - file name is same as name. If it's been
-    // changed, this corrects the behavior.
-
     QFile json_file(full_path);
-    if (!json_file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+    const bool result = json_file.open(QIODevice::WriteOnly | QIODevice::Text);
+    assert(result);
+
+    if (!result) {
         QMessageBox alert;
-        alert.setText("Could not save configuration file!");
-        alert.setWindowTitle(_name);
+        alert.setText("Could not save the configuration file!");
+        alert.setWindowTitle(name);
         alert.setIcon(QMessageBox::Warning);
         alert.exec();
         return false;
+    } else {
+        json_file.write(doc.toJson());
+        json_file.close();
+        return true;
     }
-
-    json_file.write(doc.toJson());
-    json_file.close();
-    return true;
 }
 
 bool Configuration::IsEmpty() const { return parameters.empty(); }
+
+static const size_t NOT_FOUND = static_cast<size_t>(-1);
+
+static std::size_t ExtractDuplicateNumber(const std::string& configuration_name) {
+    const std::size_t name_open = configuration_name.find_last_of("(");
+    if (name_open == NOT_FOUND) return NOT_FOUND;
+
+    const std::size_t name_close = configuration_name.find_last_of(")");
+    if (name_close == NOT_FOUND) return NOT_FOUND;
+
+    const std::string number = configuration_name.substr(name_open + 1, name_close - (name_open + 1));
+    if (!IsNumber(number)) return NOT_FOUND;
+
+    return std::stoi(number);
+}
+
+static std::string ExtractDuplicateBaseName(const std::string& configuration_name) {
+    assert(ExtractDuplicateNumber(configuration_name) != NOT_FOUND);
+    const std::size_t found = configuration_name.find_last_of("(");
+    assert(found != NOT_FOUND);
+    return configuration_name.substr(0, found - 1);
+}
+
+QString MakeConfigurationName(const std::vector<Configuration>& configurations, const QString& configuration_name) {
+    const std::string name = configuration_name.toStdString();
+    const std::string base_name = ExtractDuplicateNumber(name) != NOT_FOUND ? ExtractDuplicateBaseName(name) : name;
+
+    std::size_t max_duplicate = 0;
+    for (std::size_t i = 0, n = configurations.size(); i < n; ++i) {
+        const std::string& search_name = configurations[i].name.toStdString();
+
+        if (search_name.compare(0, base_name.length(), base_name) != 0) continue;
+
+        const std::size_t found_number = ExtractDuplicateNumber(search_name);
+        max_duplicate = std::max<std::size_t>(max_duplicate, found_number != NOT_FOUND ? found_number : 1);
+    }
+
+    return QString(base_name.c_str()) + (max_duplicate > 0 ? format(" (%d)", max_duplicate + 1).c_str() : "");
+}

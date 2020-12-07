@@ -33,7 +33,7 @@ Optional software packages:
 
 ### Ubuntu System Requirements
 
-Ubuntu 16.04 LTS and 18.04 have been tested with this repo.
+Ubuntu 18.04 LTS and 20.04 have been tested with this repo.
 
 [CMake 3.10.2](https://cmake.org/files/v3.10/cmake-3.10.2-Linux-x86_64.tar.gz) is recommended.
 
@@ -50,7 +50,7 @@ sudo apt-get install libc6-dev-i386 g++-multilib
 
 Optional software packages:
 
-On Ubuntu 18.04 LTS or newer, you may build [Vulkan Configurator](./vkconfig/vkconfig.md) only if you also install several
+On Ubuntu 18.04 LTS or newer, you may build [Vulkan Configurator](./vkconfig/README.md) only if you also install several
 additional Qt dependencies:
 
 ```
@@ -75,7 +75,7 @@ sudo dnf install git @development-tools glm-devel \
 
 Optional software packages:
 
-You may build [Vulkan Configurator](./vkconfig/vkconfig.md) only if you also install several additional Qt dependencies:
+You may build [Vulkan Configurator](./vkconfig/README.md) only if you also install several additional Qt dependencies:
 ```
 sudo dnf install qt
 ```
@@ -137,7 +137,7 @@ export PATH=$HOME/Library/Android/sdk/ndk-bundle:$PATH
     cd build
     ..\scripts\update_deps.py --arch x64
     cmake -A x64 -C helper.cmake ..
-    cmake --build .
+    cmake --build . --parallel
 ```
 
 ### 32-bit Windows Build 
@@ -149,7 +149,14 @@ export PATH=$HOME/Library/Android/sdk/ndk-bundle:$PATH
     cd build
     ..\scripts\update_deps.py --arch Win32
     cmake -A Win32 -C helper.cmake ..
-    cmake --build . 
+    cmake --build . --parallel
+```
+
+### Windows Unit Tests
+
+```
+ctest -C Debug --output-on-failure --parallel 16
+ctest -C Release  --output-on-failure --parallel 16
 ```
 
 ### Linux and macOS Build
@@ -161,7 +168,13 @@ export PATH=$HOME/Library/Android/sdk/ndk-bundle:$PATH
     cd build
     ../scripts/update_deps.py
     cmake -C helper.cmake ..
-    cmake --build .
+    cmake --build . --parallel
+```
+
+### Linux and macOS Unit Tests
+
+```
+ctest --parallel 8 --output-on-failure
 ```
 
 ### Android Build
@@ -202,7 +215,6 @@ To use, simply push it to the device and run it.  The resulting json file will b
 /sdcard/Android/<output>.json
 ```
 A working example can be found in [devsim_layer_test_anroid.sh](https://github.com/LunarG/VulkanTools/blob/master/build-android/devsim_layer_test_android.sh)
-
 
 ## The VulkanTools repository
 

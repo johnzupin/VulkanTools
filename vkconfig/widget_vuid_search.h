@@ -15,36 +15,24 @@
  * limitations under the License.
  *
  * Authors:
- * - Richard S. Wright Jr.
- * - Christophe Riccio
+ * - Richard S. Wright Jr. <richard@lunarg.com>
+ * - Christophe Riccio <christophe@lunarg.com>
  */
 
 #pragma once
 
 #include <QWidget>
-#include <QComboBox>
-#include <QLabel>
 #include <QResizeEvent>
-#include <QCompleter>
 #include <QStringList>
+#include <QCompleter>
 #include <QLineEdit>
 #include <QPushButton>
 
 class VUIDSearchWidget : public QWidget {
     Q_OBJECT
+
    public:
     explicit VUIDSearchWidget(const QString &valuesAlreadyPresent);
-
-   private:
-    QStringList _vuid_list;
-    QCompleter *_search_vuid;
-    QLineEdit *_user_box;
-    QPushButton *_add_button;
-
-    void ResetCompleter();
-
-    virtual void resizeEvent(QResizeEvent *event) override;
-    virtual bool eventFilter(QObject *target, QEvent *event) override;
 
    public Q_SLOTS:
     void addButtonPressed();
@@ -58,4 +46,14 @@ class VUIDSearchWidget : public QWidget {
    private:
     VUIDSearchWidget(const VUIDSearchWidget &) = delete;
     VUIDSearchWidget &operator=(const VUIDSearchWidget &) = delete;
+
+    virtual void resizeEvent(QResizeEvent *event) override;
+    virtual bool eventFilter(QObject *target, QEvent *event) override;
+
+    void ResetCompleter();
+
+    QStringList _vuid_list;
+    QCompleter *_search_vuid;
+    QLineEdit *_user_box;
+    QPushButton *_add_button;
 };

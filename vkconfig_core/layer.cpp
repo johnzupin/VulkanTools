@@ -48,7 +48,7 @@ void RemoveString(QString& delimitedString, QString value) {
 
 /////////////////////////////////////////////////////////////////////////////////
 // Pretty simple, add to list if it's not already in it
-void AddString(QString& delimitedString, QString value) {
+void AppendString(QString& delimitedString, QString value) {
     // Do I have anything to do?
     if (delimitedString.contains(value))  // Nope
         return;
@@ -60,9 +60,21 @@ void AddString(QString& delimitedString, QString value) {
 
 Layer::Layer() {}
 
+Layer::Layer(const QString& name, const LayerType layer_type) : name(name), _layer_type(layer_type) {}
+
+Layer::Layer(const QString& name, const LayerType layer_type, const Version& file_format_version, const Version& api_version,
+             const QString& implementation_version, const QString& library_path, const QString& type)
+    : name(name),
+      _layer_type(layer_type),
+      _file_format_version(file_format_version),
+      _api_version(api_version),
+      _implementation_version(implementation_version),
+      _library_path(library_path),
+      _type(type) {}
+
 // Todo: Load the layer with Vulkan API
 bool Layer::IsValid() const {
-    return _file_format_version != Version::VERSION_NULL && !_name.isEmpty() && !_type.isEmpty() && !_library_path.isEmpty() &&
+    return _file_format_version != Version::VERSION_NULL && !name.isEmpty() && !_type.isEmpty() && !_library_path.isEmpty() &&
            _api_version != Version::VERSION_NULL && !_implementation_version.isEmpty();
 }
 
@@ -119,7 +131,7 @@ bool Layer::Load(QString full_path_to_file, LayerType layer_type) {
     QJsonObject layer_object = layer_value.toObject();
 
     json_value = layer_object.value("name");
-    _name = json_value.toString();
+    name = json_value.toString();
 
     json_value = layer_object.value("type");
     _type = json_value.toString();
@@ -138,45 +150,4 @@ bool Layer::Load(QString full_path_to_file, LayerType layer_type) {
 
     // The layer file is loaded
     return IsValid();  // Not all JSON file are layer JSON valid
-}
-
-bool Layer::operator==(const Layer& layer) const {
-    if (_file_format_version != layer._file_format_version)
-        return false;
-    else if (_name != layer._name)
-        return false;
-    else if (_type != layer._type)
-        return false;
-    else if (_library_path != layer._library_path)
-        return false;
-    else if (_api_version != layer._api_version)
-        return false;
-    else if (_implementation_version != layer._implementation_version)
-        return false;
-    else if (_description != layer._description)
-        return false;
-    else if (_layer_path != layer._layer_path)
-        return false;
-    else if (_layer_type != layer._layer_type)
-        return false;
-
-    //    for (std::size_t i = 0, n = _layer_settings.size(); i < n; ++i)
-    //        if (_layer_settings[i] != layer._layer_settings[i]) return false;
-
-    return true;
-}
-
-bool Layer::operator!=(const Layer& layer) const { return !(*this == layer); }
-
-const Layer* FindLayer(const QVector<Layer*>& layers, QString layer_name) {
-    assert(!layer_name.isEmpty());
-
-    for (int i = 0; i < layers.size(); ++i) {
-        const Layer* layer = layers[i];
-
-        if (layer_name != layer->_name) continue;
-        return layer;
-    }
-
-    return nullptr;
 }

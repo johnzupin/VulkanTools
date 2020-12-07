@@ -21,6 +21,7 @@
 #pragma once
 
 #include "version.h"
+#include "application.h"
 #include "path_manager.h"
 
 #include <QByteArray>
@@ -79,17 +80,6 @@ enum Active {
 
 enum { ACTIVE_COUNT = ACTIVE_LAST - ACTIVE_FIRST + 1 };
 
-struct Application {
-    Application() {}
-    Application(const QString& executable_full_path, const QString& arguments);
-
-    QString executable_path;
-    QString working_folder;
-    QString arguments;
-    QString log_file;
-    bool override_layers;
-};
-
 class Environment {
    public:
     Environment(PathManager& paths);
@@ -106,11 +96,11 @@ class Environment {
     bool Save() const;
     bool SaveApplications() const;
 
-    void SelectActiveApplication(int application_index);
+    void SelectActiveApplication(std::size_t application_index);
     int GetActiveApplicationIndex() const;
     bool HasOverriddenApplications() const;
     bool AppendApplication(const Application& application);
-    bool RemoveApplication(int application_index);
+    bool RemoveApplication(std::size_t application_index);
 
     const std::vector<Application>& GetApplications() const { return applications; }
     const Application& GetActiveApplication() const;
@@ -129,6 +119,8 @@ class Environment {
 
     void SetMode(OverrideMode mode, bool enabled);
 
+    const bool running_as_administrator;  // Are we being "Run as Administrator"
+
     bool first_run;
 
     bool AppendCustomLayerPath(const QString& path);
@@ -139,8 +131,6 @@ class Environment {
     Environment(const Environment&) = delete;
     Environment& operator=(const Environment&) = delete;
 
-    void UpdateDefaultApplications(const bool add_default_applications);
-
     Version version;
     OverrideState override_state;
 
@@ -150,5 +140,19 @@ class Environment {
     QStringList custom_layer_paths;
     std::vector<Application> applications;
 
-    PathManager& paths;
+    PathManager& paths_manager;
+
+   public:
+    const PathManager& paths;
 };
+
+bool ExactExecutableFromAppBundle(QString& path);
+
+// Search for all the applications in the list, an remove the application which executable can't be found
+std::vector<Application> RemoveMissingApplications(const std::vector<Application>& applications);
+
+// Create a list of default applications, eg vkcube
+std::vector<Application> CreateDefaultApplications(const PathManager& paths);
+
+// Update default applications path to use relative path (really useful only on Windows)
+std::vector<Application> UpdateDefaultApplications(const PathManager& paths, const std::vector<Application>& applications);

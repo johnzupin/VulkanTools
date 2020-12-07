@@ -35,21 +35,22 @@
 
 #include <vector>
 
-void RemoveString(QString& delimitedString, QString value);
-void AddString(QString& delimitedString, QString value);
+void RemoveString(QString& delimited_string, QString value);
+void AppendString(QString& delimited_string, QString value);
 
 class Layer {
    public:
     Layer();
+    Layer(const QString& name, const LayerType layer_type);
+    Layer(const QString& name, const LayerType layer_type, const Version& file_format_version, const Version& api_version,
+          const QString& implementation_version, const QString& library_path, const QString& type);
 
     bool IsValid() const;
-    bool operator==(const Layer& layer) const;
-    bool operator!=(const Layer& layer) const;
 
    public:
     // Standard pieces of a layer
     Version _file_format_version;
-    QString _name;
+    QString name;
     QString _type;
     QString _library_path;  // This is a relative path, straight out of the json
     Version _api_version;
@@ -59,13 +60,6 @@ class Layer {
     QString _layer_path;  // Actual path to the folder that contains the layer (this is important!)
     LayerType _layer_type;
 
-    // This layers settings. This will be used to build the editor
-    // as well as create settings files. This CAN be empty if the
-    // layer doens't have any settings.
-    // std::vector<LayerSetting> _layer_settings;
-
     // File based layers
     bool Load(QString full_path_to_file, LayerType layer_type);
 };
-
-const Layer* FindLayer(const QVector<Layer*>& layers, QString layer_name);

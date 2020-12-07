@@ -23,10 +23,10 @@
 
 #include "configurator.h"
 #include "settingstreemanager.h"
-#include "dlgvulkananalysis.h"
-#include "dlgvulkaninfo.h"
 
-#include <QVector>
+#include "ui_mainwindow.h"
+
+#include <QDialog>
 #include <QMainWindow>
 #include <QListWidgetItem>
 #include <QLabel>
@@ -37,13 +37,6 @@
 
 #include <memory>
 
-QT_BEGIN_NAMESPACE
-namespace Ui {
-class MainWindow;
-}
-QT_END_NAMESPACE
-
-//////////////////////////////////////////////////
 /// This just allows me to associate a specific profile definition
 /// with a list widget item.
 class ConfigurationListItem : public QTreeWidgetItem {
@@ -60,8 +53,6 @@ class ConfigurationListItem : public QTreeWidgetItem {
 class MainWindow : public QMainWindow {
     Q_OBJECT
 
-    Ui::MainWindow *ui;
-
    public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
@@ -69,30 +60,29 @@ class MainWindow : public QMainWindow {
     void UpdateUI();
     void UpdateConfiguration();
 
-   protected:
+   private:
     SettingsTreeManager _settings_tree_manager;
 
     std::unique_ptr<QProcess> _launch_application;  // Keeps track of the monitored app
     QFile _log_file;                                // Log file for layer output
 
     void LoadConfigurationList();
-    void SetupLaunchTree();
+    void SetupLauncherTree();
 
     virtual void closeEvent(QCloseEvent *event) override;
     virtual void showEvent(QShowEvent *event) override;
     virtual void resizeEvent(QResizeEvent *event) override;
     virtual bool eventFilter(QObject *target, QEvent *event) override;
 
-    dlgVulkanAnalysis *_vk_via;
-    dlgVulkanInfo *_vk_info;
+    std::unique_ptr<QDialog> vk_info_dialog;
+    std::unique_ptr<QDialog> vk_installation_dialog;
 
-   private:
     void Log(const QString &log);
 
     ConfigurationListItem *GetCheckedItem();
 
     QComboBox *_launcher_apps_combo;
-    QLineEdit *_launch_arguments;
+    QLineEdit *_launcher_arguments;
     QLineEdit *_launcher_working;
     QLineEdit *_launcher_log_file_edit;
     QPushButton *_launcher_apps_browse_button;
@@ -138,23 +128,22 @@ class MainWindow : public QMainWindow {
     void launchChangeWorkingFolder(const QString &new_text);
     void launchArgsEdited(const QString &new_text);
 
-    void on_pushButtonLaunch_clicked();
-    void on_pushButtonClearLog_clicked();
-    void on_radioFully_clicked();
-    void on_radioOverride_clicked();
-    void on_checkBoxApplyList_clicked();
-    void on_checkBoxPersistent_clicked();
-    void on_checkBoxClearOnLaunch_clicked();
-    void on_pushButtonAppList_clicked();
-    void on_pushButtonEditProfile_clicked();
+    void on_push_button_launcher_clicked();
+    void on_push_button_clear_log_clicked();
+    void on_radio_fully_clicked();
+    void on_radio_override_clicked();
+    void on_check_box_apply_list_clicked();
+    void on_check_box_persistent_clicked();
+    void on_check_box_clear_on_launch_clicked();
+    void on_push_button_applications_clicked();
+    void on_push_button_select_configuration_clicked();
 
-    void profileItemChanged(QTreeWidgetItem *item, int column);
-    void profileTreeChanged(QTreeWidgetItem *current, QTreeWidgetItem *previous);
-    void profileItemClicked(bool checked);
-    void profileItemExpanded(QTreeWidgetItem *item);
-
+    void OnConfigurationItemExpanded(QTreeWidgetItem *item);
+    void OnConfigurationItemClicked(bool checked);
+    void OnConfigurationTreeChanged(QTreeWidgetItem *current, QTreeWidgetItem *previous);
+    void OnConfigurationItemChanged(QTreeWidgetItem *item, int column);
     void OnConfigurationTreeClicked(QTreeWidgetItem *item, int column);
-    void OnConfigurationSettingsTreeClicked(QTreeWidgetItem *item, int column);
+    void OnSettingsTreeClicked(QTreeWidgetItem *item, int column);
 
     void standardOutputAvailable();                                 // stdout output is available
     void errorOutputAvailable();                                    // Layeroutput is available
@@ -165,4 +154,9 @@ class MainWindow : public QMainWindow {
     MainWindow &operator=(const MainWindow &) = delete;
 
     void ResetLaunchApplication();
+
+    std::unique_ptr<Ui::MainWindow> ui;
+    bool been_warned_about_old_loader;
 };
+
+int run_gui(int argc, char *argv[]);

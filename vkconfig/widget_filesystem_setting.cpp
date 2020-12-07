@@ -15,16 +15,17 @@
  * limitations under the License.
  *
  * Authors:
- * - Lenny Komow
- * - Richard S. Wright Jr.
- * - Christophe Riccio
+ * - Lenny Komow  <lenny@lunarg.com>
+ * - Richard S. Wright Jr. <richard@lunarg.com>
+ * - Christophe Riccio <christophe@lunarg.com>
  */
 
 #include "widget_filesystem_setting.h"
 
+#include "../vkconfig_core/path.h"
+
 #include <cassert>
 
-////////////////////////////////////////////////////////////////////////////
 // This can be used to specify a 'load' file or a 'save' file. Save is true by default
 FileSystemSettingWidget::FileSystemSettingWidget(QTreeWidgetItem* item, LayerSetting& layer_setting, SettingType setting_type)
     : QWidget(nullptr), _layer_setting(layer_setting), _mode(GetMode(setting_type)) {
@@ -79,7 +80,7 @@ void FileSystemSettingWidget::browseButtonClicked() {
     }
 
     if (!file.isEmpty()) {
-        file = QDir::toNativeSeparators(file);
+        file = ConvertNativeSeparators(file.toStdString()).c_str();
         _layer_setting.value = file;
         _line_edit->setText(file);
         emit itemChanged();

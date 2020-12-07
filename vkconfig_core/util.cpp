@@ -15,18 +15,18 @@
  * limitations under the License.
  *
  * Authors:
- * - Richard S. Wright Jr.
- * - Christophe Riccio
+ * - Richard S. Wright Jr. <richard@lunarg.com>
+ * - Christophe Riccio <christophe@lunarg.com>
  */
 
-#pragma once
-
 #include "util.h"
+#include "platform.h"
 
 #include <cstddef>
 #include <cstring>
 #include <cassert>
 #include <cstdarg>
+#include <cctype>
 
 #include <QDir>
 
@@ -46,39 +46,14 @@ std::string format(const char* message, ...) {
     return buffer;
 }
 
-void CheckHomePathsExist(const QString& path) {
-    QDir dir = QDir::home();
-    if (!dir.exists(path)) {
-        dir.mkpath(path);
-        assert(dir.exists(path));
-    }
-}
+bool IsNumber(const std::string& s) {
+    if (s.empty()) return false;
 
-std::string ReplacePathBuiltInVariables(const std::string& path) {
-    static const std::string HOME("$HOME");
+    for (std::size_t i = 0, n = s.length(); i < n; ++i) {
+        if (std::isdigit(s[i])) continue;
 
-    const std::size_t found = path.find_first_of(HOME);
-    if (found < path.size()) {
-        assert(found == 0);  // The home variable must be first in the path
-        const std::size_t offset = found + HOME.size();
-        return QDir::toNativeSeparators(QDir().homePath() + path.substr(found + offset, path.size() - offset).c_str())
-            .toStdString();
+        return false;
     }
 
-    // No built-in variable found, return unchanged
-    return path;
-}
-
-std::string ValidatePath(const std::string& path) {
-    if (path.empty()) return path;
-
-    FILE* file = fopen(path.c_str(), "w+");
-    if (file == nullptr) {
-        CheckHomePathsExist("vulkan-sdk");
-        const QFileInfo file_info(path.c_str());
-        return QDir::toNativeSeparators(QDir().homePath() + "/vulkan-sdk/" + file_info.fileName()).toStdString();
-    } else {
-        fclose(file);
-        return path;
-    }
+    return true;
 }

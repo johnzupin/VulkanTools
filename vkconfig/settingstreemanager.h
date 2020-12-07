@@ -43,25 +43,35 @@ class SettingsTreeManager : QObject {
    public:
     SettingsTreeManager();
 
-    void CreateGUI(QTreeWidget *build_tree, Configuration *configuration);
+    void CreateGUI(QTreeWidget *build_tree);
     void CleanupGUI();
 
     void GetTreeState(QByteArray &byte_array, QTreeWidgetItem *top_item);
     int SetTreeState(QByteArray &byte_array, int index, QTreeWidgetItem *top_item);
 
-   protected:
-    QTreeWidget *_configuration_settings_tree;
-    Configuration *_configuration;
-    QVector<QTreeWidgetItem *> _compound_widgets;  // These have special cleanup requirements
+   public Q_SLOTS:
+    void khronosDebugChanged(int index);
+    void khronosPresetChanged(int index);  // Okay, is this a custom guy HERE, or do we move it out
+                                           // It really forces a reload of the entire branch of this tree
+                                           // Reset layer defaults for the profile, and then call BuildKhronosTree again
+    void OnPresetEdited();                 // The user has changed something from a preset, and we are now a custom setting
+    void OnSettingEdited();                // The profile has been edited and should be saved
+
+   private:
+    SettingsTreeManager(const SettingsTreeManager &) = delete;
+    SettingsTreeManager &operator=(const SettingsTreeManager &) = delete;
 
     void BuildKhronosTree(std::vector<LayerSetting> &settings);
     void BuildGenericTree(QTreeWidgetItem *parent, Parameter &parameter);
 
-    QVector<QTreeWidgetItem *> _layer_items;  // These parallel the profiles layers
+    int GetValidationPresentIndex(const ValidationPreset preset) const;
+
+    QTreeWidget *_configuration_settings_tree;
+    std::vector<QTreeWidgetItem *> _compound_widgets;  // These have special cleanup requirements
+    std::vector<QTreeWidgetItem *> _layer_items;       // These parallel the configuration layers
 
     QComboBox *_validation_presets_combo_box;
     std::vector<ValidationPreset> _validation_presets;  // The preset in the combobox
-    int GetValidationPresentIndex(const ValidationPreset preset) const;
 
     QTreeWidgetItem *_validation_tree_item;
     QTreeWidgetItem *_validation_file_item;
@@ -72,16 +82,4 @@ class SettingsTreeManager : QObject {
     KhronosSettingsAdvanced *_validation_settings;
     MuteMessageWidget *_mute_message_widget;
     VUIDSearchWidget *_vuid_search_widget;
-
-   public Q_SLOTS:
-    void khronosDebugChanged(int index);
-    void khronosPresetChanged(int index);  // Okay, is this a custom guy HERE, or do we move it out
-                                           // It really forces a reload of the entire branch of this tree
-                                           // Reset layer defaults for the profile, and then call BuildKhronosTree again
-    void khronosPresetEdited();            // The user has changed something from a preset, and we are now a custom setting
-    void profileEdited();                  // The profile has been edited and should be saved
-
-   private:
-    SettingsTreeManager(const SettingsTreeManager &) = delete;
-    SettingsTreeManager &operator=(const SettingsTreeManager &) = delete;
 };

@@ -33,16 +33,6 @@
 
 #include <cassert>
 
-#if PLATFORM_WINDOWS
-static const char *VULKAN_LIBRARY = "vulkan-1.dll";
-#elif PLATFORM_MACOS
-static const char *VULKAN_LIBRARY = "/usr/local/lib/libvulkan";
-#elif PLATFORM_LINUX
-static const char *VULKAN_LIBRARY = "libvulkan";
-#else
-#error "Unknown platform"
-#endif
-
 static const char *GetPhysicalDeviceType(VkPhysicalDeviceType type) {
     const char *translation[] = {"Other", "Integrated GPU", "Discrete GPU", "Virtual GPU", "CPU"};
     return translation[type];
@@ -50,7 +40,7 @@ static const char *GetPhysicalDeviceType(VkPhysicalDeviceType type) {
 
 Version GetVulkanLoaderVersion() {
     // Check loader version
-    QLibrary library(VULKAN_LIBRARY);
+    QLibrary library(GetPlatformString(PLATFORM_STRING_VULKAN_LIBRARY));
 
     if (!library.load()) return Version::VERSION_NULL;
 
@@ -71,9 +61,8 @@ QString GenerateVulkanStatus() {
     // return log;  // bug https://github.com/LunarG/VulkanTools/issues/1172
 
     // Check Vulkan SDK path
-    QString search_path = qgetenv("VULKAN_SDK");
-    QFileInfo local(search_path);
-    if (local.exists())
+    const QString search_path(qgetenv("VULKAN_SDK"));
+    if (search_path.isEmpty())
         log += QString().asprintf("- SDK path: %s\n", search_path.toUtf8().constData());
     else
         log += "- VULKAN_SDK environment variable not set\n";
@@ -93,7 +82,7 @@ QString GenerateVulkanStatus() {
         log += format("- Vulkan Loader version: %s\n", loader_version.str().c_str()).c_str();
     }
 
-    const QStringList &layer_paths = Configurator::Get().VK_LAYER_PATH;
+    const QStringList &layer_paths = Configurator::Get().layers.VK_LAYER_PATH;
     if (!layer_paths.isEmpty()) log += "- Using Layers from VK_LAYER_PATH\n";
 
     // Check layer paths
@@ -105,7 +94,7 @@ QString GenerateVulkanStatus() {
     } else
         log += "- Custom Layers Paths: None\n";
 
-    QLibrary library(VULKAN_LIBRARY);
+    QLibrary library(GetPlatformString(PLATFORM_STRING_VULKAN_LIBRARY));
     PFN_vkEnumerateInstanceLayerProperties vkEnumerateInstanceLayerProperties =
         (PFN_vkEnumerateInstanceLayerProperties)library.resolve("vkEnumerateInstanceLayerProperties");
     assert(vkEnumerateInstanceLayerProperties);
@@ -130,9 +119,9 @@ QString GenerateVulkanStatus() {
     VkApplicationInfo app = {};
     app.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     app.pNext = NULL;
-    app.pApplicationName = APP_SHORT_NAME;
+    app.pApplicationName = VKCONFIG_SHORT_NAME;
     app.applicationVersion = 0;
-    app.pEngineName = APP_SHORT_NAME;
+    app.pEngineName = VKCONFIG_SHORT_NAME;
     app.engineVersion = 0;
     app.apiVersion = VK_API_VERSION_1_0;
 

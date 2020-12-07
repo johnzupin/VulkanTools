@@ -15,8 +15,8 @@
  * limitations under the License.
  *
  * Authors:
- * - Richard S. Wright Jr.
- * - Christophe Riccio
+ * - Richard S. Wright Jr. <richard@lunarg.com>
+ * - Christophe Riccio <christophe@lunarg.com>
  */
 
 #pragma once
@@ -33,10 +33,6 @@ class MultiEnumSettingWidget : public QCheckBox {
    public:
     explicit MultiEnumSettingWidget(LayerSetting& layer_setting, QString setting_name);
 
-   private:
-    LayerSetting& _layer_setting;
-    QString _setting_name;
-
    public Q_SLOTS:
     void itemChecked(bool checked);
 
@@ -46,4 +42,7 @@ class MultiEnumSettingWidget : public QCheckBox {
    private:
     MultiEnumSettingWidget(const MultiEnumSettingWidget&) = delete;
     MultiEnumSettingWidget& operator=(const MultiEnumSettingWidget&) = delete;
+
+    LayerSetting& _layer_setting;
+    QString _setting_name;
 };

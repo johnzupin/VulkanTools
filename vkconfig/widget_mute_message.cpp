@@ -15,8 +15,8 @@
  * limitations under the License.
  *
  * Authors:
- * - Richard S. Wright Jr.
- * - Christophe Riccio
+ * - Richard S. Wright Jr. <richard@lunarg.com>
+ * - Christophe Riccio <christophe@lunarg.com>
  */
 
 #include "widget_mute_message.h"
@@ -61,7 +61,7 @@ void MuteMessageWidget::addItem(const QString &item) {
     _list_widget->setCurrentRow(_list_widget->count() - 1);
 
     // Update Setting
-    AddString(_layer_setting.value, item);
+    AppendString(_layer_setting.value, item);
     _remove_button->setEnabled(true);
     emit itemChanged();
 }

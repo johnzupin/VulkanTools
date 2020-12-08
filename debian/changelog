@@ -1,3 +1,148 @@
+lunarg-tools (1.2.162.0-1lunarg18.04-1) bionic; urgency=medium
+
+  [ richard-lunarg ]
+  * macOS fixes for cmake builds
+
+  [ christophe-lunarg ]
+  * vkconfig: Fix configurations with no name
+  * vkconfig: Updated changelog
+
+  [ Jeremy Kniager ]
+  * doc: Add link to DevSim documentation
+  * devsim: Fix conversion warnings
+
+  [ christophe-lunarg ]
+  * vkconfig: Fix terminate of hang launched application
+  * vkconfig: Improve the management of tool home directories
+
+  [ richard-lunarg ]
+  * vkconfig: Fixed macOS regression for vkcube search
+  * vkconfig: PLATFORM_MACOS convention change
+  * vkconfig: format change.
+
+  [ Dustin Graves ]
+  * devsim: Update API version check
+
+  [ christophe-lunarg ]
+  * vkconfig: refactor the 'Parameter' code to make is more testable
+  * vkconfig: Clean UI naming
+  * vkconfig: clean up naming to better reflect the UI
+  * vkconfig: Remove dead code
+  * vkconfig: Clean up
+  * vkconfig: More refactoring to maje the code easier to test
+  * vkconfig: Add parameter rank tests, fix paramter rank
+  * vkconfig: Add HasMissingParameter test
+  * vkconfig: Improve HasMissingParameter test
+  * vkconfig: Full testing of layer ordering
+  * vkconfig: Fix case where no configuration is active
+  * vkconfig: Fix configuration name creation, added unit tests
+  * vkconfig: fix GitHub C.I.
+  * vkconfig: Fix IsNumber with empty string
+  * vkconfig: Use application safer defines
+  * vkconfig: fix configuration name generate case with test
+  * vkconfig: More consistent naming
+  * vkconfig: More consistent naming
+  * vkconfig: Fix asserts when Resetting configurations
+  * vkconfig: improve naming consistency
+  * vkconfig: Fix working directory
+  * vkconfig: Fix invalid message box about the application state
+  * vkconfig: Fix settings collect high overhead message box
+  * vkconfig: Fix GitHub C.I. build
+  * vkconfig: reduce chances of build break on Linux and macOS
+  * vkconfig: clean up, fix launcher button
+  * vkconfig: Fix default key for frame capture config
+  * vkconfig: Use home directory by default for frame capture
+  * vkconfig: add missing assert to check /c/Users/Piranha is first
+  * vkconfig: Fix case where the config doesn't exit anymore
+  * vkconfig: save_file checks right access
+  * vkconfig: Updated changelog
+  * vkconfig: Updated screenshots
+  * vkconfig: Updated image with the wrong size
+  * vkconfig: Fix selecting layers when override is disabled
+  * vkconfig: Fix backslack paths for custom path
+  * vkconfig: fix gerrit build
+  * vkconfig: clean up
+  * vkconfig: Fix gerrit build
+  * vkconfig: Refactor layers loading and override code
+  * vkconfig: Add 'layers' command line argument
+
+  [ Jeremy Kniager ]
+  * devsim: Reactivate ArrayOfExtensionProperties
+
+  [ Nathaniel Cesario ]
+  * devsim: Conditionally increase query count
+
+  [ Christophe ]
+  * vkconfig: Make sure there isn't no configuration #1221
+
+  [ christophe-lunarg ]
+  * vkconfig: Improve active configuration
+  * vkconfig: Fix manual ordering of layers #1214
+  * vkconfig: Fix active empty configuration
+  * vkconfig: Fix reset button in layers window #1227
+  * vkconfig: Fix setting area title not updated
+  * vkconfig: Fix warning about old loader when trying to use application list #1230
+  * doc: Follow community convention for vkconfig readme filename
+
+  [ orbea ]
+  * cmake: Silence warnings.
+
+  [ christophe-lunarg ]
+  * vkconfig: fix warning
+
+  [ John Zupin ]
+  * via: remove newline from dpkg-query for system packages
+
+  [ orbea ]
+  * cmake: Update Vulkan-ValidationLayers_INCLUDE_DIR path
+
+  [ christophe-lunarg ]
+  * C.I.: Improve build platform coverage
+  * vkconfig: Make Version class easier to debug
+  * C.I.: Multithreaded NMake build
+  * C.I.: Multiple threads cmake build in appveyor
+  * C.I.: Only build with CMake XOR QMake
+  * vkconfig: Add setting value and setting type with unit tests
+  * vkconfig: Refactor platform specific code into one place
+  * vkconfig: Fix QtCreator build on OSX
+
+  [ richard-lunarg ]
+  * vkconfig: Fixed recent regressions
+
+  [ Christophe ]
+  * vkconfig: Fix broken link, use python3 to build
+  * vkconfig: Fix native separator in path on Unix
+  * vkconfig: Fix vkcube search on Linux
+  * vkconfig: Streamline default application code
+  * vkconfig: Fix path for vkcube on Windows
+  * vkconfig: No application list support in cmd
+
+  [ Lenny Komow ]
+  * monitor: Correct monitor layer device creation
+
+  [ Karl Schultz ]
+  * Update README.md
+
+  [ Christophe ]
+  * vkconfig: Prepare CHANGELOG for 2020 december release
+
+  [ Tony-LunarG ]
+  * build: Changes for 1.2.162 header
+
+  [ Christophe ]
+  * vkconfig: Fix Clang format with Travis CI
+
+  [ John Zupin ]
+  * packaging: remove patch to change the vvl header location
+
+  [ Tony-LunarG ]
+  * build: Update VVL known-good
+
+  [ John Zupin ]
+  * packaging: update copyright
+
+ -- John Zupin <john@odin>  Tue, 08 Dec 2020 11:13:44 -0700
+
 lunarg-tools (1.2.154.0-1lunarg18.04-6) bionic; urgency=medium
 
   [ christophe-lunarg ]

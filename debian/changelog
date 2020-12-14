@@ -1,3 +1,18 @@
+lunarg-tools (1.2.162.0-1lunarg18.04-2) bionic; urgency=medium
+
+  [ Christophe ]
+  * vkconfig: Make sure  is not given a full path
+  * vkconfig: Fix status not reporting SDK path
+  * vkconfig: Update doc for Dec SDK release
+
+  [ Jeremy Kniager ]
+  * via: Fix improper path format in VIA output
+
+  [ Christophe ]
+  * vkconfig: Disable convenient test code only warning
+
+ -- John Zupin <john@odin>  Mon, 14 Dec 2020 09:25:05 -0700
+
 lunarg-tools (1.2.162.0-1lunarg18.04-1) bionic; urgency=medium
 
   [ richard-lunarg ]

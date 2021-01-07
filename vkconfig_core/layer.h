@@ -25,7 +25,9 @@
 
 #pragma once
 
-#include "../vkconfig_core/layer_setting.h"
+#include "../vkconfig_core/layer_setting_meta.h"
+#include "../vkconfig_core/layer_preset.h"
+#include "../vkconfig_core/layer_type.h"
 #include "../vkconfig_core/version.h"
 
 #include <QObject>
@@ -34,32 +36,38 @@
 #include <QString>
 
 #include <vector>
-
-void RemoveString(QString& delimited_string, QString value);
-void AppendString(QString& delimited_string, QString value);
+#include <string>
 
 class Layer {
    public:
+    static const char* NO_PRESET;
+
     Layer();
-    Layer(const QString& name, const LayerType layer_type);
-    Layer(const QString& name, const LayerType layer_type, const Version& file_format_version, const Version& api_version,
+    Layer(const std::string& key, const LayerType layer_type);
+    Layer(const std::string& key, const LayerType layer_type, const Version& file_format_version, const Version& api_version,
           const QString& implementation_version, const QString& library_path, const QString& type);
 
     bool IsValid() const;
 
+    std::string FindPresetLabel(const std::vector<LayerSettingData>& setting_data) const;
+
    public:
-    // Standard pieces of a layer
-    Version _file_format_version;
-    QString name;
+    std::string key;
+    Version file_format_version;
     QString _type;
     QString _library_path;  // This is a relative path, straight out of the json
     Version _api_version;
     QString _implementation_version;
-    QString _description;
+    QString description;
+
+    std::vector<LayerSettingMeta> settings;
+    std::vector<LayerPreset> presets;
 
     QString _layer_path;  // Actual path to the folder that contains the layer (this is important!)
     LayerType _layer_type;
 
     // File based layers
-    bool Load(QString full_path_to_file, LayerType layer_type);
+    bool Load(const QString& full_path_to_file, LayerType layer_type);
 };
+
+std::vector<LayerSettingData> CollectDefaultSettingData(const std::vector<LayerSettingMeta>& layer_settings);

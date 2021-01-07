@@ -30,11 +30,14 @@ CustomPathsDialog::CustomPathsDialog(QWidget *parent) : QDialog(parent), ui(new 
     ui->setupUi(this);
     setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
 
-    ui->treeWidget->headerItem()->setText(0, tr("Custom Search Paths & Layers"));
+    ui->treeWidget->headerItem()->setText(0, "Custom Search Paths & Layers");
 
     RepopulateTree();
     ui->buttonBox->setEnabled(Configurator::Get().HasLayers());
+    Configurator::Get().request_vulkan_status = true;
 }
+
+CustomPathsDialog::~CustomPathsDialog() {}
 
 // Load the tree widget with the current list
 void CustomPathsDialog::RepopulateTree() {

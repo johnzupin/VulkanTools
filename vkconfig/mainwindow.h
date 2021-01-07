@@ -22,7 +22,7 @@
 #pragma once
 
 #include "configurator.h"
-#include "settingstreemanager.h"
+#include "settings_tree.h"
 
 #include "ui_mainwindow.h"
 
@@ -114,6 +114,7 @@ class MainWindow : public QMainWindow {
     void helpShowHelp(bool checked);
     void helpShowVulkanSpec(bool checked);
     void helpShowLayerSpec(bool checked);
+    void helpShowGPUInfo(bool checked);
 
     void addCustomPaths();
 

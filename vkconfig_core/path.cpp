@@ -18,7 +18,9 @@
  * - Christophe Riccio <christophe@lunarg.com>
  */
 
+#include "util.h"
 #include "path.h"
+#include "path_manager.h"
 #include "platform.h"
 
 #include <QDir>
@@ -51,37 +53,55 @@ void CheckPathsExist(const std::string& path) {
     }
 }
 
-std::string ReplacePathBuiltInVariables(const std::string& path) {
-    static const std::string HOME("$HOME");
+std::string GetPath(BuiltinPath path) {
+    switch (path) {
+        case BUILTIN_PATH_HOME:
+            return ConvertNativeSeparators(QDir().homePath().toStdString());
+        case BUILTIN_PATH_VULKAN_SDK: {
+            const QString path(qgetenv("VULKAN_SDK"));
+            if (path.isEmpty())
+                return ConvertNativeSeparators(GetPath(BUILTIN_PATH_HOME) + "/VulkanSDK");
+            else
+                return ConvertNativeSeparators(path.toStdString());
+        }
+        case BUILTIN_PATH_VULKAN_LAYER_CONFIG: {
+            if (VKC_PLATFORM == VKC_PLATFORM_WINDOWS)
+                return ConvertNativeSeparators(GetPath(BUILTIN_PATH_VULKAN_SDK) +
+                                               GetPlatformString(PLATFORM_STRING_VULKAN_LAYER_CONFIG));
+            else
+                return ConvertNativeSeparators(GetPlatformString(PLATFORM_STRING_VULKAN_LAYER_CONFIG));
+        }
+        default: {
+            assert(0);
+            return "";
+        }
+    }
+}
 
-    const std::size_t found = path.find_first_of(HOME);
-    if (found < path.size()) {
-        assert(found == 0);  // The home variable must be first in the path
-        const std::size_t offset = found + HOME.size();
-        return ConvertNativeSeparators(QDir().homePath().toStdString() + path.substr(found + offset, path.size() - offset).c_str());
+struct BuiltinDesc {
+    BuiltinPath type;
+    const char* name;
+};
+
+std::string ReplaceBuiltInVariable(const std::string& path) {
+    static const BuiltinDesc VARIABLES[] = {{BUILTIN_PATH_HOME, "${HOME}"},
+                                            {BUILTIN_PATH_VULKAN_SDK, "${VULKAN_SDK}"},
+                                            {BUILTIN_PATH_VULKAN_LAYER_CONFIG, "${VULKAN_CONTENT}"}};
+
+    static_assert(countof(VARIABLES) == BUILTIN_PATH_COUNT, "The tranlation table size doesn't match the enum number of elements");
+
+    for (std::size_t i = 0, n = countof(VARIABLES); i < n; ++i) {
+        const std::size_t found = path.find(VARIABLES[i].name);
+        if (found < path.size()) {
+            assert(found == 0);  // The home variable must be first in the path
+            const std::size_t offset = found + std::strlen(VARIABLES[i].name);
+            const std::string replaced_path = GetPath(VARIABLES[i].type) + path.substr(found + offset, path.size() - offset);
+            return ConvertNativeSeparators(replaced_path);
+        }
     }
 
     // No built-in variable found, return unchanged
     return path;
-}
-
-std::string ValidatePath(const std::string& path) {
-    if (path.find("stdout") != std::string::npos)
-        return "stdout";
-    else if (path.find("stderr") != std::string::npos)
-        return "stderr";
-
-    if (path.empty()) return path;
-
-    FILE* file = fopen(path.c_str(), "w+");
-    if (file == nullptr) {
-        CheckPathsExist(QDir::homePath().toStdString() + GetNativeSeparator() + "vulkan-sdk");
-        const QFileInfo file_info(path.c_str());
-        return ConvertNativeSeparators(QDir().homePath().toStdString() + "/vulkan-sdk/" + file_info.fileName().toStdString());
-    } else {
-        fclose(file);
-        return path;
-    }
 }
 
 std::string ConvertNativeSeparators(const std::string& path) {
@@ -113,4 +133,33 @@ std::string ConvertNativeSeparators(const std::string& path) {
 const char* GetNativeSeparator() {
     static const char* native_separator = VKC_PLATFORM == VKC_PLATFORM_WINDOWS ? "\\" : "/";
     return native_separator;
+}
+
+static bool IsPortableChar(char c) {
+    if (c == '\\' || c == '/') return false;
+    if (c == '|' || c == '<' || c == '>') return false;
+    if (c == ':' || c == '*' || c == '?') return false;
+
+    return true;
+}
+
+bool IsPortableFilename(const std::string& path) {
+    if (path.empty()) return false;
+
+    if (path == ".") return false;
+
+    if (path.find("..") != std::string::npos) return false;
+
+    for (std::size_t i = 0, n = path.size(); i < n; ++i) {
+        if (!IsPortableChar(path[i])) return false;
+    }
+
+    return true;
+}
+
+QFileInfoList GetJSONFiles(const char* directory) {
+    QDir dir(directory);
+    dir.setFilter(QDir::Files | QDir::NoSymLinks);
+    dir.setNameFilters(QStringList() << "*.json");
+    return dir.entryInfoList();
 }

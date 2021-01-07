@@ -104,13 +104,14 @@ static const char* GetLayoutStateToken(LayoutState state) {
 }
 
 Environment::Environment(PathManager& paths)
-    : paths_manager(paths),
+    :
 // Hack for GitHub C.I.
 #if VKC_PLATFORM == VKC_PLATFORM_WINDOWS && (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
       running_as_administrator(IsUserAnAdmin()),
 #else
       running_as_administrator(false),
 #endif
+      paths_manager(paths),
       paths(paths_manager) {
 
     const bool result = Load();
@@ -189,9 +190,9 @@ void Environment::Reset(ResetMode mode) {
                 actives[i] = GetActiveDefault(static_cast<Active>(i));
             }
 
-            applications = CreateDefaultApplications(paths);
+            applications = CreateDefaultApplications();
 
-            Set(ACTIVE_CONFIGURATION, "Validation - Standard");
+            Set(ACTIVE_CONFIGURATION, "Validation");
             break;
         }
         case SYSTEM: {
@@ -285,34 +286,36 @@ bool Environment::LoadApplications() {
 
         applications.clear();
 
-        const QJsonDocument& json_doc = QJsonDocument::fromJson(data.toLocal8Bit());
-        assert(json_doc.isObject());
-        if (!json_doc.isEmpty()) {
-            // Get the list of apps
-            const QJsonObject& json_doc_object = json_doc.object();
-            const QStringList& app_keys = json_doc_object.keys();
+        if (!data.isEmpty()) {
+            const QJsonDocument& json_doc = QJsonDocument::fromJson(data.toLocal8Bit());
+            assert(json_doc.isObject());
+            if (!json_doc.isEmpty()) {
+                // Get the list of apps
+                const QJsonObject& json_doc_object = json_doc.object();
+                const QStringList& app_keys = json_doc_object.keys();
 
-            for (int i = 0, n = app_keys.length(); i < n; i++) {
-                const QJsonValue& app_value = json_doc_object.value(app_keys[i]);
-                const QJsonObject& app_object = app_value.toObject();
+                for (int i = 0, n = app_keys.length(); i < n; i++) {
+                    const QJsonValue& app_value = json_doc_object.value(app_keys[i]);
+                    const QJsonObject& app_object = app_value.toObject();
 
-                Application application;
-                application.executable_path = app_object.value("app_path").toString().toStdString();
-                application.working_folder = app_object.value("app_folder").toString().toStdString();
-                application.override_layers = !app_object.value("exclude_override").toBool();
-                application.log_file = app_object.value("log_file").toString().toStdString();
+                    Application application;
+                    application.executable_path = app_object.value("app_path").toString().toStdString();
+                    application.working_folder = app_object.value("app_folder").toString().toStdString();
+                    application.override_layers = !app_object.value("exclude_override").toBool();
+                    application.log_file = app_object.value("log_file").toString().toStdString();
 
-                // Arguments are in an array to make room for adding more in a future version
-                const QJsonArray& args = app_object.value("command_lines").toArray();
-                application.arguments = args[0].toString();
+                    // Arguments are in an array to make room for adding more in a future version
+                    const QJsonArray& args = app_object.value("command_lines").toArray();
+                    application.arguments = args[0].toString();
 
-                applications.push_back(application);
+                    applications.push_back(application);
+                }
             }
         }
 
         applications = RemoveMissingApplications(applications);
-        if (VKC_PLATFORM == VKC_PLATFORM_WINDOWS) applications = UpdateDefaultApplications(paths, applications);
-        if (applications.empty()) applications = CreateDefaultApplications(paths);
+        if (VKC_PLATFORM == VKC_PLATFORM_WINDOWS) applications = UpdateDefaultApplications(applications);
+        if (applications.empty()) applications = CreateDefaultApplications();
     }
 
     return true;
@@ -449,14 +452,14 @@ const Application& Environment::GetActiveApplication() const {
     return applications[0];  // Not found, but the list is present, so return the first item.
 }
 
-const Application& Environment::GetApplication(int application_index) const {
-    assert(application_index >= 0 && application_index < applications.size());
+const Application& Environment::GetApplication(std::size_t application_index) const {
+    assert(application_index < applications.size());
 
     return applications[application_index];
 }
 
-Application& Environment::GetApplication(int application_index) {
-    assert(application_index >= 0 && application_index < applications.size());
+Application& Environment::GetApplication(std::size_t application_index) {
+    assert(application_index < applications.size());
 
     return applications[application_index];
 }
@@ -505,7 +508,7 @@ const QByteArray& Environment::Get(LayoutState state) const {
 
 const QString& Environment::Get(Active active) const { return actives[active]; }
 
-void Environment::Set(Active active, const QString& name) { actives[active] = name; }
+void Environment::Set(Active active, const QString& key) { actives[active] = key; }
 
 bool Environment::AppendCustomLayerPath(const QString& path) {
     assert(!path.isEmpty());
@@ -633,16 +636,16 @@ static QString GetDefaultExecutablePath(const QString& executable_name) {
 }
 
 struct DefaultApplication {
-    std::string name;
+    std::string key;
     std::string arguments;
 };
 
 static const DefaultApplication defaults_applications[] = {{ConvertNativeSeparators("/vkcube"), "--suppress_popups"},
                                                            {ConvertNativeSeparators("/vkcubepp"), "--suppress_popups"}};
 
-static Application CreateDefaultApplication(const PathManager& paths, const DefaultApplication& default_application) {
+static Application CreateDefaultApplication(const DefaultApplication& default_application) {
     const QString executable_path =
-        GetDefaultExecutablePath((default_application.name + GetPlatformString(PLATFORM_STRING_APP_SUFFIX)).c_str());
+        GetDefaultExecutablePath((default_application.key + GetPlatformString(PLATFORM_STRING_APP_SUFFIX)).c_str());
     if (executable_path.isEmpty()) Application();  // application could not be found..
 
     Application application(executable_path, "--suppress_popups");
@@ -652,16 +655,16 @@ static Application CreateDefaultApplication(const PathManager& paths, const Defa
     // initially will be set to the users home folder across all OS's. This is highly visible
     // in the application launcher and should not present a usability issue. The developer can
     // easily change this later to anywhere they like.
-    application.log_file = paths.GetPath(PATH_HOME) + default_application.name + ".txt";
+    application.log_file = GetPath(BUILTIN_PATH_HOME) + default_application.key + ".txt";
 
     return application;
 }
 
-std::vector<Application> CreateDefaultApplications(const PathManager& paths) {
+std::vector<Application> CreateDefaultApplications() {
     std::vector<Application> new_applications;
 
     for (std::size_t name_index = 0, name_count = countof(defaults_applications); name_index < name_count; ++name_index) {
-        const Application& application = CreateDefaultApplication(paths, defaults_applications[name_index]);
+        const Application& application = CreateDefaultApplication(defaults_applications[name_index]);
 
         if (application.executable_path.empty()) continue;
 
@@ -687,13 +690,13 @@ std::vector<Application> RemoveMissingApplications(const std::vector<Application
     return valid_applications;
 }
 
-std::vector<Application> UpdateDefaultApplications(const PathManager& paths, const std::vector<Application>& applications) {
+std::vector<Application> UpdateDefaultApplications(const std::vector<Application>& applications) {
     std::vector<Application> search_applications;
     std::vector<Application> updated_applications = applications;
 
     for (std::size_t default_index = 0, default_count = countof(defaults_applications); default_index < default_count;
          ++default_index) {
-        std::string const defaults_name = defaults_applications[default_index].name + GetPlatformString(PLATFORM_STRING_APP_SUFFIX);
+        std::string const defaults_name = defaults_applications[default_index].key + GetPlatformString(PLATFORM_STRING_APP_SUFFIX);
 
         std::swap(updated_applications, search_applications);
         updated_applications.clear();
@@ -703,7 +706,7 @@ std::vector<Application> UpdateDefaultApplications(const PathManager& paths, con
             const Application& application = search_applications[application_index];
 
             if (QString(application.executable_path.c_str()).endsWith(defaults_name.c_str())) {
-                updated_applications.push_back(CreateDefaultApplication(paths, defaults_applications[default_index]));
+                updated_applications.push_back(CreateDefaultApplication(defaults_applications[default_index]));
             } else {
                 updated_applications.push_back(application);
             }

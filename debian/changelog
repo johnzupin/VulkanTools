@@ -1,3 +1,90 @@
+lunarg-tools (1.2.162.1~rc1-1lunarg20.04-1) focal; urgency=medium
+
+  [ Christophe ]
+  * vkconfig: Fix status not reporting SDK path
+  * vkconfig: Make sure  is not given a full path
+  * vkconfig: Update doc for Dec SDK release
+  * vkconfig: Update doc for Dec SDK release
+
+  [ christophe-lunarg ]
+  * vkconfig: data driven settings, presets and built-in configuration
+
+  [ Christophe ]
+  * vkconfig: automatically detect presets from settings
+
+  [ Jeremy Kniager ]
+  * via: Fix improper path format in VIA output
+
+  [ christophe-lunarg ]
+  * vkconfig: fix clang and GCC build
+
+  [ Christophe ]
+  * vkconfig: Disable convenient test code only warning
+  * vkconfig: add support of presets to any layer
+  * vkconfig: Surrender layers on crash
+
+  [ John Zupin ]
+  * apidump: update doc to add vkconfig
+
+  [ Christophe ]
+  * vkconfig: Test configuration json format 2.0.3 compat
+
+  [ Jeremy Kniager ]
+  * devsim: Add portability devsim config files
+
+  [ Christophe ]
+  * vkconfig: Add portability configuration with presets
+  * vkconfig: Make sure configuration name is valid #1281
+  * vkconfig: Add Linux support of devsim configurations
+  * vkconfig: Fix Linux build
+  * vkconfig: Update release note
+  * C.I. update Qt version for appveyor
+  * vkconfig: fix configuration export not up to date
+  * vkconfig: change layer data directory
+  * vkconfig: fix configuration name checking
+  * vkconfig: remove preset-index, not necessary
+  * vkconfig: Code factorization
+  * vkconfig: fix Clang warnings
+
+  [ Jeremy Kniager ]
+  * devsim: Move sample config files
+
+  [ Christophe ]
+  * vkconfig: Clean up
+  * vkconfig: Fix settings and add 2.1.0 tests
+  * vkconfig: Improve backward and forward compatiblity between layers version
+
+  [ John Zupin ]
+  * packaging: add devsim json files for portability
+
+  [ Christophe ]
+  * vkconfig: Initial for for new validation layer settings
+  * vkconfig: add gpuav_buffer_oob UI
+  * vkconfig: move HasPreset to a more consistent location
+  * vkconfig: add new Debug Printf settings UI
+  * vkconfig: Fix tooltips crashes when a layer is missing
+  * vkconfig: 148, 154 and 162 settings
+  * vkconfig: Ensure layer compatibility since SDK 1.1.130
+  * vkconfig: Update changelog for January SDK release
+  * vkconfig: More tool tips
+  * vkconfig: Fix TreeSettings init
+
+  [ christophe-lunarg ]
+  * vkconfig: Fix GPU-assist UI crash on macOS
+
+  [ Christophe ]
+  * vkconfig: Systematically display Vulkan status after custom path
+  * vkconfig: Fix reserve descriptor binding slot box being disabled
+  * vkconfig: use /.local/share/vulkan/config for devsim #1299
+  * vkconfig: Fix filesystem UI no updated #1298
+  * vkconfig: Do not copy devsim file #1299
+  * vkconfig: Add per platform settings
+
+  [ John Zupin ]
+  * packaging: update vulkan deps version
+
+ -- John Zupin <john@odin>  Thu, 07 Jan 2021 11:46:39 -0700
+
 lunarg-tools (1.2.162.0-1lunarg20.04-2) focal; urgency=medium
 
   [ Christophe ]

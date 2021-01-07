@@ -66,12 +66,17 @@ static const int LAUNCH_ROW_HEIGHT = 28;
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
-      ui(new Ui::MainWindow),
-      been_warned_about_old_loader(false),
       _launch_application(nullptr),
       _log_file(nullptr),
       _launcher_apps_combo(nullptr),
-      _launcher_arguments(nullptr) {
+      _launcher_arguments(nullptr),
+      _launcher_working(nullptr),
+      _launcher_log_file_edit(nullptr),
+      _launcher_apps_browse_button(nullptr),
+      _launcher_working_browse_button(nullptr),
+      _launcher_log_file_browse_button(nullptr),
+      ui(new Ui::MainWindow),
+      been_warned_about_old_loader(false) {
     ui->setupUi(this);
     ui->launcher_tree->installEventFilter(this);
     ui->configuration_tree->installEventFilter(this);
@@ -83,6 +88,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->actionHelp, SIGNAL(triggered(bool)), this, SLOT(helpShowHelp(bool)));
     connect(ui->actionVulkan_specification, SIGNAL(triggered(bool)), this, SLOT(helpShowVulkanSpec(bool)));
     connect(ui->actionVulkan_Layer_Specification, SIGNAL(triggered(bool)), this, SLOT(helpShowLayerSpec(bool)));
+    connect(ui->actionGPU_Info_Reports, SIGNAL(triggered(bool)), this, SLOT(helpShowGPUInfo(bool)));
 
     connect(ui->actionCustom_Layer_Paths, SIGNAL(triggered(bool)), this, SLOT(toolsSetCustomPaths(bool)));
 
@@ -122,8 +128,6 @@ MainWindow::MainWindow(QWidget *parent)
     // Note: We could make this a user configurable setting down the road should this be
     // insufficinet.
     ui->log_browser->document()->setMaximumBlockCount(2048);
-    ui->log_browser->append("Vulkan Development Status:");
-    ui->log_browser->append(GenerateVulkanStatus());
     ui->configuration_tree->scrollToItem(ui->configuration_tree->topLevelItem(0), QAbstractItemView::PositionAtTop);
 
     if (configurator.HasActiveConfiguration()) {
@@ -161,12 +165,12 @@ void MainWindow::UpdateUI() {
         assert(item);
         assert(!item->configuration_name.isEmpty());
 
-        auto configuration = Find(configurator.available_configurations, item->configuration_name);
+        auto configuration = FindItByKey(configurator.available_configurations, item->configuration_name.toStdString().c_str());
         if (configuration == configurator.available_configurations.end()) continue;
 
         if (!HasMissingParameter(configuration->parameters, configurator.layers.available_layers)) {
             item->setText(1, item->configuration_name);
-            item->radio_button->setToolTip(configuration->_description);
+            item->radio_button->setToolTip(configuration->description);
         } else {
             item->setText(1, item->configuration_name + " (Invalid)");
             item->radio_button->setToolTip(
@@ -240,6 +244,14 @@ void MainWindow::UpdateUI() {
         _launcher_log_file_edit->setEnabled(has_application_list);
     }
 
+    if (configurator.request_vulkan_status) {
+        ui->log_browser->clear();
+        ui->log_browser->append("Vulkan Development Status:");
+        ui->log_browser->append(GenerateVulkanStatus());
+        ui->push_button_clear_log->setEnabled(true);
+        configurator.request_vulkan_status = false;
+    }
+
     // Update title bar
     if (has_active_configuration && configurator.environment.UseOverride()) {
         setWindowTitle(GetMainWindowTitle(true).c_str());
@@ -266,13 +278,12 @@ void MainWindow::LoadConfigurationList() {
     for (std::size_t i = 0, n = configurator.available_configurations.size(); i < n; i++) {
         const Configuration &configuration = configurator.available_configurations[i];
 
-        ConfigurationListItem *item = new ConfigurationListItem(configuration.name);
+        ConfigurationListItem *item = new ConfigurationListItem(configuration.key);
         ui->configuration_tree->addTopLevelItem(item);
         item->radio_button = new QRadioButton();
-        if (VKC_PLATFORM == VKC_PLATFORM_MACOS)  // Mac OS does not leave enough space without this
-            item->radio_button->setText(" ");
-
-        item->radio_button->setToolTip(configuration._description);
+        item->radio_button->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+        item->radio_button->setFixedSize(QSize(24, 24));
+        item->radio_button->setToolTip(configuration.description);
 
         item->setFlags(item->flags() | Qt::ItemIsEditable);
         ui->configuration_tree->setItemWidget(item, 0, item->radio_button);
@@ -404,9 +415,7 @@ void MainWindow::toolsResetToDefault(bool checked) {
         _settings_tree_manager.CreateGUI(ui->settings_tree);
     }
 
-    ui->log_browser->clear();
-    ui->log_browser->append("Vulkan Development Status:");
-    ui->log_browser->append(GenerateVulkanStatus());
+    configurator.request_vulkan_status = true;
 
     UpdateUI();
 }
@@ -451,19 +460,24 @@ void MainWindow::OnConfigurationItemChanged(QTreeWidgetItem *item, int column) {
 
         if (new_configuration_name.isEmpty()) {
             Alert::ConfigurationNameEmpty();
+        } else if (!IsPortableFilename(new_configuration_name.toStdString())) {
+            Alert::ConfigurationNameInvalid();
         }
 
         auto end = configurator.available_configurations.end();
+        const bool failed = new_configuration_name.isEmpty() || !IsPortableFilename(new_configuration_name.toStdString());
         auto duplicate_configuration =
-            new_configuration_name.isEmpty() ? end : Find(configurator.available_configurations, new_configuration_name);
+            failed ? end : FindItByKey(configurator.available_configurations, new_configuration_name.toStdString().c_str());
+
         if (duplicate_configuration != end) {
             Alert::ConfigurationRenamingFailed();
         }
 
         // Find existing configuration using it's old name
-        auto configuration = Find(configurator.available_configurations, configuration_item->configuration_name);
+        auto configuration =
+            FindItByKey(configurator.available_configurations, configuration_item->configuration_name.toStdString().c_str());
 
-        if (new_configuration_name.isEmpty() || duplicate_configuration != end) {
+        if (failed || duplicate_configuration != end) {
             // If the configurate name is empty or the configuration name is taken, keep old configuration name
 
             ui->configuration_tree->blockSignals(true);
@@ -472,10 +486,11 @@ void MainWindow::OnConfigurationItemChanged(QTreeWidgetItem *item, int column) {
         } else {
             // Rename configuration ; Remove old configuration file ; Create new configuration file
 
-            configuration->name = configuration_item->configuration_name = new_configuration_name;
+            configuration->key = configuration_item->configuration_name = new_configuration_name;
 
             remove(full_path.toUtf8().constData());
-            const bool result = configuration->Save(configurator.path.GetFullPath(PATH_CONFIGURATION, new_configuration_name));
+            const bool result = configuration->Save(configurator.layers.available_layers,
+                                                    configurator.path.GetFullPath(PATH_CONFIGURATION, new_configuration_name));
             assert(result);
         }
 
@@ -546,6 +561,12 @@ void MainWindow::helpShowLayerSpec(bool checked) {
     ShowDoc(DOC_VULKAN_LAYERS);
 }
 
+void MainWindow::helpShowGPUInfo(bool checked) {
+    (void)checked;
+
+    ShowDoc(DOC_GPU_INFO);
+}
+
 /// The only thing we need to do here is clear the configuration if
 /// the user does not want it active.
 void MainWindow::closeEvent(QCloseEvent *event) {
@@ -606,11 +627,10 @@ void MainWindow::on_push_button_select_configuration_clicked() {
     ConfigurationListItem *item = SaveLastItem();
     if (item == nullptr) return;
 
-    Configurator &configurator = Configurator::Get();
-
     // Save current state before we go in
     _settings_tree_manager.CleanupGUI();
 
+    Configurator &configurator = Configurator::Get();
     auto configuration = configurator.GetActiveConfiguration();
     assert(configuration != configurator.available_configurations.end());
 
@@ -704,7 +724,7 @@ void MainWindow::EditClicked(ConfigurationListItem *item) {
     SaveLastItem();
     _settings_tree_manager.CleanupGUI();
 
-    LayersDialog dlg(this, *Find(configurator.available_configurations, item->configuration_name));
+    LayersDialog dlg(this, *FindItByKey(configurator.available_configurations, item->configuration_name.toStdString().c_str()));
     dlg.exec();
 
     configurator.LoadAllConfigurations();
@@ -721,7 +741,7 @@ void MainWindow::NewClicked() {
     Configurator &configurator = Configurator::Get();
 
     Configuration configuration;
-    configuration.name = MakeConfigurationName(configurator.available_configurations, "New Configuration");
+    configuration.key = MakeConfigurationName(configurator.available_configurations, "New Configuration");
 
     LayersDialog dlg(this, configuration);
     if (QDialog::Accepted == dlg.exec()) {
@@ -770,14 +790,15 @@ void MainWindow::DuplicateClicked(ConfigurationListItem *item) {
 
     assert(!item->configuration_name.isEmpty());
 
-    auto configuration = Find(configurator.available_configurations, item->configuration_name);
+    auto configuration = FindItByKey(configurator.available_configurations, item->configuration_name.toStdString().c_str());
     assert(configuration != configurator.available_configurations.end());
 
     const QString &new_name = MakeConfigurationName(configurator.available_configurations, item->configuration_name);
     assert(new_name != item->configuration_name);
 
-    configuration->name = item->configuration_name = new_name;
-    const bool result = configuration->Save(configurator.path.GetFullPath(PATH_CONFIGURATION, item->configuration_name));
+    configuration->key = item->configuration_name = new_name;
+    const bool result = configuration->Save(configurator.layers.available_layers,
+                                            configurator.path.GetFullPath(PATH_CONFIGURATION, item->configuration_name));
     assert(result);
 
     _settings_tree_manager.CleanupGUI();
@@ -824,7 +845,7 @@ void MainWindow::ExportClicked(ConfigurationListItem *item) {
     const QString full_export_path = configurator.path.SelectPath(this, PATH_EXPORT_CONFIGURATION, full_suggested_path);
     if (full_export_path.isEmpty()) return;
 
-    configurator.ExportConfiguration(item->configuration_name + ".json", full_export_path);
+    configurator.ExportConfiguration(full_export_path, item->configuration_name);
 }
 
 void MainWindow::EditCustomPathsClicked(ConfigurationListItem *item) {
@@ -1185,14 +1206,14 @@ void MainWindow::on_push_button_launcher_clicked() {
         launch_log += "- Layers fully controlled by the application.\n";
     } else if (HasMissingParameter(configuration->parameters, configurator.layers.available_layers)) {
         launch_log += QString().asprintf("- No layers override. The active \"%s\" configuration is missing a layer.\n",
-                                         configuration->name.toUtf8().constData());
+                                         configuration->key.toUtf8().constData());
     } else if (configurator.environment.UseOverride()) {
         if (configurator.environment.UseApplicationListOverrideMode() && configurator.environment.HasOverriddenApplications() &&
             !active_application.override_layers) {
             launch_log += "- Layers fully controlled by the application. Application excluded from layers override.\n";
         } else {
             launch_log +=
-                QString().asprintf("- Layers overridden by \"%s\" configuration.\n", configuration->name.toUtf8().constData());
+                QString().asprintf("- Layers overridden by \"%s\" configuration.\n", configuration->key.toUtf8().constData());
         }
     }
 

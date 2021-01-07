@@ -28,6 +28,8 @@
 #include <cstdarg>
 #include <cctype>
 
+#include <QString>
+#include <QStringList>
 #include <QDir>
 
 std::string format(const char* message, ...) {
@@ -56,4 +58,28 @@ bool IsNumber(const std::string& s) {
     }
 
     return true;
+}
+
+// delimted string is a comma delimited string. If value is found remove it
+void RemoveString(std::string& delimited_string, const std::string& value) {
+    if (delimited_string.find(value) == std::string::npos) return;
+
+    QStringList list = QString(delimited_string.c_str()).split(",");
+    for (int i = 0, n = list.size(); i < n; ++i) {
+        if (list[i] == value.c_str()) {
+            list.removeAt(i);
+            break;
+        }
+    }
+
+    delimited_string = list.join(",").toStdString();
+}
+
+// Pretty simple, add to list if it's not already in it
+void AppendString(std::string& delimited_string, const std::string& value) {
+    if (delimited_string.find(value) != std::string::npos) return;
+
+    if (!delimited_string.empty()) delimited_string += ",";
+
+    delimited_string += value;
 }

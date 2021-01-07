@@ -31,11 +31,12 @@ TEST(test_override, override_and_surrender) {
 
     std::vector<Layer> available_layers;
     Layer layer;
-    layer.name = "VK_LAYER_KHRONOS_validation";
+    layer.key = "VK_LAYER_KHRONOS_validation";
+    layer._layer_path = "VK_LAYER_KHRONOS_validation.dummy_path";
     available_layers.push_back(layer);
 
     Configuration configuration;
-    const bool load = configuration.Load(":/Configuration 2.0.2 - Standard.json");
+    const bool load = configuration.Load(std::vector<Layer>(), ":/Configuration 2.0.2 - Standard.json");
     ASSERT_TRUE(load);
     ASSERT_TRUE(!configuration.IsEmpty());
 
@@ -51,7 +52,7 @@ TEST(test_override, missing_layers) {
     environment.Reset(Environment::DEFAULT);
 
     Configuration configuration;
-    const bool load = configuration.Load(":/Configuration 2.0.2 - Standard.json");
+    const bool load = configuration.Load(std::vector<Layer>(), ":/Configuration 2.0.2 - Standard.json");
     ASSERT_TRUE(load);
     ASSERT_TRUE(!configuration.IsEmpty());
 

@@ -27,17 +27,23 @@
 #include <cassert>
 
 // This can be used to specify a 'load' file or a 'save' file. Save is true by default
-FileSystemSettingWidget::FileSystemSettingWidget(QTreeWidgetItem* item, LayerSetting& layer_setting, SettingType setting_type)
-    : QWidget(nullptr), _layer_setting(layer_setting), _mode(GetMode(setting_type)) {
+FileSystemSettingWidget::FileSystemSettingWidget(QTreeWidgetItem* item, const LayerSettingMeta& layer_setting_meta,
+                                                 LayerSettingData& layer_setting_data)
+    : QWidget(nullptr),
+      _mode(GetMode(layer_setting_meta.type)),
+      layer_setting_meta(layer_setting_meta),
+      layer_setting_data(layer_setting_data),
+      _line_edit(nullptr),
+      _push_button(nullptr) {
     assert(item);
-    assert(&_layer_setting);
-    assert(setting_type >= SETTING_FIRST && setting_type <= SETTING_LAST);
+    assert(&layer_setting_meta);
+    assert(&layer_setting_data);
 
-    item->setText(0, layer_setting.label);
-    item->setToolTip(0, layer_setting.description);
+    item->setText(0, layer_setting_meta.label);
+    item->setToolTip(0, layer_setting_meta.description);
 
     _line_edit = new QLineEdit(this);
-    _line_edit->setText(_layer_setting.value);
+    _line_edit->setText(ReplaceBuiltInVariable(layer_setting_data.value).c_str());
     _line_edit->show();
 
     _push_button = new QPushButton(this);
@@ -66,13 +72,13 @@ void FileSystemSettingWidget::browseButtonClicked() {
 
     switch (_mode) {
         case MODE_OPEN_FILE:
-            file = QFileDialog::getOpenFileName(_push_button, "Select file", ".");
+            file = QFileDialog::getOpenFileName(_push_button, "Select file", _line_edit->text());
             break;
         case MODE_SAVE_FILE:
-            file = QFileDialog::getSaveFileName(_push_button, "Select File", ".");
+            file = QFileDialog::getSaveFileName(_push_button, "Select File", _line_edit->text());
             break;
         case MODE_SAVE_FOLDER:
-            file = QFileDialog::getExistingDirectory(_push_button, "Select Folder", ".");
+            file = QFileDialog::getExistingDirectory(_push_button, "Select Folder", _line_edit->text());
             break;
         default:
             assert(0);
@@ -81,14 +87,14 @@ void FileSystemSettingWidget::browseButtonClicked() {
 
     if (!file.isEmpty()) {
         file = ConvertNativeSeparators(file.toStdString()).c_str();
-        _layer_setting.value = file;
         _line_edit->setText(file);
+        layer_setting_data.value = file.toStdString();
         emit itemChanged();
     }
 }
 
 void FileSystemSettingWidget::textFieldChanged(const QString& new_text) {
-    _layer_setting.value = new_text;
+    layer_setting_data.value = new_text.toStdString();
     emit itemChanged();
 }
 

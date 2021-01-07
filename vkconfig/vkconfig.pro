@@ -30,22 +30,27 @@ SOURCES += \
     ../vkconfig_core/configuration.cpp \
     ../vkconfig_core/environment.cpp \
     ../vkconfig_core/help.cpp \
+    ../vkconfig_core/json.cpp \
     ../vkconfig_core/layer.cpp \
     ../vkconfig_core/layer_manager.cpp \
-    ../vkconfig_core/layer_setting.cpp \
+    ../vkconfig_core/layer_preset.cpp \
+    ../vkconfig_core/layer_setting_data.cpp \
+    ../vkconfig_core/layer_setting_meta.cpp \
+    ../vkconfig_core/layer_setting_type.cpp \
+    ../vkconfig_core/layer_setting_value.cpp \
+    ../vkconfig_core/layer_state.cpp \
     ../vkconfig_core/layer_type.cpp \
     ../vkconfig_core/override.cpp \
     ../vkconfig_core/parameter.cpp \
     ../vkconfig_core/path.cpp \
     ../vkconfig_core/path_manager.cpp \
     ../vkconfig_core/platform.cpp \
-    ../vkconfig_core/setting_value.cpp \
-    ../vkconfig_core/setting_type.cpp \
     ../vkconfig_core/registry.cpp \
     ../vkconfig_core/util.cpp \
     ../vkconfig_core/version.cpp \
     vulkan.cpp \
     alert.cpp \
+    widget_preset.cpp \
     widget_bool_setting.cpp \
     widget_enum_setting.cpp \
     widget_multi_enum_setting.cpp \
@@ -62,10 +67,11 @@ SOURCES += \
     dialog_vulkan_info.cpp \
     main.cpp \
     main_gui.cpp \
+    main_signal.cpp \
     main_layers.cpp \
     mainwindow.cpp \
-    settingstreemanager.cpp \
-    khronossettingsadvanced.cpp \
+    settings_tree.cpp \
+    settings_validation_areas.cpp \
     configurator.cpp
 
 HEADERS += \
@@ -75,19 +81,27 @@ HEADERS += \
     ../vkconfig_core/configuration.h \
     ../vkconfig_core/environment.h \
     ../vkconfig_core/help.h \
+    ../vkconfig_core/json.h \
     ../vkconfig_core/layer.h \
     ../vkconfig_core/layer_manager.h \
-    ../vkconfig_core/layer_setting.h \
+	../vkconfig_core/layer_preset.h \
+    ../vkconfig_core/layer_setting_data.h \
+    ../vkconfig_core/layer_setting_meta.h \
+    ../vkconfig_core/layer_setting_type.h \
+    ../vkconfig_core/layer_setting_value.h \
+    ../vkconfig_core/layer_state.h \
     ../vkconfig_core/layer_type.h \
     ../vkconfig_core/override.h \
     ../vkconfig_core/parameter.h \
     ../vkconfig_core/path.h \
     ../vkconfig_core/path_manager.h \
+    ../vkconfig_core/platform.h \
     ../vkconfig_core/registry.h \
     ../vkconfig_core/util.h \
     ../vkconfig_core/version.h \
     vulkan.h \
     alert.h \
+    widget_preset.h \
     widget_bool_setting.h \
     widget_enum_setting.h \
     widget_multi_enum_setting.h \
@@ -102,11 +116,12 @@ HEADERS += \
     dialog_layers.h \
     dialog_vulkan_analysis.h \
     dialog_vulkan_info.h \
-    khronossettingsadvanced.h \
     main_gui.h \
+    main_signal.h \
     main_layers.h \
     mainwindow.h \
-    settingstreemanager.h \
+    settings_validation_areas.h \
+    settings_tree.h \
     configurator.h
 
 FORMS += \

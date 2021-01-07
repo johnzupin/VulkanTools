@@ -27,19 +27,19 @@
 #include <cassert>
 
 static int RunLayersOverride(const CommandLine& command_line) {
-    Configuration configuration;
-    const bool load_result = configuration.Load(command_line.layers_configuration_path.c_str());
-    if (!load_result) {
-        printf("\nFailed to load the layers configuration file...\n");
-        return -1;
-    }
-
     PathManager paths;
     Environment environment(paths);
     environment.Reset(Environment::DEFAULT);
 
     LayerManager layers(environment);
     layers.LoadAllInstalledLayers();
+
+    Configuration configuration;
+    const bool load_result = configuration.Load(layers.available_layers, command_line.layers_configuration_path.c_str());
+    if (!load_result) {
+        printf("\nFailed to load the layers configuration file...\n");
+        return -1;
+    }
 
     // With command line, don't store the application list, it's always global, save and restore the setting
     const bool use_application_list = environment.UseApplicationListOverrideMode();
@@ -58,8 +58,7 @@ static int RunLayersOverride(const CommandLine& command_line) {
             const Parameter& parameter = configuration.parameters[i];
             if (parameter.state == LAYER_STATE_APPLICATION_CONTROLLED) continue;
 
-            printf("\t%s (%s)\n", parameter.name.toStdString().c_str(),
-                   parameter.state == LAYER_STATE_OVERRIDDEN ? "Overridden" : "Excluded");
+            printf("\t%s (%s)\n", parameter.key.c_str(), parameter.state == LAYER_STATE_OVERRIDDEN ? "Overridden" : "Excluded");
         }
         printf("\n  (Use \"vkconfig layers --surrender\" to return Vulkan layers control to Vulkan applications.)\n");
     } else {
@@ -109,7 +108,7 @@ static int RunLayersList(const CommandLine& command_line) {
     for (std::size_t i = 0, n = layers.available_layers.size(); i < n; ++i) {
         const Layer& layer = layers.available_layers[i];
 
-        printf("%s\n", layer.name.toStdString().c_str());
+        printf("%s\n", layer.key.c_str());
     }
 
     return 0;
@@ -128,9 +127,9 @@ static int RunLayersVerbose(const CommandLine& command_line) {
     for (std::size_t i = 0, n = layers.available_layers.size(); i < n; ++i) {
         const Layer& layer = layers.available_layers[i];
 
-        printf("\n%s (%s) %s-%s\n", layer.name.toStdString().c_str(), GetLayerTypeLabel(layer._layer_type),
-               layer._api_version.str().c_str(), layer._implementation_version.toStdString().c_str());
-        printf("- %s\n", layer._description.toStdString().c_str());
+        printf("\n%s (%s) %s-%s\n", layer.key.c_str(), GetLayerTypeLabel(layer._layer_type), layer._api_version.str().c_str(),
+               layer._implementation_version.toStdString().c_str());
+        printf("- %s\n", layer.description.toStdString().c_str());
         printf("- %s\n", layer._layer_path.toStdString().c_str());
         printf("- %s\n", layer._library_path.toStdString().c_str());
     }

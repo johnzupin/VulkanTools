@@ -20,7 +20,20 @@
 
 #pragma once
 
+#include <QFileInfoList>
+
 #include <string>
+
+enum BuiltinPath {
+    BUILTIN_PATH_HOME = 0,
+    BUILTIN_PATH_VULKAN_SDK,
+    BUILTIN_PATH_VULKAN_LAYER_CONFIG,
+
+    BUILTIN_PATH_FIRST = BUILTIN_PATH_HOME,
+    BUILTIN_PATH_LAST = BUILTIN_PATH_VULKAN_LAYER_CONFIG,
+};
+
+enum { BUILTIN_PATH_COUNT = BUILTIN_PATH_LAST - BUILTIN_PATH_FIRST + 1 };
 
 class Path {
    public:
@@ -43,8 +56,11 @@ const char* GetNativeSeparator();
 // Create a directory if it doesn't exist
 void CheckPathsExist(const std::string& path);
 
-// Replace "$HOME" built-in variable by the actual system home directory
-std::string ReplacePathBuiltInVariables(const std::string& path);
+std::string GetPath(BuiltinPath path);
 
-// Exact the filename and change the path to "$HOME" directory if necessary
-std::string ValidatePath(const std::string& path);
+// Replace built-in variable by the actual path
+std::string ReplaceBuiltInVariable(const std::string& path);
+
+bool IsPortableFilename(const std::string& path);
+
+QFileInfoList GetJSONFiles(const char* directory);

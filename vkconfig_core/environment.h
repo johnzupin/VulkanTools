@@ -104,11 +104,11 @@ class Environment {
 
     const std::vector<Application>& GetApplications() const { return applications; }
     const Application& GetActiveApplication() const;
-    const Application& GetApplication(int application_index) const;
-    Application& GetApplication(int application_index);
+    const Application& GetApplication(std::size_t application_index) const;
+    Application& GetApplication(std::size_t application_index);
 
     const QString& Get(Active active) const;
-    void Set(Active active, const QString& name);
+    void Set(Active active, const QString& key);
 
     const QByteArray& Get(LayoutState state) const;
     void Set(LayoutState state, const QByteArray& data);
@@ -152,7 +152,7 @@ bool ExactExecutableFromAppBundle(QString& path);
 std::vector<Application> RemoveMissingApplications(const std::vector<Application>& applications);
 
 // Create a list of default applications, eg vkcube
-std::vector<Application> CreateDefaultApplications(const PathManager& paths);
+std::vector<Application> CreateDefaultApplications();
 
 // Update default applications path to use relative path (really useful only on Windows)
-std::vector<Application> UpdateDefaultApplications(const PathManager& paths, const std::vector<Application>& applications);
+std::vector<Application> UpdateDefaultApplications(const std::vector<Application>& applications);

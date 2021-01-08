@@ -1,2 +1,2 @@
 usr/bin/vkconfig
-layersvt/device_simulation_examples/sdk_sample_configs/*.json usr/share/vulkan/config/
+layersvt/device_simulation_examples/sdk_sample_configs/*.json usr/share/vulkan/config/VK_LAYER_LUNARG_devsim/

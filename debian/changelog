@@ -1,3 +1,9 @@
+lunarg-tools (1.2.162.1~rc2-1lunarg20.04-1) focal; urgency=medium
+
+  * packaging: update port json file install location
+
+ -- John Zupin <john@odin>  Thu, 07 Jan 2021 18:17:21 -0700
+
 lunarg-tools (1.2.162.1~rc1-1lunarg20.04-1) focal; urgency=medium
 
   [ Christophe ]

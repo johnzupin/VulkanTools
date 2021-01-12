@@ -1,3 +1,30 @@
+lunarg-tools (1.2.162.1~rc3-1lunarg18.04-1) bionic; urgency=medium
+
+  [ Christophe ]
+  * vkconfig: Fix path management
+  * vkconfig: No configuration requires default configurations reset
+  * vkconfig: load legacy user-defined configurations
+  * vkconfig: Fix devsim path
+  * vkconfig: Fix incorrect devsim path
+  * vkconfig: Add 'Portability' default configuration for macOS on SDK 162
+
+  [ richard-lunarg ]
+  * devsim: Add build for macOS
+
+  [ John Zupin ]
+  * packaging: update where devsim json files get installed
+
+  [ Nathaniel Cesario ]
+  * devsim: populate PDD after CreateInstance
+
+  [ Christophe ]
+  * vkconfig: Exclude layers from config on unsupported platforms
+  * vkconfig: Bring back Debug Enable setting
+  * vkconfig: Fix devsim configuration files on Linux tar
+  * vkconfig: Fix missing configurations on reset
+
+ -- John Zupin <john@odin>  Tue, 12 Jan 2021 10:45:17 -0700
+
 lunarg-tools (1.2.162.1~rc2-1lunarg18.04-1) bionic; urgency=medium
 
   * packaging: update port json file install location

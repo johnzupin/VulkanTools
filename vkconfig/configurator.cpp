@@ -127,17 +127,7 @@ bool Configurator::Init() {
     LoadAllConfigurations();
 
     if (available_configurations.empty()) {
-        QMessageBox alert;
-        alert.setWindowTitle("Vulkan Configurator couldn't find any layers configuration.");
-        alert.setText(
-            "A layers configuration is required to override Vulkan layers but none could be found during the initialization...");
-        alert.setInformativeText("Restoring the default layers configurations.");
-        alert.setStandardButtons(QMessageBox::Ok);
-        alert.setDefaultButton(QMessageBox::Ok);
-        alert.setIcon(QMessageBox::Warning);
-        if (alert.exec() == QMessageBox::Ok) {
-            ResetDefaultsConfigurations();
-        }
+        ResetDefaultsConfigurations();
     }
 
     if (HasActiveConfiguration()) {
@@ -218,6 +208,44 @@ void Configurator::BuildCustomLayerTree(QTreeWidget *tree_widget) {
     }
 }
 
+static bool IsConfigurationExcluded(const char *filename) {
+    static const char *EXCLUDED_FILENAMES[] = {"Validation - Synchronization (Alpha).json",
+                                               "Validation - Standard.json",
+                                               "Validation - Reduced-Overhead.json",
+                                               "Validation - GPU-Assisted.json",
+                                               "Validation - Debug Printf.json",
+                                               "Validation - Shader Printf.json",
+                                               "Validation - Best Practices.json",
+                                               "Frame Capture - Range (F5 to start and to stop).json",
+                                               "Frame Capture - Range (F10 to start and to stop).json",
+                                               "Frame Capture - First two frames.json",
+                                               "applist.json"};
+
+    for (std::size_t i = 0, n = countof(EXCLUDED_FILENAMES); i < n; ++i) {
+        if (std::strcmp(EXCLUDED_FILENAMES[i], filename) == 0) return true;
+    }
+
+    return false;
+}
+
+void Configurator::LoadConfigurationsPath(PathType path_type) {
+    const QFileInfoList &configuration_files = GetJSONFiles(path.GetPath(path_type).c_str());
+    for (int i = 0, n = configuration_files.size(); i < n; ++i) {
+        const QFileInfo &info = configuration_files[i];
+        if (SUPPORT_VKCONFIG_2_0_3 && IsConfigurationExcluded(info.fileName().toStdString().c_str())) continue;
+
+        Configuration configuration;
+        const bool result = configuration.Load(layers.available_layers, info.absoluteFilePath());
+
+        if (FindByKey(available_configurations, configuration.key.toStdString().c_str()) != nullptr) continue;
+
+        OrderParameter(configuration.parameters, layers.available_layers);
+        if (result) {
+            available_configurations.push_back(configuration);
+        }
+    }
+}
+
 /// Load all the configurations. If the built-in configurations don't exist,
 /// they are created from the embedded json files
 void Configurator::LoadAllConfigurations() {
@@ -248,17 +276,8 @@ void Configurator::LoadAllConfigurations() {
         environment.first_run = false;
     }
 
-    const QFileInfoList &configuration_files = GetJSONFiles(path.GetPath(PATH_CONFIGURATION).c_str());
-    for (int i = 0, n = configuration_files.size(); i < n; ++i) {
-        const QFileInfo &info = configuration_files.at(i);
-
-        Configuration configuration;
-        const bool result = configuration.Load(layers.available_layers, info.absoluteFilePath());
-        OrderParameter(configuration.parameters, layers.available_layers);
-        if (result) {
-            available_configurations.push_back(configuration);
-        }
-    }
+    LoadConfigurationsPath(PATH_CONFIGURATION);
+    if (SUPPORT_VKCONFIG_2_0_3) LoadConfigurationsPath(PATH_CONFIGURATION_LEGACY);
 
     RefreshConfiguration();
 }

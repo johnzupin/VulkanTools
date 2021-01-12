@@ -141,10 +141,16 @@ const char* GetPlatformString(PlatformString platform_string) {
             "/usr/local/lib/libvulkan",  // PLATFORM_MACOS
         },
         {
+            // PLATFORM_STRING_VULKAN_SDK_DEFAULT
+            "/gni/share/vulkan",        // PLATFORM_WINDOWS
+            "/usr",                     // PLATFORM_LINUX
+            "/usr/local/share/vulkan",  // PLATFORM_MACOS
+        },
+        {
             // PLATFORM_STRING_VULKAN_LAYER_CONFIG
-            "/Config",                      // PLATFORM_WINDOWS
-            "/.local/share/vulkan/config",  // PLATFORM_LINUX
-            "/.local/share/vulkan/config",  // PLATFORM_MACOS
+            "/Config",               // PLATFORM_WINDOWS
+            "/share/vulkan/config",  // PLATFORM_LINUX
+            "/config",               // PLATFORM_MACOS
         },
         {
             // PLATFORM_STRING_EXPLICIT_LAYERS
@@ -153,7 +159,19 @@ const char* GetPlatformString(PlatformString platform_string) {
             "/etc/vulkan/explicit_layer.d",  // PLATFORM_MACOS
         },
         {
+            // PLATFORM_STRING_VULKAN_SDK_LOCAL
+            "/VulkanSDK",  // PLATFORM_WINDOWS
+            "/VulkanSDK",  // PLATFORM_LINUX
+            "/VulkanSDK",  // PLATFORM_MACOS
+        },
+        {
             // PLATFORM_STRING_PATH_VKC_USER_DIR
+            "/AppData/Local/LunarG/vkconfig/",        // PLATFORM_WINDOWS
+            "/.local/share/vulkan/lunarg-vkconfig/",  // PLATFORM_LINUX
+            "/.local/share/vulkan/lunarg-vkconfig/"   // PLATFORM_MACOS
+        },
+        {
+            // PLATFORM_STRING_PATH_CONFIGURATION_LEGACY
             "/AppData/Local/LunarG/vkconfig/",        // PLATFORM_WINDOWS
             "/.local/share/vulkan/lunarg-vkconfig/",  // PLATFORM_LINUX
             "/.local/share/vulkan/lunarg-vkconfig/"   // PLATFORM_MACOS

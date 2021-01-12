@@ -15,21 +15,33 @@
                 "rank": -1,
                 "settings": [
                 ],
-                "state": "EXCLUDED"
+                "state": "EXCLUDED",
+                "platforms": [
+                    "WINDOWS",
+                    "LINUX"
+                ]
             },
             {
                 "name": "VK_LAYER_LUNARG_monitor",
                 "rank": -1,
                 "settings": [
                 ],
-                "state": "EXCLUDED"
+                "state": "EXCLUDED",
+                "platforms": [
+                    "WINDOWS",
+                    "LINUX"
+                ]
             },
             {
                 "name": "VK_LAYER_LUNARG_screenshot",
                 "rank": -1,
                 "settings": [
                 ],
-                "state": "EXCLUDED"
+                "state": "EXCLUDED",
+                "platforms": [
+                    "WINDOWS",
+                    "LINUX"
+                ]
             },
             {
                 "name": "VK_LAYER_KHRONOS_validation",
@@ -93,7 +105,8 @@
         "name": "Portability",
         "platforms": [
             "WINDOWS",
-            "LINUX"
+            "LINUX",
+            "MACOS"
         ]
     },
     "file_format_version": "2.1.0"

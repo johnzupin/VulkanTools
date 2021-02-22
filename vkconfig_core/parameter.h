@@ -22,9 +22,7 @@
 
 #include "layer.h"
 #include "layer_state.h"
-#include "layer_setting_data.h"
-
-#include <QString>
+#include "setting_data.h"
 
 #include <vector>
 
@@ -40,14 +38,16 @@ enum ParameterRank {
 struct Parameter {
     static const int NO_RANK = -1;
 
-    Parameter() : state(LAYER_STATE_APPLICATION_CONTROLLED), overridden_rank(NO_RANK) {}
-    Parameter(const std::string& key, const LayerState state) : key(key), state(state), overridden_rank(NO_RANK) {}
+    Parameter() : state(LAYER_STATE_APPLICATION_CONTROLLED), platform_flags(PLATFORM_ALL_BIT), overridden_rank(NO_RANK) {}
+    Parameter(const std::string& key, const LayerState state)
+        : key(key), state(state), platform_flags(PLATFORM_ALL_BIT), overridden_rank(NO_RANK) {}
 
     bool ApplyPresetSettings(const LayerPreset& preset);
 
     std::string key;
     LayerState state;
-    std::vector<LayerSettingData> settings;
+    int platform_flags;
+    SettingDataSet settings;
     int overridden_rank;
 };
 
@@ -55,4 +55,4 @@ ParameterRank GetParameterOrdering(const std::vector<Layer>& available_layers, c
 void OrderParameter(std::vector<Parameter>& parameters, const std::vector<Layer>& layers);
 void FilterParameters(std::vector<Parameter>& parameters, const LayerState state);
 
-bool HasMissingParameter(const std::vector<Parameter>& parameters, const std::vector<Layer>& layers);
+bool HasMissingLayer(const std::vector<Parameter>& parameters, const std::vector<Layer>& layers);

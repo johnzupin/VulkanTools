@@ -13,23 +13,6 @@ if(NOT Qt5_FOUND)
 elseif(Qt5_VERSION VERSION_LESS 5.5)
     message("WARNING: vkconfig will be excluded because the found Qt version is too old. vkconfig requires version 5.5.")
 else()
-    file(GLOB FILES_RESSOURCE_CONFIGURATIONS ./resourcefiles/configurations/*.json)
-    file(GLOB FILES_RESSOURCE_LAYERS_1_1_130 ./resourcefiles/layers_1_1_130/*.json)
-    file(GLOB FILES_RESSOURCE_LAYERS_1_1_135 ./resourcefiles/layers_1_2_135/*.json)
-    file(GLOB FILES_RESSOURCE_LAYERS_1_2_141 ./resourcefiles/layers_1_2_141/*.json)
-    file(GLOB FILES_RESSOURCE_LAYERS_1_2_148 ./resourcefiles/layers_1_2_148/*.json)
-    file(GLOB FILES_RESSOURCE_LAYERS_1_2_154 ./resourcefiles/layers_1_2_154/*.json)
-    file(GLOB FILES_RESSOURCE_LAYERS_1_2_162 ./resourcefiles/layers_1_2_162/*.json)
-    set(FILES_RESSOURCE ${FILES_RESSOURCE_CONFIGURATIONS} ${FILES_RESSOURCE_LAYERS_1_1_130} ${FILES_RESSOURCE_LAYERS_1_1_135} ${FILES_RESSOURCE_LAYERS_1_2_141} ${FILES_RESSOURCE_LAYERS_1_2_148} ${FILES_RESSOURCE_LAYERS_1_2_154} ${FILES_RESSOURCE_LAYERS_1_2_162})
-
-    source_group("Resources - Configurations" FILES ${FILES_RESSOURCE_CONFIGURATIONS})
-    source_group("Resources - 1.1.130 Layers" FILES ${FILES_RESSOURCE_LAYERS_1_1_130})
-    source_group("Resources - 1.2.135 Layers" FILES ${FILES_RESSOURCE_LAYERS_1_2_135})
-    source_group("Resources - 1.2.141 Layers" FILES ${FILES_RESSOURCE_LAYERS_1_2_141})
-    source_group("Resources - 1.2.148 Layers" FILES ${FILES_RESSOURCE_LAYERS_1_2_148})
-    source_group("Resources - 1.2.154 Layers" FILES ${FILES_RESSOURCE_LAYERS_1_2_154})
-    source_group("Resources - 1.2.162 Layers" FILES ${FILES_RESSOURCE_LAYERS_1_2_162})
-
     file(GLOB FILES_UI ./*.ui)
 
     source_group("UI Files" FILES ${FILES_UI})
@@ -40,7 +23,7 @@ else()
 
     source_group("Docs Files" FILES ${FILES_DOCS})
 
-    set(FILES_ALL ${FILES_RESSOURCE} ${FILES_UI} ${FILES_SOURCE} ${FILES_HEADER} ${FILES_DOCS} resources.qrc)
+    set(FILES_ALL ${FILES_UI} ${FILES_SOURCE} ${FILES_HEADER} ${FILES_DOCS} resources.qrc)
 
     add_definitions(-DQT_NO_DEBUG_OUTPUT)
     add_definitions(-DQT_NO_WARNING_OUTPUT)

@@ -30,15 +30,12 @@
 #include <algorithm>
 
 bool Parameter::ApplyPresetSettings(const LayerPreset& preset) {
-    for (std::size_t preset_index = 0, preset_count = preset.settings.size(); preset_index < preset_count; ++preset_index) {
-        const LayerSettingData& preset_setting = preset.settings[preset_index];
+    for (std::size_t preset_index = 0, preset_count = preset.settings.Size(); preset_index < preset_count; ++preset_index) {
+        const SettingData& preset_setting = preset.settings[preset_index];
 
-        LayerSettingData* layer_setting = FindByKey(this->settings, preset_setting.key.c_str());
+        SettingData& layer_setting = this->settings.Create(preset_setting.key, preset_setting.type);
 
-        if (layer_setting)
-            layer_setting->value = preset_setting.value;
-        else
-            this->settings.push_back(preset_setting);
+        layer_setting = preset_setting;
     }
 
     return true;
@@ -47,8 +44,8 @@ bool Parameter::ApplyPresetSettings(const LayerPreset& preset) {
 ParameterRank GetParameterOrdering(const std::vector<Layer>& available_layers, const Parameter& parameter) {
     assert(!parameter.key.empty());
 
-    const std::vector<Layer>::const_iterator layer = FindItByKey(available_layers, parameter.key.c_str());
-    if (layer == available_layers.end()) {
+    const Layer* layer = FindByKey(available_layers, parameter.key.c_str());
+    if (layer == nullptr) {
         return PARAMETER_RANK_MISSING;
     } else if (parameter.state == LAYER_STATE_EXCLUDED) {
         return PARAMETER_RANK_EXCLUDED;
@@ -117,9 +114,19 @@ void FilterParameters(std::vector<Parameter>& parameters, const LayerState state
     parameters = filtered_parameters;
 }
 
-bool HasMissingParameter(const std::vector<Parameter>& parameters, const std::vector<Layer>& layers) {
+bool HasMissingLayer(const std::vector<Parameter>& parameters, const std::vector<Layer>& layers) {
     for (auto it = parameters.begin(), end = parameters.end(); it != end; ++it) {
-        if (!IsFound(layers, it->key.c_str())) return true;
+        if (it->state == LAYER_STATE_EXCLUDED) {
+            continue;  // If excluded are missing, it doesn't matter
+        }
+
+        if (!(it->platform_flags & (1 << VKC_PLATFORM))) {
+            continue;  // If unsupported are missing, it doesn't matter
+        }
+
+        if (!IsFound(layers, it->key.c_str())) {
+            return true;
+        }
     }
     return false;
 }

@@ -39,20 +39,20 @@ TEST(test_layer_preset, get_preset) {
 }
 
 TEST(test_layer_preset, has_preset) {
-    std::vector<LayerSettingData> preset_settings;
-    std::vector<LayerSettingData> layer_settings;
+    SettingDataSet preset_settings;
+    SettingDataSet layer_settings;
 
     EXPECT_EQ(false, HasPreset(layer_settings, preset_settings));
 
-    preset_settings.push_back(LayerSettingData("KeyA", "ValueA"));
+    static_cast<SettingDataString&>(preset_settings.Create("KeyA", SETTING_STRING)).value = "ValueA";
     EXPECT_EQ(false, HasPreset(layer_settings, preset_settings));
 
-    layer_settings.push_back(LayerSettingData("KeyA", "ValueA"));
+    static_cast<SettingDataString&>(layer_settings.Create("KeyA", SETTING_STRING)).value = "ValueA";
     EXPECT_EQ(true, HasPreset(layer_settings, preset_settings));
 
-    layer_settings.push_back(LayerSettingData("KeyB", "ValueB"));
+    static_cast<SettingDataString&>(layer_settings.Create("KeyB", SETTING_STRING)).value = "ValueB";
     EXPECT_EQ(true, HasPreset(layer_settings, preset_settings));
 
-    preset_settings.push_back(LayerSettingData("KeyC", "ValueC"));
+    static_cast<SettingDataString&>(preset_settings.Create("KeyC", SETTING_STRING)).value = "ValueC";
     EXPECT_EQ(false, HasPreset(layer_settings, preset_settings));
 }

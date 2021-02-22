@@ -80,37 +80,63 @@ TEST(test_util, countof_vector_3) {
     EXPECT_EQ(3, countof(test_data));
 }
 
-TEST(test_util_format, int_1) { EXPECT_EQ("Test 1", format("Test %d", 1)); }
+TEST(test_util, format_int_1) { EXPECT_EQ("Test 1", format("Test %d", 1)); }
 
-TEST(test_util_format, delimited_string) {
-    std::string delimited_string;
+TEST(test_util, format_strings_list) {
+    std::vector<std::string> list;
 
-    AppendString(delimited_string, "A");
-    EXPECT_STREQ("A", delimited_string.c_str());
+    AppendString(list, "A");
+    EXPECT_TRUE(IsStringFound(list, "A"));
+    EXPECT_FALSE(IsStringFound(list, "B"));
+    EXPECT_EQ(1, list.size());
 
-    AppendString(delimited_string, "A");  // A was already added to the delimited string and can only exist once
-    EXPECT_STREQ("A", delimited_string.c_str());
+    AppendString(list, "A");  // A was already added to the delimited string and can only exist once
+    EXPECT_TRUE(IsStringFound(list, "A"));
+    EXPECT_FALSE(IsStringFound(list, "B"));
+    EXPECT_EQ(1, list.size());
 
-    RemoveString(delimited_string, "B");  // B doesn't exist in delimited_string
-    EXPECT_STREQ("A", delimited_string.c_str());
+    RemoveString(list, "B");  // B doesn't exist in delimited_string
+    EXPECT_TRUE(IsStringFound(list, "A"));
+    EXPECT_FALSE(IsStringFound(list, "B"));
+    EXPECT_EQ(1, list.size());
 
-    AppendString(delimited_string, "B");
-    EXPECT_STREQ("A,B", delimited_string.c_str());
+    AppendString(list, "B");
+    EXPECT_TRUE(IsStringFound(list, "A"));
+    EXPECT_TRUE(IsStringFound(list, "B"));
+    EXPECT_EQ(2, list.size());
 
-    AppendString(delimited_string, "C");
-    EXPECT_STREQ("A,B,C", delimited_string.c_str());
+    AppendString(list, "C");
+    EXPECT_TRUE(IsStringFound(list, "A"));
+    EXPECT_TRUE(IsStringFound(list, "B"));
+    EXPECT_TRUE(IsStringFound(list, "C"));
+    EXPECT_EQ(3, list.size());
 
-    RemoveString(delimited_string, "B");
-    EXPECT_STREQ("A,C", delimited_string.c_str());
+    RemoveString(list, "B");
+    EXPECT_TRUE(IsStringFound(list, "A"));
+    EXPECT_FALSE(IsStringFound(list, "B"));
+    EXPECT_TRUE(IsStringFound(list, "C"));
+    EXPECT_EQ(2, list.size());
 
-    RemoveString(delimited_string, "C");
-    EXPECT_STREQ("A", delimited_string.c_str());
+    RemoveString(list, "B");
+    EXPECT_TRUE(IsStringFound(list, "A"));
+    EXPECT_FALSE(IsStringFound(list, "B"));
+    EXPECT_TRUE(IsStringFound(list, "C"));
+    EXPECT_EQ(2, list.size());
 
-    RemoveString(delimited_string, "A");
-    EXPECT_STREQ("", delimited_string.c_str());
+    RemoveString(list, "C");
+    EXPECT_TRUE(IsStringFound(list, "A"));
+    EXPECT_FALSE(IsStringFound(list, "B"));
+    EXPECT_FALSE(IsStringFound(list, "C"));
+    EXPECT_EQ(1, list.size());
+
+    RemoveString(list, "A");
+    EXPECT_FALSE(IsStringFound(list, "A"));
+    EXPECT_FALSE(IsStringFound(list, "B"));
+    EXPECT_FALSE(IsStringFound(list, "C"));
+    EXPECT_EQ(0, list.size());
 }
 
-TEST(test_util_format, find) {
+TEST(test_util, format_find) {
     struct Element {
         std::string key;
     };
@@ -134,13 +160,28 @@ TEST(test_util_format, find) {
     EXPECT_STREQ("C", FindByKey(container, "C")->key.c_str());
     EXPECT_EQ(nullptr, FindByKey(container, "D"));
 
-    EXPECT_STREQ("A", FindItByKey(container, "A")->key.c_str());
-    EXPECT_STREQ("B", FindItByKey(container, "B")->key.c_str());
-    EXPECT_STREQ("C", FindItByKey(container, "C")->key.c_str());
-    EXPECT_EQ(container.end(), FindItByKey(container, "D"));
-
     EXPECT_EQ(true, IsFound(container, "A"));
     EXPECT_EQ(true, IsFound(container, "B"));
     EXPECT_EQ(true, IsFound(container, "C"));
     EXPECT_EQ(false, IsFound(container, "D"));
+}
+
+TEST(test_util, to_lower_case) {
+    EXPECT_STREQ("string", ToLowerCase("string").c_str());
+    EXPECT_STREQ(" string", ToLowerCase(" string").c_str());
+    EXPECT_STREQ(" string ", ToLowerCase(" string ").c_str());
+    EXPECT_STREQ("string", ToLowerCase("sTRing").c_str());
+    EXPECT_STREQ("string", ToLowerCase("String").c_str());
+    EXPECT_STREQ("string76", ToLowerCase("StrinG76").c_str());
+    EXPECT_STREQ("str ing", ToLowerCase("Str inG").c_str());
+}
+
+TEST(test_util, to_upper_case) {
+    EXPECT_STREQ("STRING", ToUpperCase("string").c_str());
+    EXPECT_STREQ(" STRING", ToUpperCase(" string").c_str());
+    EXPECT_STREQ(" STRING ", ToUpperCase(" string ").c_str());
+    EXPECT_STREQ("STRING", ToUpperCase("sTRing").c_str());
+    EXPECT_STREQ("STRING", ToUpperCase("String").c_str());
+    EXPECT_STREQ("STRING76", ToUpperCase("StrinG76").c_str());
+    EXPECT_STREQ("STR ING", ToUpperCase("Str inG").c_str());
 }

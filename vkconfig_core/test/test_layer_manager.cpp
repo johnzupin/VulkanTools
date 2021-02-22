@@ -17,3 +17,20 @@
  * Authors:
  * - Christophe Riccio <christophe@lunarg.com>
  */
+
+#include "../layer_manager.h"
+
+#include <gtest/gtest.h>
+
+TEST(test_layer_manager, load_only_layer_json) {
+    PathManager paths;
+    Environment environment(paths);
+    environment.Reset(Environment::DEFAULT);
+
+    LayerManager layer_manager(environment);
+    layer_manager.LoadLayersFromPath(":/");
+
+    EXPECT_EQ(4, layer_manager.available_layers.size());
+
+    environment.Reset(Environment::SYSTEM);  // Don't change the system settings on exit
+}

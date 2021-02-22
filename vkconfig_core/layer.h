@@ -25,15 +25,14 @@
 
 #pragma once
 
-#include "../vkconfig_core/layer_setting_meta.h"
-#include "../vkconfig_core/layer_preset.h"
-#include "../vkconfig_core/layer_type.h"
-#include "../vkconfig_core/version.h"
+#include "setting_meta.h"
+#include "layer_preset.h"
+#include "layer_type.h"
+#include "version.h"
 
 #include <QObject>
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <QString>
 
 #include <vector>
 #include <string>
@@ -45,29 +44,32 @@ class Layer {
     Layer();
     Layer(const std::string& key, const LayerType layer_type);
     Layer(const std::string& key, const LayerType layer_type, const Version& file_format_version, const Version& api_version,
-          const QString& implementation_version, const QString& library_path, const QString& type);
+          const std::string& implementation_version, const std::string& library_path, const std::string& type);
 
     bool IsValid() const;
 
-    std::string FindPresetLabel(const std::vector<LayerSettingData>& setting_data) const;
+    std::string FindPresetLabel(const SettingDataSet& settings) const;
 
    public:
     std::string key;
     Version file_format_version;
-    QString _type;
-    QString _library_path;  // This is a relative path, straight out of the json
+    std::string _type;
+    std::string _library_path;  // This is a relative path, straight out of the json
     Version _api_version;
-    QString _implementation_version;
-    QString description;
+    std::string _implementation_version;
+    StatusType status;
+    std::string description;
+    std::string url;
 
-    std::vector<LayerSettingMeta> settings;
+    SettingMetaSet settings;
     std::vector<LayerPreset> presets;
 
-    QString _layer_path;  // Actual path to the folder that contains the layer (this is important!)
+    std::string _layer_path;  // Actual path to the folder that contains the layer (this is important!)
     LayerType _layer_type;
 
     // File based layers
-    bool Load(const QString& full_path_to_file, LayerType layer_type);
+    bool Load(const std::string& full_path_to_file, LayerType layer_type);
 };
 
-std::vector<LayerSettingData> CollectDefaultSettingData(const std::vector<LayerSettingMeta>& layer_settings);
+void InitSettingDefaultValue(SettingData& setting_data, const SettingMeta& setting_meta);
+SettingDataSet CollectDefaultSettingData(const SettingMetaSet& layer_settings);

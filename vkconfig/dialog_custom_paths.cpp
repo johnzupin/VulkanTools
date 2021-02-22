@@ -30,10 +30,10 @@ CustomPathsDialog::CustomPathsDialog(QWidget *parent) : QDialog(parent), ui(new 
     ui->setupUi(this);
     setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
 
-    ui->treeWidget->headerItem()->setText(0, "Custom Search Paths & Layers");
+    ui->treeWidget->headerItem()->setText(0, "User-Defined Layers Paths");
 
     RepopulateTree();
-    ui->buttonBox->setEnabled(Configurator::Get().HasLayers());
+    ui->buttonBox->setEnabled(!Configurator::Get().layers.Empty());
     Configurator::Get().request_vulkan_status = true;
 }
 
@@ -42,27 +42,60 @@ CustomPathsDialog::~CustomPathsDialog() {}
 // Load the tree widget with the current list
 void CustomPathsDialog::RepopulateTree() {
     Configurator &configurator = Configurator::Get();
-    configurator.BuildCustomLayerTree(ui->treeWidget);
+
+    // Populate the tree
+    ui->treeWidget->clear();
+
+    // Building the list is not obvious. Each custom path may have multiple layers and there
+    // could be duplicates, which are not allowed. The layer paths are traversed in order, and
+    // layers are used on a first occurance basis. So we can't just show the layers that are
+    // present in the folder (because they may not be used). We have to list the custom layer paths
+    // and then look for layers that are already loaded that are from that path.
+    const std::vector<std::string> &user_defined_layers_paths =
+        configurator.environment.GetUserDefinedLayersPaths(USER_DEFINED_LAYERS_PATHS_GUI);
+
+    for (std::size_t custom_path_index = 0, n = user_defined_layers_paths.size(); custom_path_index < n; ++custom_path_index) {
+        // Custom path is the parent tree item
+        const std::string custom_path(ConvertNativeSeparators(user_defined_layers_paths[custom_path_index]));
+
+        QTreeWidgetItem *item = new QTreeWidgetItem();
+        item->setText(0, custom_path.c_str());
+        ui->treeWidget->addTopLevelItem(item);
+
+        // Look for layers that are loaded that are also from this folder
+        for (std::size_t i = 0, n = configurator.layers.available_layers.size(); i < n; i++) {
+            const Layer &layer = configurator.layers.available_layers[i];
+
+            const QFileInfo file_info(layer._layer_path.c_str());
+            const std::string path(ConvertNativeSeparators(file_info.path().toStdString()));
+            if (path != custom_path) continue;
+
+            QTreeWidgetItem *child = new QTreeWidgetItem();
+            child->setText(0, layer.key.c_str());
+            item->addChild(child);
+        }
+        item->setExpanded(true);
+    }
 }
 
 void CustomPathsDialog::on_pushButtonAdd_clicked() {
     Configurator &configurator = Configurator::Get();
-    const QString custom_path = configurator.path.SelectPath(this, PATH_CUSTOM_LAYER_PATH);
+    const std::string custom_path = configurator.path.SelectPath(this, PATH_USER_DEFINED_LAYERS_PATHS_GUI);
 
-    if (!custom_path.isEmpty()) {
+    if (!custom_path.empty()) {
         if (configurator.environment.AppendCustomLayerPath(custom_path)) {
             configurator.layers.LoadAllInstalledLayers();
-            configurator.LoadAllConfigurations();
+            configurator.configurations.RefreshConfiguration(configurator.layers.available_layers);
         }
 
         QTreeWidgetItem *item = new QTreeWidgetItem();
-        item->setText(0, custom_path);
+        item->setText(0, custom_path.c_str());
         ui->treeWidget->addTopLevelItem(item);
 
         RepopulateTree();
     }
 
-    ui->buttonBox->setEnabled(configurator.HasLayers());
+    ui->buttonBox->setEnabled(!Configurator::Get().layers.Empty());
 }
 
 /// Don't make remove button accessable unless an item has been selected
@@ -82,9 +115,9 @@ void CustomPathsDialog::on_pushButtonRemove_clicked() {
     Configurator &configurator = Configurator::Get();
 
     // Now actually remove it.
-    if (configurator.environment.RemoveCustomLayerPath(selected->text(0))) {
+    if (configurator.environment.RemoveCustomLayerPath(selected->text(0).toStdString())) {
         configurator.layers.LoadAllInstalledLayers();
-        configurator.LoadAllConfigurations();
+        configurator.configurations.RefreshConfiguration(configurator.layers.available_layers);
     }
 
     // Update GUI and save

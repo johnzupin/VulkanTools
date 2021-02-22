@@ -22,8 +22,11 @@
 #pragma once
 
 #if defined(_WIN32) && defined(_DEBUG)
+#define NOMINMAX
 #include <windows.h>  // For OutputDebugString
 #endif
+
+#include <QStringList>
 
 #include <cstddef>
 #include <cstdio>
@@ -55,30 +58,6 @@ std::string format(const char* message, ...);
 bool IsNumber(const std::string& s);
 
 template <typename T>
-typename std::vector<T>::iterator FindItByKey(std::vector<T>& container, const char* key) {
-    assert(key != nullptr);
-    assert(std::strcmp(key, "") != 0);
-
-    for (auto it = container.begin(), end = container.end(); it != end; ++it) {
-        if (it->key == key) return it;
-    }
-
-    return container.end();
-}
-
-template <typename T>
-typename std::vector<T>::const_iterator FindItByKey(const std::vector<T>& container, const char* key) {
-    assert(key != nullptr);
-    assert(std::strcmp(key, "") != 0);
-
-    for (auto it = container.begin(), end = container.end(); it != end; ++it) {
-        if (it->key == key) return it;
-    }
-
-    return container.end();
-}
-
-template <typename T>
 T* FindByKey(std::vector<T>& container, const char* key) {
     assert(key != nullptr);
     assert(std::strcmp(key, "") != 0);
@@ -107,5 +86,18 @@ bool IsFound(const std::vector<T>& container, const char* key) {
     return FindByKey(container, key) != nullptr;
 }
 
-void RemoveString(std::string& delimited_string, const std::string& value);
-void AppendString(std::string& delimited_string, const std::string& value);
+// Remove a value if it's present
+void RemoveString(std::vector<std::string>& list, const std::string& value);
+
+// Add a value with no duplicate
+void AppendString(std::vector<std::string>& list, const std::string& value);
+
+bool IsStringFound(const std::vector<std::string>& list, const std::string& value);
+
+std::vector<std::string> ConvertString(const QStringList& string_list);
+
+QStringList ConvertString(const std::vector<std::string>& strings);
+
+std::string ToLowerCase(const std::string& value);
+
+std::string ToUpperCase(const std::string& value);

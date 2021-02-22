@@ -20,7 +20,29 @@
 
 # Release notes
 
-## [Vulkan Configurator 2.1.0 for Vulkan SDK 1.2.162.1](https://github.com/LunarG/VulkanTools/tree/sdk-1.2.162.1) - January 2020
+## [Vulkan Configurator 2.2.0 for Vulkan SDK 1.2.170.0](https://github.com/LunarG/VulkanTools/tree/sdk-1.2.170.0) - February 2021
+
+### Features:
+- Add *Synchronization* default configuration #1304
+- Add *Portability* default configuration on *macOS* #1307
+- Add per-configuration reset in layers configuration context menu
+- Add per-configuration reset in layers window
+- Expose `modify_extension_list` and `modify_memory_flags` settings from devsim
+
+### Improvements:
+- Add display of `VK_LAYER_PATH` content in Vulkan Development Status
+- Rename "Custom Path" by "User-Defined Path"
+- Add extension filters to load and save file layer settings #1317
+- Improve in application documentation of settings #1332
+- Display the layer status in the "Vulkan Development Status" #1332
+
+### Fixes:
+- Fix export and import path being truncated when the path as '.' character
+- Fix crash when loading a JSON file as if it's a JSON layer file but it's not #1330
+- Fix validation layer `printf buffer size` setting exposed as a 'bool' instead of a 'int' #1338
+- Fix crash when using older `VK_LAYER_KHRONOS_validation` versions
+
+## [Vulkan Configurator 2.1.0 for Vulkan SDK 1.2.162.1](https://github.com/LunarG/VulkanTools/tree/sdk-1.2.162.1) - January 2021
 
 ### Features:
 - Refactor built-in configurations #1247
@@ -35,16 +57,16 @@
 - Display the *Vulkan Development Status* each time the layers paths are changed
 
 ### Fixes:
-- Expose missing VK_LAYER_LUNARG_gfxreconstruct 'Log Detailed' setting
+- Expose missing `VK_LAYER_LUNARG_gfxreconstruct` 'Log Detailed' setting
 
-## [Vulkan Configurator 2.0.3 for Vulkan SDK 1.2.162.0](https://github.com/LunarG/VulkanTools/tree/sdk-1.2.162) - December 2020
+## [Vulkan Configurator 2.0.3 for Vulkan SDK 1.2.162.0](https://github.com/LunarG/VulkanTools/tree/sdk-1.2.162.0) - December 2020
 
 ### Features:
 - Add command line arguments to manage layers override #1213
 
 ### Improvements:
-- Test with VS2015, VS2017 and VS2019
-- Test with Qt 5.9 and Qt 5.15 including QMake build
+- Test with *VS2015*, *VS2017* and *VS2019*
+- Test with *Qt 5.9* and *Qt 5.15* including *QMake* build
 - Test manually using a [use cases based template](https://docs.google.com/document/d/1z0WqfMp2IBko1fvDICkjDE_3JKnf8SrU5APQTqKRR-U/edit)
 
 ### Fixes:
@@ -54,7 +76,7 @@
 - Fix warning about old loader when trying to use application list #1230
 - Fix initialization of added applications on macOS #1249 
 
-## [Vulkan Configurator 2.0.2 for Vulkan SDK 1.2.154.0](https://github.com/LunarG/VulkanTools/tree/sdk-1.2.154) - October 2020
+## [Vulkan Configurator 2.0.2 for Vulkan SDK 1.2.154.0](https://github.com/LunarG/VulkanTools/tree/sdk-1.2.154.0) - October 2020
 
 ### Features:
 - Add multiple debug actions simulaneously #1119
@@ -69,34 +91,34 @@
 - Add version in the title bar and show <ACTIVE> state #1109
 - Add default settings state in the layer configuration settings #1076
 - Make "Validation - Standard", the default configuration #1076
-- Update vkcube to use the version from the same Vulkan SDK than Vulkan Configurator #1112
-- Expose `duplicate_message_limit` setting from VK_LAYER_KHRONOS_validation #1176
+- Update `vkcube` to use the version from the same *Vulkan SDK* than *Vulkan Configurator* #1112
+- Expose `duplicate_message_limit` setting from `VK_LAYER_KHRONOS_validation` #1176
 
 ### Fixes:
 - Fix disabled configurations that can't be reenabled or removed
 - Fix display of custom layer paths #1101
 - Fix inconsistant display of separators in paths #1107
 - Fix display of empty entries in the custom path dialog when opening Json files that are not layer json files #1103
-- Fix log file default location to HOME to ensure write access #1083
+- Fix log file default location to `HOME` to ensure write access #1083
 - Fix log file not written to #1109
 - Fix `debug_output` setting displayed on Linux and macOS but not avaiable #1086
 - Fix `numeric_bool` setting display #1166
 
-## [Vulkan Configurator 2.0.1 for Vulkan SDK 1.2.148.1](https://github.com/LunarG/VulkanTools/tree/sdk-1.2.148) - August 2020 (revision 1)
+## [Vulkan Configurator 2.0.1 for Vulkan SDK 1.2.148.1](https://github.com/LunarG/VulkanTools/tree/sdk-1.2.148.1) - August 2020 (revision 1)
 
 ### Fixes:
-- Fix Shader Printf built-in configuration that was setup for GPU-Assisted validation isntead
+- Fix *Shader Printf* built-in configuration that was setup for *GPU-Assisted* validation isntead
 - Fix layer configurations selection on Linux
 - Fix debug output setting not working
 
-## [Vulkan Configurator 2.0.0 for Vulkan SDK 1.2.148.0](https://github.com/LunarG/VulkanTools/tree/sdk-1.2.148) - August 2020
+## [Vulkan Configurator 2.0.0 for Vulkan SDK 1.2.148.0](https://github.com/LunarG/VulkanTools/tree/sdk-1.2.148.0) - August 2020
 
 ### Features:
 - Design GUI
 - Add built-in Vulkan layers configurations
 - Add user-defined Vulkan layers configurations
 - Add import and export of Vulkan layers configuration
-- Add VK_LAYER_KHRONOS_validation settings presets
+- Add *VK_LAYER_KHRONOS_validation* settings presets
 - Add message filtering using VUID and message IDs
 - Add an option to make layers overriding persistent on exit
 - Add an option to override only a selected list of applications

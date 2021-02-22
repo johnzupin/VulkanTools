@@ -20,6 +20,8 @@
 
 #include "registry.h"
 
+#include <QTextStream>
+
 #if VKC_PLATFORM == VKC_PLATFORM_WINDOWS
 #include <windows.h>
 #include <winreg.h>
@@ -101,7 +103,7 @@ static void LoadDeviceRegistry(DEVINST id, const QString &entry, std::vector<Lay
     if (data_type == REG_SZ || data_type == REG_MULTI_SZ) {
         for (wchar_t *curr_filename = path; curr_filename[0] != '\0'; curr_filename += wcslen(curr_filename) + 1) {
             Layer layer;
-            if (layer.Load(QString::fromWCharArray(curr_filename), type)) {
+            if (layer.Load(QString::fromWCharArray(curr_filename).toStdString(), type)) {
                 layers.push_back(layer);
             }
 

@@ -55,9 +55,10 @@ enum StatusType {
     STATUS_STABLE = 0,
     STATUS_BETA,
     STATUS_ALPHA,
+    STATUS_DEPRECATED,
 
     STATUS_FIRST = STATUS_STABLE,
-    STATUS_LAST = STATUS_ALPHA
+    STATUS_LAST = STATUS_DEPRECATED
 };
 
 enum { STATUS_COUNT = STATUS_LAST - STATUS_FIRST + 1 };
@@ -105,3 +106,5 @@ enum PlatformString {
 enum { PLATFORM_STRING_COUNT = PLATFORM_STRING_LAST - PLATFORM_STRING_FIRST + 1 };
 
 const char* GetPlatformString(PlatformString platform_string);
+
+bool IsPlatformSupported(int platform_flags);

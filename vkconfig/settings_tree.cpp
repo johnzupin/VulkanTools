@@ -22,6 +22,16 @@
 #include "configurator.h"
 #include "settings_tree.h"
 
+#include "widget_setting_int.h"
+#include "widget_setting_int_range.h"
+#include "widget_setting_bool.h"
+#include "widget_setting_enum.h"
+#include "widget_setting_string.h"
+#include "widget_setting_flags.h"
+#include "widget_setting_filesystem.h"
+#include "widget_setting_vuid_filter.h"
+#include "widget_setting_vuid_search.h"
+
 #include "../vkconfig_core/version.h"
 #include "../vkconfig_core/platform.h"
 #include "../vkconfig_core/util.h"
@@ -49,12 +59,13 @@ void SettingsTreeManager::CreateGUI(QTreeWidget *build_tree) {
     Configurator &configurator = Configurator::Get();
 
     _settings_tree = build_tree;
-    auto configuration = configurator.GetActiveConfiguration();
+    Configuration *configuration = configurator.configurations.GetActiveConfiguration();
+    assert(configuration != nullptr);
 
     build_tree->blockSignals(true);
     build_tree->clear();
 
-    if (configuration->parameters.empty()) {
+    if (!configuration->HasOverride()) {
         QTreeWidgetItem *item = new QTreeWidgetItem();
         item->setText(0, "No overridden or excluded layer");
         build_tree->addTopLevelItem(item);
@@ -62,20 +73,29 @@ void SettingsTreeManager::CreateGUI(QTreeWidget *build_tree) {
         // There will be one top level item for each layer
         for (std::size_t i = 0, n = configuration->parameters.size(); i < n; ++i) {
             Parameter &parameter = configuration->parameters[i];
+            if (!IsPlatformSupported(parameter.platform_flags)) continue;
+
             if (parameter.state != LAYER_STATE_OVERRIDDEN) continue;
 
             const std::vector<Layer> &available_layers = configurator.layers.available_layers;
-            const std::vector<Layer>::const_iterator layer = FindItByKey(available_layers, parameter.key.c_str());
+            const Layer *layer = FindByKey(available_layers, parameter.key.c_str());
 
             QTreeWidgetItem *layer_item = new QTreeWidgetItem();
-            layer_item->setText(0, (parameter.key + (layer != available_layers.end() ? "" : " (Missing)")).c_str());
-            if (layer != available_layers.end()) layer_item->setToolTip(0, layer->description);
+            std::string layer_text = parameter.key;
+            if (layer == nullptr) {
+                layer_text += " (Missing)";
+            } else if (layer->status != STATUS_STABLE) {
+                layer_text += std::string(" (") + GetToken(layer->status) + ")";
+            }
+
+            layer_item->setText(0, layer_text.c_str());
+            if (layer != nullptr) layer_item->setToolTip(0, layer->description.c_str());
             _settings_tree->addTopLevelItem(layer_item);
 
-            if (layer == available_layers.end()) continue;
+            if (layer == nullptr) continue;
 
             // Handle the case were we get off easy. No settings.
-            if (parameter.settings.empty()) {
+            if (parameter.settings.Empty()) {
                 QTreeWidgetItem *layer_child_item = new QTreeWidgetItem();
                 layer_child_item->setText(0, "No User Settings");
                 layer_item->addChild(layer_child_item);
@@ -84,7 +104,7 @@ void SettingsTreeManager::CreateGUI(QTreeWidget *build_tree) {
 
             if (!layer->presets.empty()) {
                 QTreeWidgetItem *presets_item = new QTreeWidgetItem();
-                PresetWidget *presets_combobox = new PresetWidget(presets_item, *layer, parameter);
+                WidgetPreset *presets_combobox = new WidgetPreset(presets_item, *layer, parameter);
                 connect(presets_combobox, SIGNAL(currentIndexChanged(int)), this, SLOT(OnPresetChanged(int)));
                 layer_item->addChild(presets_item);
                 _settings_tree->setItemWidget(presets_item, 0, presets_combobox);
@@ -105,15 +125,17 @@ void SettingsTreeManager::CreateGUI(QTreeWidget *build_tree) {
 
         for (std::size_t i = 0, n = configuration->parameters.size(); i < n; ++i) {
             Parameter &parameter = configuration->parameters[i];
+            if (!IsPlatformSupported(parameter.platform_flags)) continue;
+
             if (parameter.state != LAYER_STATE_EXCLUDED) continue;
 
-            const std::vector<Layer>::const_iterator layer =
-                FindItByKey(configurator.layers.available_layers, parameter.key.c_str());
+            const Layer *layer = FindByKey(configurator.layers.available_layers, parameter.key.c_str());
+            if (layer == nullptr) continue;  // Do not display missing excluded layers
 
             QTreeWidgetItem *child = new QTreeWidgetItem();
-            child->setText(0, (parameter.key + (layer != configurator.layers.available_layers.end() ? "" : " (Missing)")).c_str());
-            if (layer != configurator.layers.available_layers.end()) {
-                child->setToolTip(0, layer->description);
+            child->setText(0, parameter.key.c_str());
+            if (layer != nullptr) {
+                child->setToolTip(0, layer->description.c_str());
             }
             excluded_layers->addChild(child);
         }
@@ -138,8 +160,8 @@ void SettingsTreeManager::CleanupGUI() {
 
     Configurator &configurator = Configurator::Get();
 
-    std::vector<Configuration>::iterator configuration = configurator.GetActiveConfiguration();
-    if (configuration == configurator.available_configurations.end()) return;
+    Configuration *configuration = configurator.configurations.GetActiveConfiguration();
+    if (configuration == nullptr) return;
 
     configuration->setting_tree_state.clear();
     GetTreeState(configuration->setting_tree_state, _settings_tree->invisibleRootItem());
@@ -164,54 +186,59 @@ void SettingsTreeManager::CleanupGUI() {
 void SettingsTreeManager::BuildValidationTree(QTreeWidgetItem *parent, Parameter &parameter) {
     Configurator &configurator = Configurator::Get();
     std::vector<Layer> &available_layers = configurator.layers.available_layers;
-    std::vector<Layer>::iterator validation_layer = FindItByKey(available_layers, "VK_LAYER_KHRONOS_validation");
+    Layer *validation_layer = FindByKey(available_layers, "VK_LAYER_KHRONOS_validation");
 
     QTreeWidgetItem *validation_areas_item = new QTreeWidgetItem();
     validation_areas_item->setText(0, "Validation Areas");
     parent->addChild(validation_areas_item);
 
     // This just finds the enables and disables
-    _validation_areas =
-        new SettingsValidationAreas(_settings_tree, validation_areas_item, validation_layer->settings, parameter.settings);
+    _validation_areas = new SettingsValidationAreas(_settings_tree, validation_areas_item, validation_layer->_api_version,
+                                                    validation_layer->settings, parameter.settings);
 
     // Get the Debug Action and log file settings (and they must exist)
-    LayerSettingMeta *debug_action_meta = FindByKey(validation_layer->settings, "debug_action");
-    assert(debug_action_meta);
-    LayerSettingData *debug_action_data = FindByKey(parameter.settings, "debug_action");
-    assert(debug_action_data);
+    assert(validation_layer->settings.Get("debug_action"));
+    assert(validation_layer->settings.Get("debug_action")->type == SETTING_FLAGS);
+    assert(parameter.settings.Get("debug_action"));
+    assert(parameter.settings.Get("debug_action")->type == SETTING_FLAGS);
 
-    LayerSettingMeta *log_file_meta = FindByKey(validation_layer->settings, "log_filename");
-    assert(log_file_meta);
-    LayerSettingData *log_file_data = FindByKey(parameter.settings, "log_filename");
-    assert(log_file_data);
+    const SettingMetaFlags *debug_action_meta =
+        static_cast<const SettingMetaFlags *>(validation_layer->settings.Get("debug_action"));
+    SettingDataFlags *debug_action_data = static_cast<SettingDataFlags *>(parameter.settings.Get("debug_action"));
+
+    assert(validation_layer->settings.Get("log_filename"));
+    assert(validation_layer->settings.Get("log_filename")->type == SETTING_SAVE_FILE);
+    assert(parameter.settings.Get("log_filename"));
+    assert(parameter.settings.Get("log_filename")->type == SETTING_SAVE_FILE);
+
+    const SettingMetaFileSave *log_file_meta =
+        static_cast<const SettingMetaFileSave *>(validation_layer->settings.Get("log_filename"));
+    SettingDataFileSave *log_file_data = static_cast<SettingDataFileSave *>(parameter.settings.Get("log_filename"));
 
     // The debug action set of settings has it's own branch
     QTreeWidgetItem *debug_action_branch = new QTreeWidgetItem();
-    debug_action_branch->setText(0, debug_action_meta->label);
+    debug_action_branch->setText(0, debug_action_meta->label.c_str());
     parent->addChild(debug_action_branch);
 
     // Each debug action has it's own checkbox
-    for (int i = 0, n = debug_action_meta->enum_values.size(); i < n; ++i) {
-        // Debug output is only for Windows
-        if (VKC_PLATFORM != VKC_PLATFORM_WINDOWS && debug_action_meta->enum_values[i] == "VK_DBG_LAYER_ACTION_DEBUG_OUTPUT")
-            continue;
+    for (std::size_t i = 0, n = debug_action_meta->enum_values.size(); i < n; ++i) {
+        if (!IsPlatformSupported(debug_action_meta->enum_values[i].platform_flags)) continue;
 
         QTreeWidgetItem *child = new QTreeWidgetItem();
-        MultiEnumSettingWidget *this_control =
-            new MultiEnumSettingWidget(*debug_action_data, debug_action_meta->enum_values[i].toStdString().c_str());
-        this_control->setText(debug_action_meta->enum_labels[i]);
+        WidgetSettingFlag *widget =
+            new WidgetSettingFlag(*debug_action_meta, *debug_action_data, debug_action_meta->enum_values[i].key);
         debug_action_branch->addChild(child);
-        _settings_tree->setItemWidget(child, 0, this_control);
-        this_control->setFont(_settings_tree->font());
-        connect(this_control, SIGNAL(itemChanged()), this, SLOT(OnSettingChanged()));
+        _settings_tree->setItemWidget(child, 0, widget);
+        widget->setFont(_settings_tree->font());
+        connect(widget, SIGNAL(itemChanged()), this, SLOT(OnSettingChanged()));
 
         // The log message action also has a child; the log file selection setting/widget
         // Note, this is usually last, but I'll check for it any way in case other new items are added
-        if (debug_action_meta->enum_values[i] == "VK_DBG_LAYER_ACTION_LOG_MSG") {  // log action?
-            _validation_debug_action = this_control;
+        if (debug_action_meta->enum_values[i].key == "VK_DBG_LAYER_ACTION_LOG_MSG") {  // log action?
+            _validation_debug_action = widget;
             _validation_log_file_item = new QTreeWidgetItem();
             child->addChild(_validation_log_file_item);
-            _validation_log_file_widget = new FileSystemSettingWidget(_validation_log_file_item, *log_file_meta, *log_file_data);
+            _validation_log_file_widget = new WidgetSettingFilesystem(_validation_log_file_item, *log_file_meta, *log_file_data);
             _validation_log_file_item->setSizeHint(0, QSize(0, 28));
             _settings_tree->setItemWidget(_validation_log_file_item, 0, _validation_log_file_widget);
             _compound_widgets.push_back(child);
@@ -224,68 +251,54 @@ void SettingsTreeManager::BuildValidationTree(QTreeWidgetItem *parent, Parameter
         }
     }
 
-    // This is looking for the report flags
-    for (std::size_t setting_index = 0, settings_count = validation_layer->settings.size(); setting_index < settings_count;
-         setting_index++) {
-        const LayerSettingMeta &layer_setting_meta = validation_layer->settings[setting_index];
-        LayerSettingData *layer_setting_data = FindByKey(parameter.settings, layer_setting_meta.key.c_str());
-        if (layer_setting_data == nullptr) {
-            LayerSettingData new_layer_setting_data;
-            new_layer_setting_data.key = layer_setting_meta.key;
-            new_layer_setting_data.value = layer_setting_meta.default_value.toStdString();
-            parameter.settings.push_back(new_layer_setting_data);
+    if (validation_layer->settings.Get("report_flags") != nullptr) {
+        const SettingMetaFlags &setting_meta =
+            static_cast<const SettingMetaFlags &>(*validation_layer->settings.Get("report_flags"));
+        SettingDataFlags &setting_data =
+            static_cast<SettingDataFlags &>(parameter.settings.Create(setting_meta.key, setting_meta.type));
 
-            layer_setting_data = FindByKey(parameter.settings, layer_setting_meta.key.c_str());
-        }
+        QTreeWidgetItem *sub_category = new QTreeWidgetItem;
+        sub_category->setText(0, setting_meta.label.c_str());
+        sub_category->setToolTip(0, setting_meta.description.c_str());
+        parent->addChild(sub_category);
 
-        // Multi-enum - report flags only
-        if (layer_setting_meta.key == "report_flags") {
-            QTreeWidgetItem *sub_category = new QTreeWidgetItem;
-            sub_category->setText(0, layer_setting_meta.label);
-            sub_category->setToolTip(0, layer_setting_meta.description);
-            parent->addChild(sub_category);
-
-            for (int i = 0, n = layer_setting_meta.enum_values.size(); i < n; ++i) {
-                QTreeWidgetItem *child = new QTreeWidgetItem();
-                MultiEnumSettingWidget *control =
-                    new MultiEnumSettingWidget(*layer_setting_data, layer_setting_meta.enum_values[i].toStdString().c_str());
-                control->setText(layer_setting_meta.enum_labels[i]);
-                sub_category->addChild(child);
-                _settings_tree->setItemWidget(child, 0, control);
-                control->setFont(_settings_tree->font());
-                connect(control, SIGNAL(itemChanged()), this, SLOT(OnSettingChanged()));
-            }
-        } else if (layer_setting_meta.key == "duplicate_message_limit") {
-            QTreeWidgetItem *setting_item = new QTreeWidgetItem();
-            StringSettingWidget *widget = new StringSettingWidget(setting_item, layer_setting_meta, *layer_setting_data);
-            widget->setToolTip("The limit for the number of times any validation message can be output by the layers.");
-            parent->addChild(setting_item);
-            QTreeWidgetItem *place_holder = new QTreeWidgetItem();
-            setting_item->addChild(place_holder);
-            _settings_tree->setItemWidget(place_holder, 0, widget);
+        for (std::size_t i = 0, n = setting_meta.enum_values.size(); i < n; ++i) {
+            QTreeWidgetItem *child = new QTreeWidgetItem();
+            WidgetSettingFlag *widget = new WidgetSettingFlag(setting_meta, setting_data, setting_meta.enum_values[i].key.c_str());
+            sub_category->addChild(child);
+            _settings_tree->setItemWidget(child, 0, widget);
+            widget->setFont(_settings_tree->font());
             connect(widget, SIGNAL(itemChanged()), this, SLOT(OnSettingChanged()));
         }
     }
 
-    // VUID message filtering
-    for (std::size_t i = 0, n = validation_layer->settings.size(); i < n; ++i) {
-        const LayerSettingMeta &layer_setting_meta = validation_layer->settings[i];
+    if (validation_layer->settings.Get("duplicate_message_limit") != nullptr) {
+        const SettingMetaInt &setting_meta =
+            static_cast<const SettingMetaInt &>(*validation_layer->settings.Get("duplicate_message_limit"));
+        SettingDataInt &setting_data =
+            static_cast<SettingDataInt &>(parameter.settings.Create(setting_meta.key, setting_meta.type));
 
-        if (layer_setting_meta.type != SETTING_VUID_FILTER) {
-            continue;
-        }
+        QTreeWidgetItem *setting_item = new QTreeWidgetItem();
+        WidgetSettingInt *widget = new WidgetSettingInt(setting_item, setting_meta, setting_data);
+        parent->addChild(setting_item);
+        QTreeWidgetItem *place_holder = new QTreeWidgetItem();
+        setting_item->addChild(place_holder);
+        _settings_tree->setItemWidget(place_holder, 0, widget);
+        connect(widget, SIGNAL(itemChanged()), this, SLOT(OnSettingChanged()));
+    }
+
+    if (validation_layer->settings.Get("message_id_filter") != nullptr) {
+        const SettingMetaVUIDFilter &setting_meta =
+            static_cast<const SettingMetaVUIDFilter &>(*validation_layer->settings.Get("message_id_filter"));
+        SettingDataVUIDFilter &setting_data =
+            static_cast<SettingDataVUIDFilter &>(parameter.settings.Create(setting_meta.key, setting_meta.type));
 
         QTreeWidgetItem *mute_message_item = new QTreeWidgetItem;
-        mute_message_item->setText(0, layer_setting_meta.label);
-        mute_message_item->setToolTip(0, layer_setting_meta.description);
+        mute_message_item->setText(0, setting_meta.label.c_str());
+        mute_message_item->setToolTip(0, setting_meta.description.c_str());
         parent->addChild(mute_message_item);
 
-        LayerSettingData *layer_setting_data = FindByKey(parameter.settings, layer_setting_meta.key.c_str());
-        assert(layer_setting_data);
-
-        const LayerSettingMeta *layer_setting_vuid = FindByKey(validation_layer->settings, "message_id_filter");
-        VUIDSearchWidget *vuid_search_widget =
-            new VUIDSearchWidget(layer_setting_vuid->enum_values, layer_setting_data->value.c_str());
+        WidgetSettingVUIDSearch *vuid_search_widget = new WidgetSettingVUIDSearch(setting_meta.list, setting_data.value);
 
         QTreeWidgetItem *next_line = new QTreeWidgetItem();
         next_line->setSizeHint(0, QSize(0, 28));
@@ -296,7 +309,7 @@ void SettingsTreeManager::BuildValidationTree(QTreeWidgetItem *parent, Parameter
         QTreeWidgetItem *list_item = new QTreeWidgetItem();
         mute_message_item->addChild(list_item);
         list_item->setSizeHint(0, QSize(0, 200));
-        MuteMessageWidget *mute_message_widget = new MuteMessageWidget(*layer_setting_data);
+        WidgetSettingVUIDFilter *mute_message_widget = new WidgetSettingVUIDFilter(setting_meta, setting_data);
         _compound_widgets.push_back(list_item);
         _settings_tree->setItemWidget(list_item, 0, mute_message_widget);
 
@@ -307,7 +320,6 @@ void SettingsTreeManager::BuildValidationTree(QTreeWidgetItem *parent, Parameter
         connect(mute_message_widget, SIGNAL(itemChanged()), this, SLOT(OnSettingChanged()), Qt::QueuedConnection);
     }
 
-    // This really does go way down here.
     connect(_validation_areas, SIGNAL(settingChanged()), this, SLOT(OnSettingChanged()));
 }
 
@@ -324,34 +336,48 @@ void SettingsTreeManager::khronosDebugChanged(int index) {
 void SettingsTreeManager::BuildGenericTree(QTreeWidgetItem *parent, Parameter &parameter) {
     std::vector<Layer> &available_layers = Configurator::Get().layers.available_layers;
 
-    const std::vector<LayerSettingMeta> &layer_setting_metas = FindItByKey(available_layers, parameter.key.c_str())->settings;
+    const SettingMetaSet &layer_setting_metas = FindByKey(available_layers, parameter.key.c_str())->settings;
 
-    for (std::size_t setting_index = 0, n = layer_setting_metas.size(); setting_index < n; ++setting_index) {
-        const LayerSettingMeta &layer_setting_meta = layer_setting_metas[setting_index];
-        if (!(layer_setting_meta.platform_flags & (1 << VKC_PLATFORM))) continue;
+    for (std::size_t setting_index = 0, n = layer_setting_metas.Size(); setting_index < n; ++setting_index) {
+        const SettingMeta &setting_meta = layer_setting_metas[setting_index];
+        if (!IsPlatformSupported(setting_meta.platform_flags)) continue;
 
-        LayerSettingData *layer_setting_data = FindByKey(parameter.settings, layer_setting_meta.key.c_str());
-        assert(layer_setting_data);
+        SettingData &setting_data = *parameter.settings.Get(setting_meta.key.c_str());
+        assert(&setting_data);
 
         QTreeWidgetItem *setting_item = new QTreeWidgetItem();
         parent->addChild(setting_item);
 
-        switch (layer_setting_meta.type) {
-            case SETTING_BOOL:          // True false?
-            case SETTING_BOOL_NUMERIC:  // True false? (with numeric output instead of text)
-            {
-                BoolSettingWidget *widget = new BoolSettingWidget(layer_setting_meta, *layer_setting_data);
+        switch (setting_meta.type) {
+            case SETTING_BOOL:
+            case SETTING_BOOL_NUMERIC_DEPRECATED: {
+                const SettingMetaBool &setting_meta_src = static_cast<const SettingMetaBool &>(setting_meta);
+                SettingDataBool &setting_data_src = static_cast<SettingDataBool &>(setting_data);
+
+                WidgetSettingBool *widget = new WidgetSettingBool(setting_meta_src, setting_data_src);
                 _settings_tree->setItemWidget(setting_item, 0, widget);
                 widget->setFont(_settings_tree->font());
                 connect(widget, SIGNAL(itemChanged()), this, SLOT(OnSettingChanged()));
             } break;
 
-            case SETTING_SAVE_FILE:    // Save a file?
-            case SETTING_LOAD_FILE:    // Load a file?
-            case SETTING_SAVE_FOLDER:  // Save to folder?
-            {
-                FileSystemSettingWidget *widget =
-                    new FileSystemSettingWidget(setting_item, layer_setting_meta, *layer_setting_data);
+            case SETTING_INT: {
+                const SettingMetaInt &setting_meta_src = static_cast<const SettingMetaInt &>(setting_meta);
+                SettingDataInt &setting_data_src = static_cast<SettingDataInt &>(setting_data);
+
+                WidgetSettingInt *widget = new WidgetSettingInt(setting_item, setting_meta_src, setting_data_src);
+                QTreeWidgetItem *place_holder = new QTreeWidgetItem();
+                setting_item->addChild(place_holder);
+                _settings_tree->setItemWidget(place_holder, 0, widget);
+                connect(widget, SIGNAL(itemChanged()), this, SLOT(OnSettingChanged()));
+            } break;
+
+            case SETTING_SAVE_FILE:
+            case SETTING_LOAD_FILE:
+            case SETTING_SAVE_FOLDER: {
+                const SettingMetaFilesystem &setting_meta_src = static_cast<const SettingMetaFilesystem &>(setting_meta);
+                SettingDataString &setting_data_src = static_cast<SettingDataString &>(setting_data);
+
+                WidgetSettingFilesystem *widget = new WidgetSettingFilesystem(setting_item, setting_meta_src, setting_data_src);
                 QTreeWidgetItem *place_holder = new QTreeWidgetItem();
                 place_holder->setSizeHint(0, QSize(0, 28));
                 setting_item->addChild(place_holder);
@@ -360,20 +386,54 @@ void SettingsTreeManager::BuildGenericTree(QTreeWidgetItem *parent, Parameter &p
                 connect(widget, SIGNAL(itemChanged()), this, SLOT(OnSettingChanged()));
             } break;
 
-            case SETTING_EXCLUSIVE_LIST:  // Combobox - enum - just one thing
-            {
-                setting_item->setText(0, layer_setting_meta.label);
+            case SETTING_ENUM: {
+                const SettingMetaEnum &setting_meta_src = static_cast<const SettingMetaEnum &>(setting_meta);
+                SettingDataEnum &setting_data_src = static_cast<SettingDataEnum &>(setting_data);
+
                 QTreeWidgetItem *place_holder = new QTreeWidgetItem();
+                setting_item->setText(0, setting_meta.label.c_str());
+                setting_item->setToolTip(0, setting_meta.description.c_str());
                 setting_item->addChild(place_holder);
 
-                EnumSettingWidget *enum_widget = new EnumSettingWidget(setting_item, layer_setting_meta, *layer_setting_data);
+                WidgetSettingEnum *enum_widget = new WidgetSettingEnum(setting_item, setting_meta_src, setting_data_src);
                 _settings_tree->setItemWidget(place_holder, 0, enum_widget);
                 connect(enum_widget, SIGNAL(itemChanged()), this, SLOT(OnSettingChanged()));
             } break;
 
-            case SETTING_STRING:  // Raw text field?
-            {
-                StringSettingWidget *widget = new StringSettingWidget(setting_item, layer_setting_meta, *layer_setting_data);
+            case SETTING_FLAGS: {
+                const SettingMetaFlags &setting_meta_src = static_cast<const SettingMetaFlags &>(setting_meta);
+                SettingDataFlags &setting_data_src = static_cast<SettingDataFlags &>(setting_data);
+
+                setting_item->setText(0, setting_meta.label.c_str());
+                setting_item->setToolTip(0, setting_meta.description.c_str());
+
+                for (std::size_t i = 0, n = setting_meta_src.enum_values.size(); i < n; ++i) {
+                    WidgetSettingFlag *widget =
+                        new WidgetSettingFlag(setting_meta_src, setting_data_src, setting_meta_src.enum_values[i].key.c_str());
+                    QTreeWidgetItem *place_holder = new QTreeWidgetItem();
+                    setting_item->addChild(place_holder);
+                    _settings_tree->setItemWidget(place_holder, 0, widget);
+                    widget->setFont(_settings_tree->font());
+                    connect(widget, SIGNAL(itemChanged()), this, SLOT(OnSettingChanged()));
+                }
+            } break;
+
+            case SETTING_INT_RANGE: {
+                const SettingMetaIntRange &setting_meta_src = static_cast<const SettingMetaIntRange &>(setting_meta);
+                SettingDataIntRange &setting_data_src = static_cast<SettingDataIntRange &>(setting_data);
+
+                WidgetSettingIntRange *widget = new WidgetSettingIntRange(setting_item, setting_meta_src, setting_data_src);
+                QTreeWidgetItem *place_holder = new QTreeWidgetItem();
+                setting_item->addChild(place_holder);
+                _settings_tree->setItemWidget(place_holder, 0, widget);
+                connect(widget, SIGNAL(itemChanged()), this, SLOT(OnSettingChanged()));
+            } break;
+
+            case SETTING_STRING: {
+                const SettingMetaString &setting_meta_src = static_cast<const SettingMetaString &>(setting_meta);
+                SettingDataString &setting_data_src = static_cast<SettingDataString &>(setting_data);
+
+                WidgetSettingString *widget = new WidgetSettingString(setting_item, setting_meta_src, setting_data_src);
                 QTreeWidgetItem *place_holder = new QTreeWidgetItem();
                 setting_item->addChild(place_holder);
                 _settings_tree->setItemWidget(place_holder, 0, widget);
@@ -381,8 +441,7 @@ void SettingsTreeManager::BuildGenericTree(QTreeWidgetItem *parent, Parameter &p
             } break;
 
             default: {
-                setting_item->setText(0, layer_setting_meta.label);
-                setting_item->setToolTip(0, layer_setting_meta.description);
+                setting_item->setText(0, "Unknown setting");
                 assert(0);  // Unknown setting
             } break;
         }
@@ -396,7 +455,7 @@ void SettingsTreeManager::OnPresetChanged(int combox_preset_index) {
 
     Configurator &configurator = Configurator::Get();
     configurator.environment.Notify(NOTIFICATION_RESTART);
-    configurator.RefreshConfiguration();
+    configurator.configurations.RefreshConfiguration(configurator.layers.available_layers);
 }
 
 void SettingsTreeManager::GetTreeState(QByteArray &byte_array, QTreeWidgetItem *top_item) {
@@ -433,5 +492,5 @@ void SettingsTreeManager::OnSettingChanged() {
 
     Configurator &configurator = Configurator::Get();
     configurator.environment.Notify(NOTIFICATION_RESTART);
-    configurator.RefreshConfiguration();
+    configurator.configurations.RefreshConfiguration(configurator.layers.available_layers);
 }

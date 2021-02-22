@@ -35,32 +35,38 @@
 #include <cstdio>
 
 // Create and write VkLayer_override.json file
-static bool WriteLayerOverride(const Environment& environment, const std::vector<Layer>& available_layers,
-                               const Configuration& configuration) {
+bool WriteLayersOverride(const Environment& environment, const std::vector<Layer>& available_layers,
+                         const Configuration& configuration, const std::string& layers_path) {
+    assert(!layers_path.empty());
+    assert(QFileInfo(layers_path.c_str()).absoluteDir().exists());
+
     bool has_missing_layers = false;
 
     QStringList layer_override_paths;
     for (std::size_t i = 0, n = configuration.parameters.size(); i < n; ++i) {
         const Parameter& parameter = configuration.parameters[i];
+        if (!(parameter.platform_flags & (1 << VKC_PLATFORM))) {
+            continue;
+        }
 
         if (parameter.state != LAYER_STATE_OVERRIDDEN) continue;
 
-        const std::vector<Layer>::const_iterator layer = FindItByKey(available_layers, parameter.key.c_str());
-        if (layer == available_layers.end()) {
+        const Layer* layer = FindByKey(available_layers, parameter.key.c_str());
+        if (layer == nullptr) {
             has_missing_layers = true;
             continue;
         }
 
         // Extract just the path
-        assert(!layer->_layer_path.isEmpty());
-        const QFileInfo file(layer->_layer_path);
-        const QString absolute_path(ConvertNativeSeparators(file.absolutePath().toStdString()).c_str());
+        assert(!layer->_layer_path.empty());
+        const QFileInfo file(layer->_layer_path.c_str());
+        const std::string absolute_path(ConvertNativeSeparators(file.absolutePath().toStdString()).c_str());
 
         // Make sure the path is not already in the list
-        if (layer_override_paths.contains(absolute_path)) continue;
+        if (layer_override_paths.contains(absolute_path.c_str())) continue;
 
         // Okay, add to the list
-        layer_override_paths << absolute_path;
+        layer_override_paths << absolute_path.c_str();
     }
 
     QJsonArray json_paths;
@@ -72,6 +78,10 @@ static bool WriteLayerOverride(const Environment& environment, const std::vector
     QJsonArray json_excluded_layers;
     for (std::size_t i = 0, n = configuration.parameters.size(); i < n; ++i) {
         const Parameter& parameter = configuration.parameters[i];
+        if (!(parameter.platform_flags & (1 << VKC_PLATFORM))) {
+            continue;
+        }
+
         if (parameter.state == LAYER_STATE_OVERRIDDEN)
             json_overridden_layers.append(parameter.key.c_str());
         else if (parameter.state == LAYER_STATE_EXCLUDED)
@@ -84,7 +94,7 @@ static bool WriteLayerOverride(const Environment& environment, const std::vector
     QJsonObject layer;
     layer.insert("name", "VK_LAYER_LUNARG_override");
     layer.insert("type", "GLOBAL");
-    layer.insert("api_version", "1.2." + QString::number(VK_HEADER_VERSION));
+    layer.insert("api_version", environment.api_version.str().c_str());
     layer.insert("implementation_version", "1");
     layer.insert("description", "LunarG Override Layer");
     layer.insert("override_paths", json_paths);
@@ -100,11 +110,10 @@ static bool WriteLayerOverride(const Environment& environment, const std::vector
         for (std::size_t i = 0, n = applications.size(); i < n; ++i) {
             if (!applications[i].override_layers) continue;
 
-            const QString& executable_path(
-                ConvertNativeSeparators(QFileInfo(applications[i].executable_path.c_str()).absoluteFilePath().toStdString())
-                    .c_str());
-            assert(QFileInfo(executable_path).exists());
-            json_applist.append(executable_path);
+            const std::string& executable_path(
+                ConvertNativeSeparators(QFileInfo(applications[i].executable_path.c_str()).absoluteFilePath().toStdString()));
+            assert(QFileInfo(executable_path.c_str()).exists());
+            json_applist.append(executable_path.c_str());
         }
 
         layer.insert("app_keys", json_applist);
@@ -115,10 +124,7 @@ static bool WriteLayerOverride(const Environment& environment, const std::vector
     root.insert("layer", layer);
     QJsonDocument doc(root);
 
-    const QString override_layers_path = environment.paths.GetFullPath(PATH_OVERRIDE_LAYERS);
-    assert(QFileInfo(override_layers_path).absoluteDir().exists());
-
-    QFile json_file(override_layers_path);
+    QFile json_file(layers_path.c_str());
     const bool result_layers_file = json_file.open(QIODevice::WriteOnly | QIODevice::Text);
     assert(result_layers_file);
     json_file.write(doc.toJson());
@@ -128,12 +134,12 @@ static bool WriteLayerOverride(const Environment& environment, const std::vector
 }
 
 // Create and write vk_layer_settings.txt file
-static bool WriteLayerSettings(const Environment& environment, const std::vector<Layer>& available_layers,
-                               const Configuration& configuration) {
-    const QString override_settings_path = environment.paths.GetFullPath(PATH_OVERRIDE_SETTINGS);
-    assert(QFileInfo(override_settings_path).absoluteDir().exists());
+bool WriteSettingsOverride(const Environment& environment, const std::vector<Layer>& available_layers,
+                           const Configuration& configuration, const std::string& settings_path) {
+    assert(!settings_path.empty());
+    assert(QFileInfo(settings_path.c_str()).absoluteDir().exists());
 
-    QFile file(override_settings_path);
+    QFile file(settings_path.c_str());
     const bool result_settings_file = file.open(QIODevice::WriteOnly | QIODevice::Text);
     assert(result_settings_file);
     QTextStream stream(&file);
@@ -143,9 +149,12 @@ static bool WriteLayerSettings(const Environment& environment, const std::vector
     // Loop through all the layers
     for (std::size_t j = 0, n = configuration.parameters.size(); j < n; ++j) {
         const Parameter& parameter = configuration.parameters[j];
+        if (!(parameter.platform_flags & (1 << VKC_PLATFORM))) {
+            continue;
+        }
 
-        const std::vector<Layer>::const_iterator layer = FindItByKey(available_layers, parameter.key.c_str());
-        if (layer == available_layers.end()) {
+        const Layer* layer = FindByKey(available_layers, parameter.key.c_str());
+        if (layer == nullptr) {
             has_missing_layers = true;
             continue;
         }
@@ -159,10 +168,57 @@ static bool WriteLayerSettings(const Environment& environment, const std::vector
         short_layer_name.remove("VK_LAYER_");
         QString lc_layer_name = short_layer_name.toLower();
 
-        for (std::size_t i = 0, m = parameter.settings.size(); i < m; ++i) {
-            const LayerSettingData& setting = parameter.settings[i];
+        for (std::size_t i = 0, m = parameter.settings.Size(); i < m; ++i) {
+            const SettingData& setting_data = parameter.settings[i];
 
-            stream << lc_layer_name << "." << setting.key.c_str() << " = " << ReplaceBuiltInVariable(setting.value).c_str() << "\n";
+            stream << lc_layer_name << "." << setting_data.key.c_str() << " = ";
+            switch (setting_data.type) {
+                case SETTING_LOAD_FILE:
+                case SETTING_SAVE_FILE:
+                case SETTING_SAVE_FOLDER: {
+                    stream << ReplaceBuiltInVariable(static_cast<const SettingDataString&>(setting_data).value.c_str()).c_str();
+                    break;
+                }
+                case SETTING_ENUM:
+                case SETTING_STRING: {
+                    stream << static_cast<const SettingDataString&>(setting_data).value.c_str();
+                    break;
+                }
+                case SETTING_INT: {
+                    stream << static_cast<const SettingDataInt&>(setting_data).value;
+                    break;
+                }
+                case SETTING_INT_RANGE: {
+                    const SettingDataIntRange& setting_object = static_cast<const SettingDataIntRange&>(setting_data);
+                    stream << format("%d-%d", setting_object.min_value, setting_object.max_value).c_str();
+                    break;
+                }
+                case SETTING_BOOL_NUMERIC_DEPRECATED: {
+                    stream << (static_cast<const SettingDataBool&>(setting_data).value ? "1" : "0");
+                    break;
+                }
+                case SETTING_BOOL: {
+                    stream << (static_cast<const SettingDataBool&>(setting_data).value ? "TRUE" : "FALSE");
+                    break;
+                }
+                case SETTING_VUID_FILTER:
+                case SETTING_FLAGS: {
+                    const SettingDataVector& setting_object = static_cast<const SettingDataVector&>(setting_data);
+
+                    for (std::size_t i = 0, n = setting_object.value.size(); i < n; ++i) {
+                        stream << setting_object.value[i].c_str();
+                        if (i < n - 1) stream << ",";
+                    }
+
+                    break;
+                }
+                default: {
+                    assert(0);
+                    break;
+                }
+            }
+
+            stream << "\n";
         }
     }
     file.close();
@@ -170,46 +226,52 @@ static bool WriteLayerSettings(const Environment& environment, const std::vector
     return result_settings_file && !has_missing_layers;
 }
 
-bool SurrenderLayers(const Environment& environment) {
-    const QString override_settings_path = environment.paths.GetFullPath(PATH_OVERRIDE_SETTINGS);
-    const QString override_layers_path = environment.paths.GetFullPath(PATH_OVERRIDE_LAYERS);
+bool OverrideConfiguration(const Environment& environment, const std::vector<Layer>& available_layers,
+                           const Configuration& configuration) {
+    const std::string layers_path = environment.paths.GetFullPath(PATH_OVERRIDE_LAYERS);
+    const std::string settings_path = environment.paths.GetFullPath(PATH_OVERRIDE_SETTINGS);
 
-    const bool result_override_settings = std::remove(override_settings_path.toUtf8().constData()) == 0;
-    const bool result_override_layers = std::remove(override_layers_path.toUtf8().constData()) == 0;
-
-#if VKC_PLATFORM == VKC_PLATFORM_WINDOWS
-    RemoveRegistryEntriesForLayers(environment.running_as_administrator, override_layers_path, override_settings_path);
-#endif
-
-    return result_override_layers && result_override_settings;
-}
-
-bool OverrideLayers(const Environment& environment, const std::vector<Layer>& available_layers,
-                    const Configuration& configuration) {
     // Clean up
-    SurrenderLayers(environment);
-
-    // vk_layer_settings.txt
-    const bool result_settings = WriteLayerSettings(environment, available_layers, configuration);
+    SurrenderConfiguration(environment);
 
     // VkLayer_override.json
-    const bool result_override = WriteLayerOverride(environment, available_layers, configuration);
+    const bool result_layers = WriteLayersOverride(environment, available_layers, configuration, layers_path);
+
+    // vk_layer_settings.txt
+    const bool result_settings = WriteSettingsOverride(environment, available_layers, configuration, settings_path);
 
     // On Windows only, we need to write these values to the registry
 #if VKC_PLATFORM == VKC_PLATFORM_WINDOWS
-    AppendRegistryEntriesForLayers(environment.running_as_administrator, environment.paths.GetFullPath(PATH_OVERRIDE_LAYERS),
-                                   environment.paths.GetFullPath(PATH_OVERRIDE_SETTINGS));
+    AppendRegistryEntriesForLayers(environment.running_as_administrator, layers_path.c_str(), settings_path.c_str());
 #endif
 
-    return result_settings && result_override;
+    return result_settings && result_layers;
 }
 
-bool HasOverriddenLayers(const Environment& environment) {
-    const QString override_settings_path = environment.paths.GetFullPath(PATH_OVERRIDE_SETTINGS);
-    const QString override_layers_path = environment.paths.GetFullPath(PATH_OVERRIDE_LAYERS);
+bool EraseLayersOverride(const std::string& layers_path) { return std::remove(layers_path.c_str()) == 0; }
 
-    const QFileInfo override_settings_file_info(override_layers_path);
-    const QFileInfo override_layers_file_info(override_settings_path);
+bool EraseSettingsOverride(const std::string& settings_path) { return std::remove(settings_path.c_str()) == 0; }
+
+bool SurrenderConfiguration(const Environment& environment) {
+    const std::string layers_path = environment.paths.GetFullPath(PATH_OVERRIDE_LAYERS);
+    const std::string settings_path = environment.paths.GetFullPath(PATH_OVERRIDE_SETTINGS);
+
+    const bool result_layers = EraseLayersOverride(layers_path);
+    const bool result_settings = EraseSettingsOverride(settings_path);
+
+#if VKC_PLATFORM == VKC_PLATFORM_WINDOWS
+    RemoveRegistryEntriesForLayers(environment.running_as_administrator, layers_path.c_str(), settings_path.c_str());
+#endif
+
+    return result_layers && result_settings;
+}
+
+bool HasOverride(const Environment& environment) {
+    const std::string settings_path = environment.paths.GetFullPath(PATH_OVERRIDE_SETTINGS);
+    const std::string layers_path = environment.paths.GetFullPath(PATH_OVERRIDE_LAYERS);
+
+    const QFileInfo override_settings_file_info(layers_path.c_str());
+    const QFileInfo override_layers_file_info(settings_path.c_str());
 
     return override_settings_file_info.exists() || override_layers_file_info.exists();
 }

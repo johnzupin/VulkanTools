@@ -47,8 +47,6 @@ class LayersDialog : public QDialog {
     void LoadAvailableLayersUI();
     void LoadSortedLayersUI();
 
-    QString GetConfigurationName() const;
-
    public Q_SLOTS:
     virtual void accept() override;  // Save the configuration
 
@@ -78,7 +76,6 @@ class LayersDialog : public QDialog {
     void OverrideOrder(const std::string &layer_name, const TreeWidgetItemParameter *below, const TreeWidgetItemParameter *above);
 
     Configuration configuration;
-    std::vector<Parameter> parameters;  // List of available layers and configuration layers
     std::string selected_available_layer_name;
     std::string selected_sorted_layer_name;
 

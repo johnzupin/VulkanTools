@@ -38,84 +38,6 @@ struct TreeSettings {
     QTreeWidgetItem *item;
 };
 
-// Lookup table for settings descriptions and URL's
-struct TableEntry {
-    const char *setting;
-    const char *description;
-    const char *url;
-};
-
-static const TableEntry lookup_table[] = {
-    {"VK_VALIDATION_FEATURE_DISABLE_CORE_CHECKS_EXT",
-     "API usage validation checks: Validate the status of descriptor sets, command buffers, shader modules, pipeline states, "
-     "renderpass usage, synchronization, dynamic states, and many other types of valid usage. ",
-     "https://github.com/KhronosGroup/Vulkan-ValidationLayers/blob/master/docs/core_checks.md"},
-
-    {"VALIDATION_CHECK_DISABLE_COMMAND_BUFFER_STATE", "Command buffer state core validation checks.", ""},
-
-    {"VALIDATION_CHECK_DISABLE_OBJECT_IN_USE", "Object-in-use state core validation checks.", ""},
-
-    {"VALIDATION_CHECK_DISABLE_IDLE_DESCRIPTOR_SET", "Core validation checks to verify descriptor sets are not in-use.", ""},
-
-    {"VALIDATION_CHECK_DISABLE_QUERY_VALIDATION", "Query state core validation checks.", ""},
-
-    {"VALIDATION_CHECK_DISABLE_PUSH_CONSTANT_RANGE", "Push constant range core validation checks.", ""},
-
-    {"VALIDATION_CHECK_DISABLE_IMAGE_LAYOUT_VALIDATION", "Image layout validation core validation checks.", ""},
-
-    {"VK_VALIDATION_FEATURE_DISABLE_SHADERS_EXT", "Shader validation-related core validation checks.", ""},
-
-    {"VK_VALIDATION_FEATURE_DISABLE_THREAD_SAFETY_EXT",
-     "Thread-safety external synchronization checks. Checks performed include ensuring that only one thread at a time uses an "
-     "object in free-threaded API calls.",
-     "https://github.com/KhronosGroup/Vulkan-ValidationLayers/blob/master/docs/thread_safety.md"},
-
-    {"VK_VALIDATION_FEATURE_DISABLE_API_PARAMETERS_EXT",
-     "Stateless API parameter validation checks. This option checks the validity of structures; the validity of enumerated type "
-     "values; null pointer conditions; properties and limits requirements. ",
-     "https://github.com/KhronosGroup/Vulkan-ValidationLayers/blob/master/docs/stateless_validation.md"},
-
-    {"VK_VALIDATION_FEATURE_DISABLE_OBJECT_LIFETIMES_EXT",
-     "Object lifetimes core validation checks. Validate that only known objects are referenced and destroyed, that lookups are "
-     "performed only on objects being tracked and that objects are correctly freed or destroyed.",
-     "https://github.com/KhronosGroup/Vulkan-ValidationLayers/blob/master/docs/object_lifetimes.md"},
-
-    {"VK_VALIDATION_FEATURE_DISABLE_UNIQUE_HANDLES_EXT", "Handle-wrapping which ensures unique object handles",
-     "https://github.com/KhronosGroup/Vulkan-ValidationLayers/blob/master/docs/handle_wrapping.md"},
-
-    {"VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT", "Enables shader instrumentation for additional diagnostic validation checks.",
-     "https://github.com/KhronosGroup/Vulkan-ValidationLayers/blob/master/docs/gpu_validation.md"},
-
-    {"VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT",
-     "Modifies the value of the VkPhysicalDeviceLimits::maxBoundDescriptorSets property to return a value one less than the actual "
-     "device's value to \"reserve\" a descriptor set binding slot for use by shader-based validation. This option is likely only "
-     "of interest to applications that dynamically adjust their descriptor set bindings to adjust for the limits of the device.",
-     ""},
-
-    {"VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT",
-     "Enables the shader Debug Printf functionality. It allows developers to debug their shader code by \"printing\" any values of "
-     "interest to the debug callback or stdout. ",
-     "https://github.com/KhronosGroup/Vulkan-ValidationLayers/blob/master/docs/debug_printf.md"},
-
-    {"VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT",
-     "Vulkan Best Practices checks. It is intended to highlight potential performance issues, questionable usage patterns, common "
-     "mistakes, and items not specifically prohibited by the Vulkan specification but that may lead to application problems.",
-     "https://github.com/KhronosGroup/Vulkan-ValidationLayers/blob/master/docs/best_practices.md"},
-
-    {"VALIDATION_CHECK_ENABLE_VENDOR_SPECIFIC_ARM",
-     "ARM GPU-specific Best Practices checks. It is intended to highlight usage patterns that are performance issues on ARM GPUs "
-     "but that are not prohibited by the Vulkan specification or issues on other vendor GPUs.",
-     ""},
-
-    {"VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT",
-     "Enables Vulkan synchronization validation. It is intended to enable flagging error cases where synchronization primitives "
-     "are "
-     "missing, but also allow for visualization of such primitives and provide for recommendations on optimal use of "
-     "synchronization "
-     "for any given combination of Vulkan commands and resources.",
-     "https://github.com/KhronosGroup/Vulkan-ValidationLayers/blob/master/docs/synchronization.md"},
-};
-
 static TreeSettings core_checks[] = {{"Image Layout Validation", "VALIDATION_CHECK_DISABLE_IMAGE_LAYOUT_VALIDATION", "", nullptr},
                                      {"Command Buffer State", "VALIDATION_CHECK_DISABLE_COMMAND_BUFFER_STATE", "", nullptr},
                                      {"Object in Use", "VALIDATION_CHECK_DISABLE_OBJECT_IN_USE", "", nullptr},
@@ -142,29 +64,14 @@ static TreeSettings best_practices[] = {
 static TreeSettings sync_checks[] = {
     {"Synchronization", "VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT", "", nullptr}};
 
-/// There aren't many... but consider moving this to a QHash type lookup
-static QString GetSettingDetails(const QString &setting, QString &url) {
-    QString ret_string = "";
-
-    for (std::size_t i = 0, n = countof(lookup_table); i < n; i++) {
-        if (setting == lookup_table[i].setting) {
-            url = lookup_table[i].url;
-            ret_string = lookup_table[i].description;
-            if (std::strcmp(lookup_table[i].url, "") == 0) {
-                ret_string += "\n<a href =\"";
-                ret_string += lookup_table[i].url;
-                ret_string += "\">Click for online documentation</a>";
-            }
-            return ret_string;
-        }
-    }
-
-    return ret_string;
+static bool IsSupported(const std::vector<SettingEnumValue> &values, const char *key) {
+    const SettingEnumValue *value = FindByKey(values, key);
+    if (value == nullptr) return false;
+    return (value->platform_flags & (1 << VKC_PLATFORM)) != 0;
 }
 
-SettingsValidationAreas::SettingsValidationAreas(QTreeWidget *main_tree, QTreeWidgetItem *parent,
-                                                 const std::vector<LayerSettingMeta> &settings_meta,
-                                                 std::vector<LayerSettingData> &settings_data)
+SettingsValidationAreas::SettingsValidationAreas(QTreeWidget *main_tree, QTreeWidgetItem *parent, const Version &version,
+                                                 const SettingMetaSet &settings_meta, SettingDataSet &settings_data)
     : _main_tree_widget(main_tree),
       _main_parent(parent),
       _core_checks_parent(nullptr),
@@ -179,6 +86,8 @@ SettingsValidationAreas::SettingsValidationAreas(QTreeWidget *main_tree, QTreeWi
       _debug_printf_to_stdout(nullptr),
       _debug_printf_verbose(nullptr),
       _debug_printf_buffer_size(nullptr),
+      _debug_printf_buffer_size_value(nullptr),
+      version(version),
       settings_meta(settings_meta),
       settings_data(settings_data) {
     assert(main_tree && parent);
@@ -215,7 +124,7 @@ SettingsValidationAreas::SettingsValidationAreas(QTreeWidget *main_tree, QTreeWi
         misc_disables[i].item = item;
     }
 
-    const LayerSettingMeta *setting_meta_enables = FindByKey(settings_meta, "enables");
+    const SettingMetaFlags *setting_meta_enables = static_cast<const SettingMetaFlags *>(settings_meta.Get("enables"));
     assert(setting_meta_enables);
 
     // Now for the GPU specific stuff
@@ -223,8 +132,9 @@ SettingsValidationAreas::SettingsValidationAreas(QTreeWidget *main_tree, QTreeWi
     const bool has_gpu_assisted = HasEnable("VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT");
     const bool shader_based = has_debug_printf || has_gpu_assisted;
 
-    if (VKC_PLATFORM != VKC_PLATFORM_MACOS) {
-        if (HasValue(setting_meta_enables->enum_values, "VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT")) {
+    if (IsSupported(setting_meta_enables->enum_values, "VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT") ||
+        IsSupported(setting_meta_enables->enum_values, "VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT")) {
+        if (IsSupported(setting_meta_enables->enum_values, "VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT")) {
             _shader_based_box = new QTreeWidgetItem();
             _shader_based_box->setText(0, "Shader-Based");
             _shader_based_box->setCheckState(0, shader_based ? Qt::Checked : Qt::Unchecked);
@@ -244,7 +154,9 @@ SettingsValidationAreas::SettingsValidationAreas(QTreeWidget *main_tree, QTreeWi
             _gpu_assisted_reserve_box->setCheckState(0, reserve_binding_slot ? Qt::Checked : Qt::Unchecked);
             _gpu_assisted_box->addChild(_gpu_assisted_reserve_box);
 
-            _gpu_assisted_oob_box = CreateSettingWidget(_gpu_assisted_box, "gpuav_buffer_oob");
+            if (settings_meta.Get("gpuav_buffer_oob") != nullptr) {
+                _gpu_assisted_oob_box = CreateSettingWidgetBool(_gpu_assisted_box, "gpuav_buffer_oob");
+            }
 
             _debug_printf_box = new QTreeWidgetItem();
             _debug_printf_box->setText(0, "     Debug printf");
@@ -252,9 +164,15 @@ SettingsValidationAreas::SettingsValidationAreas(QTreeWidget *main_tree, QTreeWi
                 0, "Debug shader code by \"printing\" any values of interest to the debug callback or stdout");
             _shader_based_box->addChild(_debug_printf_box);
 
-            _debug_printf_to_stdout = CreateSettingWidget(_debug_printf_box, "printf_to_stdout");
-            _debug_printf_verbose = CreateSettingWidget(_debug_printf_box, "printf_verbose");
-            _debug_printf_buffer_size = CreateSettingWidget(_debug_printf_box, "printf_buffer_size");
+            if (settings_meta.Get("printf_to_stdout") != nullptr) {
+                _debug_printf_to_stdout = CreateSettingWidgetBool(_debug_printf_box, "printf_to_stdout");
+            }
+            if (settings_meta.Get("printf_verbose") != nullptr) {
+                _debug_printf_verbose = CreateSettingWidgetBool(_debug_printf_box, "printf_verbose");
+            }
+            if (settings_meta.Get("printf_buffer_size") != nullptr) {
+                _debug_printf_buffer_size = CreateSettingWidgetInt(_debug_printf_box, "printf_buffer_size");
+            }
 
             _debug_printf_radio = new QRadioButton();
             _main_tree_widget->setItemWidget(_debug_printf_box, 0, _debug_printf_radio);
@@ -265,6 +183,9 @@ SettingsValidationAreas::SettingsValidationAreas(QTreeWidget *main_tree, QTreeWi
                 EnableSettingWidget(_debug_printf_to_stdout, false);
                 EnableSettingWidget(_debug_printf_verbose, false);
                 EnableSettingWidget(_debug_printf_buffer_size, false);
+                if (_debug_printf_buffer_size != nullptr) {
+                    _debug_printf_buffer_size_value->setEnabled(false);
+                }
 
                 _gpu_assisted_radio->setEnabled(false);
                 EnableSettingWidget(_gpu_assisted_box, false);
@@ -276,6 +197,9 @@ SettingsValidationAreas::SettingsValidationAreas(QTreeWidget *main_tree, QTreeWi
                 EnableSettingWidget(_debug_printf_to_stdout, enable_debug_printf);
                 EnableSettingWidget(_debug_printf_verbose, enable_debug_printf);
                 EnableSettingWidget(_debug_printf_buffer_size, enable_debug_printf);
+                if (_debug_printf_buffer_size != nullptr) {
+                    _debug_printf_buffer_size_value->setEnabled(enable_debug_printf);
+                }
 
                 const bool enable_gpu_assisted = HasEnable("VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT");
                 _gpu_assisted_radio->setChecked(enable_gpu_assisted);
@@ -292,6 +216,12 @@ SettingsValidationAreas::SettingsValidationAreas(QTreeWidget *main_tree, QTreeWi
 
             _gpu_assisted_reserve_box = new QTreeWidgetItem();
             _gpu_assisted_reserve_box->setText(0, "Reserve Descriptor Set Binding Slot");
+            _gpu_assisted_reserve_box->setToolTip(
+                0,
+                "Specifies that the validation layers reserve a descriptor set binding slot for their own use. The layer reports a "
+                "value for VkPhysicalDeviceLimits::maxBoundDescriptorSets that is one less than the value reported by the device. "
+                "If the device supports the binding of only one descriptor set, the validation layer does not perform GPU-assisted "
+                "validation.");
             _gpu_assisted_reserve_box->setCheckState(
                 0, HasEnable("VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT") ? Qt::Checked : Qt::Unchecked);
             _gpu_assisted_box->addChild(_gpu_assisted_reserve_box);
@@ -301,8 +231,8 @@ SettingsValidationAreas::SettingsValidationAreas(QTreeWidget *main_tree, QTreeWi
     }
 
     // Synchronization
-    if (HasValue(setting_meta_enables->enum_values, "VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT")) {
-        const bool synchronization = HasEnable(sync_checks[0].token);
+    if (IsSupported(setting_meta_enables->enum_values, "VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT")) {
+        const bool synchronization = HasEnable("VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT");
         _synchronization_box = new QTreeWidgetItem();
         _synchronization_box->setText(0, sync_checks[0].prompt);
         _synchronization_box->setToolTip(
@@ -325,9 +255,11 @@ SettingsValidationAreas::SettingsValidationAreas(QTreeWidget *main_tree, QTreeWi
     best_practices[0].item = item;
 
     // ARM best practices
-    if (HasValue(setting_meta_enables->enum_values, "VALIDATION_CHECK_ENABLE_VENDOR_SPECIFIC_ARM")) {
+    if (IsSupported(setting_meta_enables->enum_values, "VALIDATION_CHECK_ENABLE_VENDOR_SPECIFIC_ARM")) {
         QTreeWidgetItem *core_child_item = new QTreeWidgetItem();
         core_child_item->setText(0, best_practices[1].prompt);
+        core_child_item->setToolTip(
+            0, "Enables processing of debug printf instructions in shaders and sending debug strings to the debug callback");
         core_child_item->setCheckState(0, HasEnable(best_practices[1].token) ? Qt::Checked : Qt::Unchecked);
         EnableSettingWidget(core_child_item, HasEnable(best_practices[0].token));
         item->addChild(core_child_item);
@@ -337,66 +269,20 @@ SettingsValidationAreas::SettingsValidationAreas(QTreeWidget *main_tree, QTreeWi
     connect(_main_tree_widget, SIGNAL(itemChanged(QTreeWidgetItem *, int)), this, SLOT(itemChanged(QTreeWidgetItem *, int)));
     connect(_main_tree_widget, SIGNAL(itemClicked(QTreeWidgetItem *, int)), this, SLOT(itemClicked(QTreeWidgetItem *, int)));
 
-    if (VKC_PLATFORM != VKC_PLATFORM_MACOS) {
+    if (IsSupported(setting_meta_enables->enum_values, "VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT") ||
+        IsSupported(setting_meta_enables->enum_values, "VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT")) {
         connect(_gpu_assisted_radio, SIGNAL(toggled(bool)), this, SLOT(gpuToggled(bool)));
         connect(_debug_printf_radio, SIGNAL(toggled(bool)), this, SLOT(printfToggled(bool)));
+        connect(_debug_printf_buffer_size_value, SIGNAL(textEdited(const QString &)), this,
+                SLOT(printfBufferSizeEdited(const QString &)));
     }
 }
 
-/// A tree item was selected, display the help information to the side
-/// This is embarrasingly brute force... temporary sketch in...
 void SettingsValidationAreas::itemClicked(QTreeWidgetItem *item, int column) {
+    (void)item;
     (void)column;
-    QString description;
-    QString url;
 
     emit settingChanged();
-
-    // Check for core validation checks
-    if (item == _core_checks_parent) {
-        description = GetSettingDetails("VK_VALIDATION_FEATURE_DISABLE_CORE_CHECKS_EXT", url);
-        return;
-    }
-
-    for (std::size_t i = 0, n = countof(core_checks); i < n; ++i) {
-        if (item == core_checks[i].item) {
-            description = GetSettingDetails(core_checks[i].token, url);
-            if (!description.isEmpty()) {
-                return;
-            }
-        }
-    }
-
-    // Check for miscellaneous disables
-    for (std::size_t i = 0, n = countof(misc_disables); i < n; ++i) {
-        if (item == misc_disables[i].item) {
-            description = GetSettingDetails(misc_disables[i].token, url);
-            if (!description.isEmpty()) {
-                return;
-            }
-        }
-    }
-
-    // Best practices
-    for (std::size_t i = 0, n = countof(best_practices); i < n; ++i) {
-        if (item == best_practices[i].item) {
-            description = GetSettingDetails(best_practices[i].token, url);
-            if (!description.isEmpty()) {
-                return;
-            }
-        }
-    }
-
-    // GPU Stuff
-    if (item == _gpu_assisted_box) {
-        description = GetSettingDetails("VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT", url);
-    } else if (item == _gpu_assisted_reserve_box) {
-        description = GetSettingDetails("VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT", url);
-    } else if (item == _debug_printf_box) {
-        description = GetSettingDetails("VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT", url);
-    } else if (item == _synchronization_box) {
-        description = GetSettingDetails("VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT", url);
-    }
 }
 
 /// Something was checked or unchecked
@@ -444,6 +330,7 @@ void SettingsValidationAreas::itemChanged(QTreeWidgetItem *item, int column) {
             EnableSettingWidget(_debug_printf_to_stdout, true);
             EnableSettingWidget(_debug_printf_verbose, true);
             EnableSettingWidget(_debug_printf_buffer_size, true);
+            if (_debug_printf_buffer_size != nullptr) _debug_printf_buffer_size_value->setEnabled(true);
 
             _gpu_assisted_radio->setEnabled(true);
             EnableSettingWidget(_gpu_assisted_box, true);
@@ -455,6 +342,7 @@ void SettingsValidationAreas::itemChanged(QTreeWidgetItem *item, int column) {
             EnableSettingWidget(_debug_printf_to_stdout, false);
             EnableSettingWidget(_debug_printf_verbose, false);
             EnableSettingWidget(_debug_printf_buffer_size, false);
+            if (_debug_printf_buffer_size != nullptr) _debug_printf_buffer_size_value->setEnabled(false);
 
             _gpu_assisted_radio->setEnabled(false);
             EnableSettingWidget(_gpu_assisted_box, false);
@@ -481,6 +369,7 @@ void SettingsValidationAreas::itemChanged(QTreeWidgetItem *item, int column) {
             EnableSettingWidget(_debug_printf_to_stdout, false);
             EnableSettingWidget(_debug_printf_verbose, false);
             EnableSettingWidget(_debug_printf_buffer_size, false);
+            if (_debug_printf_buffer_size != nullptr) _debug_printf_buffer_size_value->setEnabled(false);
         }
     }
 
@@ -527,6 +416,9 @@ void SettingsValidationAreas::gpuToggled(bool toggle) {
         EnableSettingWidget(_debug_printf_to_stdout, false);
         EnableSettingWidget(_debug_printf_verbose, false);
         EnableSettingWidget(_debug_printf_buffer_size, false);
+        if (_debug_printf_buffer_size != nullptr) {
+            _debug_printf_buffer_size_value->setEnabled(false);
+        }
     }
 
     CollectSettings();
@@ -541,32 +433,40 @@ void SettingsValidationAreas::printfToggled(bool toggle) {
         EnableSettingWidget(_debug_printf_to_stdout, true);
         EnableSettingWidget(_debug_printf_verbose, true);
         EnableSettingWidget(_debug_printf_buffer_size, true);
+        if (_debug_printf_buffer_size != nullptr) {
+            _debug_printf_buffer_size_value->setEnabled(true);
+        }
     }
 
     CollectSettings();
     emit settingChanged();
 }
 
+void SettingsValidationAreas::printfBufferSizeEdited(const QString &new_value) {
+    CollectSettings();
+    emit settingChanged();
+}
+
 bool SettingsValidationAreas::CollectSettings() {
-    std::string enables;
-    std::string disables;
+    std::vector<std::string> enables;
+    std::vector<std::string> disables;
 
     // GPU stuff
     if (_shader_based_box != nullptr) {
         if (_shader_based_box->checkState(0) == Qt::Checked) {
             if (_gpu_assisted_radio->isChecked()) {
-                enables = "VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT";
+                AppendString(enables, "VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT");
 
                 if (_gpu_assisted_reserve_box->checkState(0) == Qt::Checked) {
                     AppendString(enables, "VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT");
                 }
             } else {  // Debug printf must be checked
-                enables = "VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT";
+                AppendString(enables, "VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT");
             }
         }
     } else if (_gpu_assisted_box) {
         if (_gpu_assisted_box->checkState(0) == Qt::Checked) {
-            enables = "VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT";
+            AppendString(enables, "VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT");
 
             if (_gpu_assisted_reserve_box->checkState(0) == Qt::Checked) {
                 AppendString(enables, "VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT");
@@ -577,7 +477,6 @@ bool SettingsValidationAreas::CollectSettings() {
     StoreBoolSetting(_gpu_assisted_oob_box, "gpuav_buffer_oob");
     StoreBoolSetting(_debug_printf_to_stdout, "printf_to_stdout");
     StoreBoolSetting(_debug_printf_verbose, "printf_verbose");
-    StoreBoolSetting(_debug_printf_buffer_size, "printf_buffer_size");
 
     // Best practice enables
     for (std::size_t i = 0, n = countof(best_practices); i < n; ++i) {
@@ -604,60 +503,89 @@ bool SettingsValidationAreas::CollectSettings() {
     if (_core_checks_parent->checkState(0) == Qt::Checked) {
         for (std::size_t i = 0, n = countof(core_checks); i < n; ++i)
             if (core_checks[i].item->checkState(0) == Qt::Unchecked) AppendString(disables, core_checks[i].token);
-    } else  // Not checked, turn them all off
+    } else {  // Not checked, turn them all off
         AppendString(disables, "VK_VALIDATION_FEATURE_DISABLE_CORE_CHECKS_EXT");
+    }
 
-    FindByKey(settings_data, "disables")->value = disables;
-    FindByKey(settings_data, "enables")->value = enables;
+    static_cast<SettingDataFlags *>(settings_data.Get("disables"))->value = disables;
+    static_cast<SettingDataFlags *>(settings_data.Get("enables"))->value = enables;
 
     return true;
 }
 
 bool SettingsValidationAreas::HasEnable(const char *token) const {
-    const LayerSettingData *setting = FindByKey(settings_data, "enables");
-    assert(setting);
-    return setting->value.find(token) != std::string::npos;
+    return IsStringFound(static_cast<const SettingDataFlags *>(settings_data.Get("enables"))->value, token);
 }
 
 bool SettingsValidationAreas::HasDisable(const char *token) const {
-    const LayerSettingData *setting = FindByKey(settings_data, "disables");
-    assert(setting);
-    return setting->value.find(token) != std::string::npos;
+    return IsStringFound(static_cast<const SettingDataFlags *>(settings_data.Get("disables"))->value, token);
 }
 
-QTreeWidgetItem *SettingsValidationAreas::CreateSettingWidget(QTreeWidgetItem *parent, const char *key) const {
-    LayerSettingData *setting_data = FindByKey(settings_data, key);
-    const LayerSettingMeta *setting_meta = FindByKey(settings_meta, key);
+QTreeWidgetItem *SettingsValidationAreas::CreateSettingWidgetBool(QTreeWidgetItem *parent, const char *key) {
+    const SettingMetaBool *setting_meta = static_cast<const SettingMetaBool *>(settings_meta.Get(key));
+    SettingDataBool *setting_data = static_cast<SettingDataBool *>(settings_data.Get(key));
 
     QTreeWidgetItem *child = nullptr;
 
     if (setting_data && setting_meta) {
-        const bool value = setting_data->value == "TRUE";
+        assert(setting_meta->type == SETTING_BOOL);
+
         child = new QTreeWidgetItem();
-        child->setText(0, setting_meta->label);
-        child->setToolTip(0, setting_meta->description);
-        child->setCheckState(0, value ? Qt::Checked : Qt::Unchecked);
+        child->setText(0, setting_meta->label.c_str());
+        child->setToolTip(0, setting_meta->description.c_str());
+        child->setCheckState(0, setting_data->value ? Qt::Checked : Qt::Unchecked);
         parent->addChild(child);
     }
 
     return child;
 }
 
-void SettingsValidationAreas::StoreBoolSetting(QTreeWidgetItem *setting, const char *key) {
+QTreeWidgetItem *SettingsValidationAreas::CreateSettingWidgetInt(QTreeWidgetItem *parent, const char *key) {
+    const SettingMetaInt *setting_meta = static_cast<const SettingMetaInt *>(settings_meta.Get(key));
+    SettingDataInt *setting_data = static_cast<SettingDataInt *>(settings_data.Get(key));
+
+    QTreeWidgetItem *child = nullptr;
+
+    if (setting_data && setting_meta) {
+        assert(setting_meta->type == SETTING_INT);
+
+        child = new QTreeWidgetItem();
+        _debug_printf_buffer_size_value = new WidgetSettingInt(child, *setting_meta, *setting_data);
+        parent->addChild(child);
+        QTreeWidgetItem *place_holder = new QTreeWidgetItem();
+        child->addChild(place_holder);
+        _main_tree_widget->setItemWidget(place_holder, 0, _debug_printf_buffer_size_value);
+    }
+
+    return child;
+}
+
+void SettingsValidationAreas::StoreBoolSetting(QTreeWidgetItem *setting_data, const char *key) {
     assert(key);
     assert(std::strcmp(key, "") != 0);
 
-    if (setting == nullptr) return;
+    if (setting_data == nullptr) return;
 
-    FindByKey(settings_data, key)->value = setting->checkState(0) == Qt::Checked ? "TRUE" : "FALSE";
+    static_cast<SettingDataBool &>(*settings_data.Get(key)).value = setting_data->checkState(0) == Qt::Checked;
 }
 
-void SettingsValidationAreas::EnableSettingWidget(QTreeWidgetItem *setting, bool enable) {
-    if (setting == nullptr) return;
+void SettingsValidationAreas::StoreIntSetting(QTreeWidgetItem *setting_data, const char *key) {
+    assert(key);
+    assert(std::strcmp(key, "") != 0);
+
+    if (setting_data == nullptr) return;
+
+    if (setting_data->text(0).isEmpty()) return;
+
+    static_cast<SettingDataInt &>(*settings_data.Get(key)).value = std::atoi(setting_data->text(0).toStdString().c_str());
+}
+
+void SettingsValidationAreas::EnableSettingWidget(QTreeWidgetItem *setting_data, bool enable) {
+    if (setting_data == nullptr) return;
 
     if (enable) {
-        setting->setFlags(setting->flags() | Qt::ItemIsEnabled);
+        setting_data->setFlags(setting_data->flags() | Qt::ItemIsEnabled);
     } else {
-        setting->setFlags(setting->flags() & ~Qt::ItemIsEnabled);
+        setting_data->setFlags(setting_data->flags() & ~Qt::ItemIsEnabled);
     }
 }

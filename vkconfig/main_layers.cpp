@@ -45,7 +45,7 @@ static int RunLayersOverride(const CommandLine& command_line) {
     const bool use_application_list = environment.UseApplicationListOverrideMode();
     environment.SetMode(OVERRIDE_MODE_LIST, false);
 
-    const bool override_result = OverrideLayers(environment, layers.available_layers, configuration);
+    const bool override_result = OverrideConfiguration(environment, layers.available_layers, configuration);
 
     environment.SetMode(OVERRIDE_MODE_LIST, use_application_list);
 
@@ -75,8 +75,8 @@ static int RunLayersSurrender(const CommandLine& command_line) {
     Environment environment(paths);
     environment.Reset(Environment::DEFAULT);
 
-    const bool has_overridden_layers = HasOverriddenLayers(environment);
-    const bool surrender_result = SurrenderLayers(environment);
+    const bool has_overridden_layers = HasOverride(environment);
+    const bool surrender_result = SurrenderConfiguration(environment);
 
     environment.Reset(Environment::SYSTEM);  // Don't change the system settings on exit
 
@@ -128,10 +128,10 @@ static int RunLayersVerbose(const CommandLine& command_line) {
         const Layer& layer = layers.available_layers[i];
 
         printf("\n%s (%s) %s-%s\n", layer.key.c_str(), GetLayerTypeLabel(layer._layer_type), layer._api_version.str().c_str(),
-               layer._implementation_version.toStdString().c_str());
-        printf("- %s\n", layer.description.toStdString().c_str());
-        printf("- %s\n", layer._layer_path.toStdString().c_str());
-        printf("- %s\n", layer._library_path.toStdString().c_str());
+               layer._implementation_version.c_str());
+        printf("- %s\n", layer.description.c_str());
+        printf("- %s\n", layer._layer_path.c_str());
+        printf("- %s\n", layer._library_path.c_str());
     }
 
     return 0;

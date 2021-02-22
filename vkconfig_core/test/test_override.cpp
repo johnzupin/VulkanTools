@@ -21,43 +21,71 @@
 #include "../override.h"
 #include "../environment.h"
 #include "../layer.h"
+#include "../layer_manager.h"
 
 #include <gtest/gtest.h>
 
-TEST(test_override, override_and_surrender) {
-    PathManager paths;
-    Environment environment(paths);
-    environment.Reset(Environment::DEFAULT);
+extern bool WriteLayersOverride(const Environment& environment, const std::vector<Layer>& available_layers,
+                                const Configuration& configuration, const std::string& layers_path);
 
-    std::vector<Layer> available_layers;
-    Layer layer;
-    layer.key = "VK_LAYER_KHRONOS_validation";
-    layer._layer_path = "VK_LAYER_KHRONOS_validation.dummy_path";
-    available_layers.push_back(layer);
+extern bool WriteSettingsOverride(const Environment& environment, const std::vector<Layer>& available_layers,
+                                  const Configuration& configuration, const std::string& settings_path);
+
+extern bool EraseLayersOverride(const std::string& layers_path);
+
+extern bool EraseSettingsOverride(const std::string& settings_path);
+
+TEST(test_override, write_erase) {
+    PathManager paths;
+    Environment env(paths, Version(1, 2, 162));
+    env.Reset(Environment::DEFAULT);
+
+    LayerManager layer_manager(env);
+    layer_manager.LoadLayersFromPath(":/");
 
     Configuration configuration;
-    const bool load = configuration.Load(std::vector<Layer>(), ":/Configuration 2.0.2 - Standard.json");
-    ASSERT_TRUE(load);
-    ASSERT_TRUE(!configuration.IsEmpty());
+    const bool load = configuration.Load(layer_manager.available_layers, ":/Configuration 2.2.0 - Layer 1.4.0.json");
+    EXPECT_TRUE(load);
+    EXPECT_TRUE(!configuration.parameters.empty());
 
-    EXPECT_EQ(true, OverrideLayers(environment, available_layers, configuration));
-    EXPECT_EQ(true, SurrenderLayers(environment));
+    EXPECT_EQ(true, WriteLayersOverride(env, layer_manager.available_layers, configuration, "./override_layers_1_4_0.json"));
+    EXPECT_EQ(true, WriteSettingsOverride(env, layer_manager.available_layers, configuration, "./override_settings_1_4_0.txt"));
 
-    environment.Reset(Environment::SYSTEM);  // Don't change the system settings on exit
-}
+    QFile file_layers_override_ref(":/override_layers_1_4_0.json");
+    const bool result_layers_override_ref = file_layers_override_ref.open(QIODevice::ReadOnly | QIODevice::Text);
+    assert(result_layers_override_ref);
+    QString text_layers_override_ref = file_layers_override_ref.readAll();
+    file_layers_override_ref.close();
 
-TEST(test_override, missing_layers) {
-    PathManager paths;
-    Environment environment(paths);
-    environment.Reset(Environment::DEFAULT);
+    QFile file_layers_override_gen("./override_layers_1_4_0.json");
+    const bool result_layers_override_gen = file_layers_override_gen.open(QIODevice::ReadOnly | QIODevice::Text);
+    assert(result_layers_override_gen);
+    QString text_layers_override_gen = file_layers_override_gen.readAll();
+    file_layers_override_gen.close();
 
-    Configuration configuration;
-    const bool load = configuration.Load(std::vector<Layer>(), ":/Configuration 2.0.2 - Standard.json");
-    ASSERT_TRUE(load);
-    ASSERT_TRUE(!configuration.IsEmpty());
+    EXPECT_STREQ(text_layers_override_ref.toStdString().c_str(), text_layers_override_gen.toStdString().c_str());
 
-    EXPECT_EQ(false, OverrideLayers(environment, std::vector<Layer>(), configuration));
-    EXPECT_EQ(true, SurrenderLayers(environment));
+    QFile file_settings_override_ref(":/override_settings_1_4_0.txt");
+    const bool result_settings_override_ref = file_settings_override_ref.open(QFile::ReadOnly);
+    assert(result_settings_override_ref);
+    QString text_settings_override_ref = file_settings_override_ref.readAll();
+    file_settings_override_ref.close();
 
-    environment.Reset(Environment::SYSTEM);  // Don't change the system settings on exit
+    text_settings_override_ref.replace("\r\n", "\n");  // Using UNIX EOL
+
+    QFile file_settings_override_gen("./override_settings_1_4_0.txt");
+    const bool result_settings_override_gen = file_settings_override_gen.open(QFile::ReadOnly);
+    assert(result_settings_override_gen);
+    QString text_settings_override_gen = file_settings_override_gen.readAll();
+    file_settings_override_gen.close();
+
+    text_settings_override_gen.replace("\r\n", "\n");  // Using UNIX EOL
+
+    EXPECT_EQ(text_settings_override_ref.size(), text_settings_override_gen.size());
+    EXPECT_STREQ(text_settings_override_ref.toStdString().c_str(), text_settings_override_gen.toStdString().c_str());
+
+    EXPECT_EQ(true, EraseLayersOverride("./override_layers_1_4_0.json"));
+    EXPECT_EQ(true, EraseSettingsOverride("./override_settings_1_4_0.txt"));
+
+    env.Reset(Environment::SYSTEM);  // Don't change the system settings on exit
 }

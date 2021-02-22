@@ -22,32 +22,37 @@
 #pragma once
 
 #include "parameter.h"
+#include "path_manager.h"
 
-#include <QString>
-#include <QStringList>
+#include <QByteArray>
 
 #include <vector>
+#include <string>
 
 class Configuration {
    public:
     Configuration();
 
-    bool Load(const std::vector<Layer>& available_layers, const QString& full_path);
-    bool Save(const std::vector<Layer>& available_layers, const QString& full_path) const;
-    bool IsAvailableOnThisPlatform() const;
+    bool Load(const std::vector<Layer>& available_layers, const std::string& full_path);
+    bool Save(const std::vector<Layer>& available_layers, const std::string& full_path) const;
+    bool HasOverride() const;
 
-    QString key;  // User readable display of the profile name (may contain spaces)
+    void Reset(const std::vector<Layer>& available_layers, const PathManager& path_manager);
+
+    std::string key;  // User readable display of the configuration name (may contain spaces)
     int platform_flags;
-    QString description;            // A friendly description of what this profile does
+    std::string description;        // A friendly description of what this profile does
     QByteArray setting_tree_state;  // Recall editor tree state
 
     std::vector<Parameter> parameters;
 
-    bool IsEmpty() const;
+    bool IsBuiltIn() const;
+    bool HasSavedFile(const PathManager& path_manager) const;
 
    private:
-    bool Load2_0(const std::vector<Layer>& available_layers, const QJsonObject& json_root_object, const QString& full_path);
+    bool Load2_0(const std::vector<Layer>& available_layers, const QJsonObject& json_root_object, const std::string& full_path);
     bool Load2_1(const std::vector<Layer>& available_layers, const QJsonObject& json_root_object);
+    bool Load2_2(const std::vector<Layer>& available_layers, const QJsonObject& json_root_object);
 };
 
-QString MakeConfigurationName(const std::vector<Configuration>& configurations, const QString& configuration_name);
+std::string MakeConfigurationName(const std::vector<Configuration>& configurations, const std::string& configuration_name);

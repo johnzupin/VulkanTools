@@ -103,8 +103,8 @@ static const char* GetLayoutStateToken(LayoutState state) {
     return table[state];
 }
 
-Environment::Environment(PathManager& paths)
-    :
+Environment::Environment(PathManager& paths, const Version& api_version)
+    : api_version(api_version),
 // Hack for GitHub C.I.
 #if VKC_PLATFORM == VKC_PLATFORM_WINDOWS && (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
       running_as_administrator(IsUserAnAdmin()),
@@ -142,7 +142,7 @@ bool Environment::Notify(Notification notification) {
         } break;
 
         case NOTIFICATION_EXIT: {
-            QString shut_down_state;
+            std::string shut_down_state;
 
             if (override_state & OVERRIDE_FLAG_PERSISTENT) {
                 shut_down_state = "Vulkan Layers override will remain in effect when Vulkan Configurator closes.";
@@ -157,7 +157,7 @@ bool Environment::Notify(Notification notification) {
 
             QMessageBox alert;
             alert.setWindowTitle("Vulkan Layers configuration state on exit");
-            alert.setText(shut_down_state);
+            alert.setText(shut_down_state.c_str());
             alert.setIcon(QMessageBox::Question);
             alert.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
             alert.setCheckBox(new QCheckBox("Do not show again."));
@@ -219,7 +219,8 @@ bool Environment::Load() {
 
     // Load "version": If the version doesn't exist of it's an old version of vkconfig
     const Version default_version(first_run || !SUPPORT_VKCONFIG_2_0_0 ? version : Version("2.0.0"));
-    version = Version(settings.value(VKCONFIG_KEY_VKCONFIG_VERSION, QVariant(default_version.str().c_str())).toString());
+    version =
+        Version(settings.value(VKCONFIG_KEY_VKCONFIG_VERSION, QVariant(default_version.str().c_str())).toString().toStdString());
 
     if (version == Version("2.0.0")) {  // The version is an old development version, unknown and unsupported, hard reset.
         Reset(DEFAULT);
@@ -251,7 +252,7 @@ bool Environment::Load() {
 
     // Load active configuration
     for (std::size_t i = 0; i < ACTIVE_COUNT; ++i) {
-        actives[i] = settings.value(GetActiveToken(static_cast<Active>(i)), actives[i]).toByteArray();
+        actives[i] = settings.value(GetActiveToken(static_cast<Active>(i)), actives[i].c_str()).toString().toStdString();
     }
 
     // Load notifications
@@ -264,8 +265,22 @@ bool Environment::Load() {
         layout_states[i] = settings.value(GetLayoutStateToken(static_cast<LayoutState>(i))).toByteArray();
     }
 
+    // Load default configuration already init
+    this->default_configuration_filenames = ConvertString(settings.value("default_configuration_files").toStringList());
+
     // Load custom paths
-    custom_layer_paths = settings.value(VKCONFIG_KEY_CUSTOM_PATHS).toStringList();
+    user_defined_layers_paths[USER_DEFINED_LAYERS_PATHS_GUI] =
+        ConvertString(settings.value(VKCONFIG_KEY_CUSTOM_PATHS).toStringList());
+
+    // See if the VK_LAYER_PATH environment variable is set. If so, parse it and
+    // assemble a list of paths that take precidence for layer discovery.
+    const QString VK_LAYER_PATH(qgetenv("VK_LAYER_PATH"));
+    if (!VK_LAYER_PATH.isEmpty()) {
+        user_defined_layers_paths[USER_DEFINED_LAYERS_PATHS_ENV] =
+            ConvertString(QString(qgetenv("VK_LAYER_PATH")).split(GetPlatformString(PLATFORM_STRING_SEPARATOR)));
+    } else {
+        user_defined_layers_paths[USER_DEFINED_LAYERS_PATHS_ENV].clear();
+    }
 
     // Load application list
     const bool result = LoadApplications();
@@ -275,13 +290,10 @@ bool Environment::Load() {
 }
 
 bool Environment::LoadApplications() {
-    /////////////////////////////////////////////////////////////
-    // Now, use the list. If the file doesn't exist, this is not an error
-    QString data;
-    const QString& application_list_json = paths.GetFullPath(FILENAME_APPLIST);
-    QFile file(application_list_json);
+    const std::string& application_list_json = paths.GetFullPath(FILENAME_APPLIST);
+    QFile file(application_list_json.c_str());
     if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {  // if applist.json exist, load saved applications
-        data = file.readAll();
+        QString data = file.readAll();
         file.close();
 
         applications.clear();
@@ -294,7 +306,7 @@ bool Environment::LoadApplications() {
                 const QJsonObject& json_doc_object = json_doc.object();
                 const QStringList& app_keys = json_doc_object.keys();
 
-                for (int i = 0, n = app_keys.length(); i < n; i++) {
+                for (int i = 0, n = app_keys.length(); i < n; ++i) {
                     const QJsonValue& app_value = json_doc_object.value(app_keys[i]);
                     const QJsonObject& app_object = app_value.toObject();
 
@@ -306,7 +318,7 @@ bool Environment::LoadApplications() {
 
                     // Arguments are in an array to make room for adding more in a future version
                     const QJsonArray& args = app_object.value("command_lines").toArray();
-                    application.arguments = args[0].toString();
+                    application.arguments = args[0].toString().toStdString();
 
                     applications.push_back(application);
                 }
@@ -335,7 +347,7 @@ bool Environment::Save() const {
 
     // Save active state
     for (std::size_t i = 0; i < ACTIVE_COUNT; ++i) {
-        settings.setValue(GetActiveToken(static_cast<Active>(i)), actives[i]);
+        settings.setValue(GetActiveToken(static_cast<Active>(i)), actives[i].c_str());
     }
 
     // Save notifications
@@ -349,7 +361,10 @@ bool Environment::Save() const {
     }
 
     // Save custom paths
-    settings.setValue(VKCONFIG_KEY_CUSTOM_PATHS, custom_layer_paths);
+    settings.setValue(VKCONFIG_KEY_CUSTOM_PATHS, ConvertString(user_defined_layers_paths[USER_DEFINED_LAYERS_PATHS_GUI]));
+
+    // Save default configuration initizalized
+    settings.setValue("default_configuration_files", ConvertString(this->default_configuration_filenames));
 
     const bool result = SaveApplications();
     assert(result);
@@ -371,16 +386,16 @@ bool Environment::SaveApplications() const {
 
         // Ground work for mulitiple sets of command line arguments
         QJsonArray argsArray;
-        argsArray.append(QJsonValue(applications[i].arguments));  // [J] PROBABLY
+        argsArray.append(QJsonValue(applications[i].arguments.c_str()));
 
         application_object.insert("command_lines", argsArray);
         root.insert(QFileInfo(applications[i].executable_path.c_str()).fileName(), application_object);
     }
 
-    const QString& app_list_json = paths.GetFullPath(FILENAME_APPLIST);
-    assert(QFileInfo(app_list_json).absoluteDir().exists());
+    const std::string& app_list_json = paths.GetFullPath(FILENAME_APPLIST);
+    assert(QFileInfo(app_list_json.c_str()).absoluteDir().exists());
 
-    QFile file(app_list_json);
+    QFile file(app_list_json.c_str());
     const bool result = file.open(QIODevice::WriteOnly | QIODevice::Text);
     assert(result);
     QJsonDocument doc(root);
@@ -398,7 +413,7 @@ void Environment::SelectActiveApplication(std::size_t application_index) {
 
 int Environment::GetActiveApplicationIndex() const {
     for (std::size_t i = 0, n = applications.size(); i < n; ++i) {
-        if (QString(applications[i].executable_path.c_str()) == Get(ACTIVE_APPLICATION)) {
+        if (applications[i].executable_path.c_str() == Get(ACTIVE_APPLICATION)) {
             return static_cast<int>(i);
         }
     }
@@ -444,7 +459,7 @@ const Application& Environment::GetActiveApplication() const {
     assert(!applications.empty());
 
     for (std::size_t i = 0, n = applications.size(); i < n; ++i) {
-        if (QString(applications[i].executable_path.c_str()) == Get(ACTIVE_APPLICATION)) {
+        if (applications[i].executable_path.c_str() == Get(ACTIVE_APPLICATION)) {
             return applications[i];
         }
     }
@@ -506,33 +521,56 @@ const QByteArray& Environment::Get(LayoutState state) const {
     return layout_states[state];
 }
 
-const QString& Environment::Get(Active active) const { return actives[active]; }
+const std::string& Environment::Get(Active active) const { return actives[active]; }
 
-void Environment::Set(Active active, const QString& key) { actives[active] = key; }
+void Environment::Set(Active active, const std::string& key) { actives[active] = key; }
 
-bool Environment::AppendCustomLayerPath(const QString& path) {
-    assert(!path.isEmpty());
+bool Environment::AppendCustomLayerPath(const std::string& path) {
+    assert(!path.empty());
 
-    for (int i = 0, n = custom_layer_paths.size(); i < n; ++i) {
-        if (ConvertNativeSeparators(custom_layer_paths[i].toStdString()) == ConvertNativeSeparators(path.toStdString())) {
+    std::vector<std::string>& custom_layer_paths_gui = user_defined_layers_paths[USER_DEFINED_LAYERS_PATHS_GUI];
+
+    for (std::size_t i = 0, n = custom_layer_paths_gui.size(); i < n; ++i) {
+        if (ConvertNativeSeparators(custom_layer_paths_gui[i]) == ConvertNativeSeparators(path)) {
             return false;
         }
     }
 
-    custom_layer_paths.append(ConvertNativeSeparators(path.toStdString()).c_str());
+    custom_layer_paths_gui.push_back(ConvertNativeSeparators(path).c_str());
     return true;
 }
 
-bool Environment::RemoveCustomLayerPath(const QString& path) {
-    assert(!path.isEmpty());
+bool Environment::RemoveCustomLayerPath(const std::string& path) {
+    assert(!path.empty());
 
-    for (int i = 0, n = custom_layer_paths.size(); i < n; ++i) {
-        if (custom_layer_paths[i].toStdString() == ConvertNativeSeparators(path.toStdString())) {
-            custom_layer_paths.removeAt(i);
-            return true;
+    bool found = false;
+
+    std::vector<std::string>& custom_layer_paths_gui = user_defined_layers_paths[USER_DEFINED_LAYERS_PATHS_GUI];
+
+    std::vector<std::string> new_custom_layer_paths_gui;
+    for (std::size_t i = 0, n = custom_layer_paths_gui.size(); i < n; ++i) {
+        if (custom_layer_paths_gui[i] == ConvertNativeSeparators(path)) {
+            found = true;
+            continue;
         }
+
+        new_custom_layer_paths_gui.push_back(custom_layer_paths_gui[i]);
     }
+
+    std::swap(custom_layer_paths_gui, new_custom_layer_paths_gui);
+    return found;
+}
+
+bool Environment::IsDefaultConfigurationInit(const std::string& default_configuration_filename) const {
+    for (std::size_t i = 0, n = default_configuration_filenames.size(); i < n; ++i) {
+        if (default_configuration_filenames[i] == default_configuration_filename) return true;
+    }
+
     return false;
+}
+
+void Environment::InitDefaultConfiguration(const std::string& configuration_filename) {
+    AppendString(this->default_configuration_filenames, configuration_filename);
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -544,11 +582,11 @@ bool Environment::RemoveCustomLayerPath(const QString& path) {
 /// Note, not ALL macOS executables are in a bundle, so if a non-bundled
 /// executable is fed in here, it will silently just return without
 /// modifying the path (which will be the correct behavior)
-bool ExactExecutableFromAppBundle(QString& app_path) {
-    QString path = app_path;
+bool ExactExecutableFromAppBundle(std::string& app_path) {
+    std::string path = app_path;
     path += "/Contents/";
-    QString list_file = path + "Info.plist";
-    QFile file(list_file);
+    std::string list_file = path + "Info.plist";
+    QFile file(list_file.c_str());
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) return false;
 
     QTextStream stream(&file);
@@ -573,8 +611,8 @@ bool ExactExecutableFromAppBundle(QString& app_path) {
             cExeName[iIndex] = '\0';
 
             // Complete the partial path
-            path += QString("MacOS/");
-            path += QString(cExeName);
+            path += "MacOS/";
+            path += cExeName;
 
             // Return original if not found, but root if found
             app_path = path;
@@ -589,29 +627,30 @@ bool ExactExecutableFromAppBundle(QString& app_path) {
     return true;
 }
 
-static QString GetDefaultExecutablePath(const QString& executable_name) {
+static std::string GetDefaultExecutablePath(const std::string& executable_name) {
     static const char* DEFAULT_PATH = VKC_PLATFORM == VKC_PLATFORM_MACOS ? "/../.." : "";
 
     // Using VULKAN_SDK environement variable
     const QString env(qgetenv("VULKAN_SDK"));
     if (!env.isEmpty()) {
-        const QString search_path = QString(env) + GetPlatformString(PLATFORM_STRING_SDK_BIN_DIR) + DEFAULT_PATH + executable_name;
-        const QFileInfo file_info(search_path);
+        const std::string search_path =
+            env.toStdString() + GetPlatformString(PLATFORM_STRING_SDK_BIN_DIR) + DEFAULT_PATH + executable_name.c_str();
+        const QFileInfo file_info(search_path.c_str());
         if (file_info.exists()) {
-            return file_info.absoluteFilePath();
+            return file_info.absoluteFilePath().toStdString();
         }
     }
 
     // Such the default applications from package installation (Linux)
     if (VKC_PLATFORM == VKC_PLATFORM_LINUX) {
-        const QString search_path = QString("/usr/bin") + DEFAULT_PATH + executable_name;
-        const QFileInfo file_info(search_path);
+        const std::string search_path = std::string("/usr/bin") + DEFAULT_PATH + executable_name.c_str();
+        const QFileInfo file_info(search_path.c_str());
         if (file_info.exists()) {
-            return file_info.absoluteFilePath();
+            return file_info.absoluteFilePath().toStdString();
         }
     } else if (VKC_PLATFORM == VKC_PLATFORM_MACOS) {
-        QString search_path = "/Applications" + executable_name;
-        const QFileInfo file_info(search_path);
+        std::string search_path = std::string("/Applications") + executable_name.c_str();
+        const QFileInfo file_info(search_path.c_str());
         if (file_info.exists() && ExactExecutableFromAppBundle(search_path)) {
             return search_path;
         }
@@ -619,16 +658,16 @@ static QString GetDefaultExecutablePath(const QString& executable_name) {
 
     // Using relative path to vkconfig in case SDK is not "installed"
     if (VKC_PLATFORM == VKC_PLATFORM_MACOS) {
-        QString search_path = QString("..") + DEFAULT_PATH + executable_name;
-        const QFileInfo file_info(search_path);
+        std::string search_path = std::string("..") + DEFAULT_PATH + executable_name.c_str();
+        const QFileInfo file_info(search_path.c_str());
         if (file_info.exists() && ExactExecutableFromAppBundle(search_path)) {
             return search_path;
         }
     } else {
-        const QString search_path = QString(".") + DEFAULT_PATH + executable_name;
+        const QString search_path = QString(".") + DEFAULT_PATH + executable_name.c_str();
         const QFileInfo file_info(search_path);
         if (file_info.exists()) {
-            return file_info.absoluteFilePath();
+            return file_info.absoluteFilePath().toStdString();
         }
     }
 
@@ -644,9 +683,9 @@ static const DefaultApplication defaults_applications[] = {{ConvertNativeSeparat
                                                            {ConvertNativeSeparators("/vkcubepp"), "--suppress_popups"}};
 
 static Application CreateDefaultApplication(const DefaultApplication& default_application) {
-    const QString executable_path =
+    const std::string executable_path =
         GetDefaultExecutablePath((default_application.key + GetPlatformString(PLATFORM_STRING_APP_SUFFIX)).c_str());
-    if (executable_path.isEmpty()) Application();  // application could not be found..
+    if (executable_path.empty()) Application();  // application could not be found..
 
     Application application(executable_path, "--suppress_popups");
 

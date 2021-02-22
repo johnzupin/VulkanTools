@@ -23,8 +23,7 @@
 
 #include "../vkconfig_core/layer.h"
 
-#include "widget_mute_message.h"
-#include "widget_bool_setting.h"
+#include "widget_setting_int.h"
 
 #include <QTreeWidget>
 #include <QTreeWidgetItem>
@@ -36,9 +35,8 @@ class SettingsValidationAreas : public QObject {
     Q_OBJECT
 
    public:
-    explicit SettingsValidationAreas(QTreeWidget *main_tree, QTreeWidgetItem *parent,
-                                     const std::vector<LayerSettingMeta> &settings_meta,
-                                     std::vector<LayerSettingData> &settings_data);
+    explicit SettingsValidationAreas(QTreeWidget *main_tree, QTreeWidgetItem *parent, const Version &version,
+                                     const SettingMetaSet &settings_meta, SettingDataSet &settings_data);
 
     bool CollectSettings();
 
@@ -58,12 +56,14 @@ class SettingsValidationAreas : public QObject {
     QTreeWidgetItem *_debug_printf_to_stdout;
     QTreeWidgetItem *_debug_printf_verbose;
     QTreeWidgetItem *_debug_printf_buffer_size;
+    WidgetSettingInt *_debug_printf_buffer_size_value;
 
    public Q_SLOTS:
     void itemChanged(QTreeWidgetItem *item, int column);
     void itemClicked(QTreeWidgetItem *item, int column);
     void gpuToggled(bool toggle);
     void printfToggled(bool toggle);
+    void printfBufferSizeEdited(const QString &new_value);
 
    Q_SIGNALS:
     void settingChanged();
@@ -75,12 +75,15 @@ class SettingsValidationAreas : public QObject {
     bool HasEnable(const char *token) const;
     bool HasDisable(const char *token) const;
 
-    QTreeWidgetItem *CreateSettingWidget(QTreeWidgetItem *parent, const char *key) const;
+    QTreeWidgetItem *CreateSettingWidgetBool(QTreeWidgetItem *parent, const char *key);
+    QTreeWidgetItem *CreateSettingWidgetInt(QTreeWidgetItem *parent, const char *key);
 
-    void StoreBoolSetting(QTreeWidgetItem *setting, const char *key);
+    void StoreBoolSetting(QTreeWidgetItem *setting_data, const char *key);
+    void StoreIntSetting(QTreeWidgetItem *setting_data, const char *key);
 
-    void EnableSettingWidget(QTreeWidgetItem *setting, bool enable);
+    void EnableSettingWidget(QTreeWidgetItem *setting_data, bool enable);
 
-    const std::vector<LayerSettingMeta> &settings_meta;
-    std::vector<LayerSettingData> &settings_data;
+    const Version version;
+    const SettingMetaSet &settings_meta;
+    SettingDataSet &settings_data;
 };

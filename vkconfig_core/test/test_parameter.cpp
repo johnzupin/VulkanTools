@@ -47,8 +47,8 @@ static std::vector<Parameter> GenerateTestParametersExist() {
 
 static std::vector<Parameter> GenerateTestParametersMissing() {
     std::vector<Parameter> parameters;
-    parameters.push_back(Parameter("Layer E0", LAYER_STATE_OVERRIDDEN));
-    parameters.push_back(Parameter("Layer E3", LAYER_STATE_EXCLUDED));
+    parameters.push_back(Parameter("Layer E3", LAYER_STATE_OVERRIDDEN));
+    parameters.push_back(Parameter("Layer E1", LAYER_STATE_EXCLUDED));
     parameters.push_back(Parameter("Layer C1", LAYER_STATE_APPLICATION_CONTROLLED));
     return parameters;
 }
@@ -124,13 +124,12 @@ TEST(test_parameter, missing_layers) {
     std::vector<Layer> layers = GenerateTestLayers();
 
     std::vector<Parameter> parameters_exist = GenerateTestParametersExist();
-    ;
-    EXPECT_EQ(true, HasMissingParameter(parameters_exist, layers_empty));
-    EXPECT_EQ(false, HasMissingParameter(parameters_exist, layers));
+    EXPECT_EQ(true, HasMissingLayer(parameters_exist, layers_empty));
+    EXPECT_EQ(false, HasMissingLayer(parameters_exist, layers));
 
     std::vector<Parameter> parameters_missing = GenerateTestParametersMissing();
-    EXPECT_EQ(true, HasMissingParameter(parameters_missing, layers_empty));
-    EXPECT_EQ(true, HasMissingParameter(parameters_missing, layers));
+    EXPECT_EQ(true, HasMissingLayer(parameters_missing, layers_empty));
+    EXPECT_EQ(true, HasMissingLayer(parameters_missing, layers));
 }
 
 TEST(test_parameter, filter) {
@@ -188,10 +187,10 @@ TEST(test_parameter, order_manual) {
     std::vector<Layer> layers = GenerateTestLayers();
     std::vector<Parameter> parameters = GenerateTestParametersAll();
 
-    auto layer_e0 = FindItByKey(parameters, "Layer E0");
+    Parameter* layer_e0 = FindByKey(parameters, "Layer E0");
     layer_e0->overridden_rank = 14;
 
-    auto layer_c0 = FindItByKey(parameters, "Layer C0");
+    Parameter* layer_c0 = FindByKey(parameters, "Layer C0");
     layer_c0->overridden_rank = 15;
 
     OrderParameter(parameters, layers);
@@ -228,26 +227,25 @@ TEST(test_parameter, order_manual) {
 }
 
 TEST(test_parameter, apply_settings) {
-    LayerSettingData preset_setting;
-    preset_setting.key = "A";
+    LayerPreset preset;
+    SettingDataString& preset_setting = static_cast<SettingDataString&>(preset.settings.Create("A", SETTING_STRING));
     preset_setting.value = "preset value";
 
-    LayerPreset preset;
-    preset.settings.push_back(preset_setting);
-
-    LayerSettingData layer_setting_a;
-    layer_setting_a.key = "A";
+    Parameter parameter;
+    SettingDataString& layer_setting_a = static_cast<SettingDataString&>(parameter.settings.Create("A", SETTING_STRING));
     layer_setting_a.value = "setting value";
 
-    LayerSettingData layer_setting_b;
-    layer_setting_b.key = "B";
+    SettingDataString& layer_setting_b = static_cast<SettingDataString&>(parameter.settings.Create("B", SETTING_STRING));
     layer_setting_b.value = "setting value";
 
-    Parameter parameter;
-    parameter.settings.push_back(layer_setting_a);
-    parameter.settings.push_back(layer_setting_b);
+    EXPECT_EQ(1, preset.settings.Size());
+    EXPECT_EQ(2, parameter.settings.Size());
 
     parameter.ApplyPresetSettings(preset);
 
-    EXPECT_STREQ("preset value", FindByKey(parameter.settings, "A")->value.c_str());
+    EXPECT_EQ(1, preset.settings.Size());
+    EXPECT_EQ(2, parameter.settings.Size());
+
+    EXPECT_STREQ("preset value", static_cast<SettingDataString&>(*parameter.settings.Get("A")).value.c_str());
+    EXPECT_STREQ("setting value", static_cast<SettingDataString&>(*parameter.settings.Get("B")).value.c_str());
 }

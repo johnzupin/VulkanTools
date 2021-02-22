@@ -32,6 +32,8 @@ Path::Path() {}
 
 Path::Path(const char* path) : data(ConvertNativeSeparators(path)) {}
 
+Path::Path(const std::string& path) : data(ConvertNativeSeparators(path)) {}
+
 Path& Path::operator=(const std::string& path) {
     data = ConvertNativeSeparators(path);
     return *this;

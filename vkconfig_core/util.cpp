@@ -30,7 +30,8 @@
 
 #include <QString>
 #include <QStringList>
-#include <QDir>
+
+#include <cctype>
 
 std::string format(const char* message, ...) {
     std::size_t const STRING_BUFFER(4096);
@@ -60,26 +61,69 @@ bool IsNumber(const std::string& s) {
     return true;
 }
 
-// delimted string is a comma delimited string. If value is found remove it
-void RemoveString(std::string& delimited_string, const std::string& value) {
-    if (delimited_string.find(value) == std::string::npos) return;
+void RemoveString(std::vector<std::string>& list, const std::string& value) {
+    std::vector<std::string> new_list;
+    new_list.reserve(list.size());
 
-    QStringList list = QString(delimited_string.c_str()).split(",");
-    for (int i = 0, n = list.size(); i < n; ++i) {
-        if (list[i] == value.c_str()) {
-            list.removeAt(i);
-            break;
+    for (std::size_t i = 0, n = list.size(); i < n; ++i) {
+        if (list[i] != value) {
+            new_list.push_back(list[i]);
         }
     }
 
-    delimited_string = list.join(",").toStdString();
+    std::swap(list, new_list);
 }
 
-// Pretty simple, add to list if it's not already in it
-void AppendString(std::string& delimited_string, const std::string& value) {
-    if (delimited_string.find(value) != std::string::npos) return;
+void AppendString(std::vector<std::string>& list, const std::string& value) {
+    if (std::find(list.begin(), list.end(), value) == list.end()) {
+        list.push_back(value);
+    }
+}
 
-    if (!delimited_string.empty()) delimited_string += ",";
+bool IsStringFound(const std::vector<std::string>& list, const std::string& value) {
+    for (std::size_t i = 0, n = list.size(); i < n; ++i) {
+        if (list[i] == value) return true;
+    }
 
-    delimited_string += value;
+    return false;
+}
+
+std::vector<std::string> ConvertString(const QStringList& string_list) {
+    std::vector<std::string> strings;
+
+    for (int i = 0, n = string_list.length(); i < n; ++i) {
+        strings.push_back(string_list[i].toStdString());
+    }
+
+    return strings;
+}
+
+QStringList ConvertString(const std::vector<std::string>& strings) {
+    QStringList string_list;
+
+    for (std::size_t i = 0, n = strings.size(); i < n; ++i) {
+        string_list.append(strings[i].c_str());
+    }
+
+    return string_list;
+}
+
+std::string ToLowerCase(const std::string& value) {
+    std::string result = value;
+
+    for (std::size_t i = 0, n = result.size(); i < n; ++i) {
+        result[i] = std::tolower(result[i]);
+    }
+
+    return result;
+}
+
+std::string ToUpperCase(const std::string& value) {
+    std::string result = value;
+
+    for (std::size_t i = 0, n = result.size(); i < n; ++i) {
+        result[i] = std::toupper(result[i]);
+    }
+
+    return result;
 }

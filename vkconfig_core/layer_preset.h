@@ -20,22 +20,18 @@
 
 #pragma once
 
-#include "platform.h"
-#include "layer_setting_data.h"
+#include "header.h"
+#include "setting_data.h"
+#include "setting_set.h"
 
 #include <vector>
-#include <string>
 
-struct LayerPreset {
-    std::string label;
-    std::string description;
-    int platform_flags;
-    StatusType status_type;
-    std::vector<LayerSettingData> settings;
+struct LayerPreset : public Header {
+    SettingDataSet settings;
 };
 
 const LayerPreset* GetPreset(const std::vector<LayerPreset>& presets, const char* preset_label);
 
 // Check whether "layer_settings" has all the settings set in "preset_settings"
 // "layer_settings" may have more settings then "preset_settings" and return true
-bool HasPreset(const std::vector<LayerSettingData>& layer_settings, const std::vector<LayerSettingData>& preset_settings);
+bool HasPreset(const SettingDataSet& layer_settings, const SettingDataSet& preset_settings);

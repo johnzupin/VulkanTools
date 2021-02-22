@@ -68,7 +68,7 @@ namespace {
 // layersvt/{linux,windows}/VkLayer_device_simulation*.json
 
 const uint32_t kVersionDevsimMajor = 1;
-const uint32_t kVersionDevsimMinor = 4;
+const uint32_t kVersionDevsimMinor = 5;
 const uint32_t kVersionDevsimPatch = 1;
 const uint32_t kVersionDevsimImplementation = VK_MAKE_VERSION(kVersionDevsimMajor, kVersionDevsimMinor, kVersionDevsimPatch);
 
@@ -296,6 +296,8 @@ const char *const kEnvarDevsimEmulatePortability =
                                                // extension.
 const char *const kEnvarDevsimModifyExtensionList =
     "debug.vulkan.devsim.modifyextensionlist";  // a non-zero integer will enable modifying device extensions list.
+const char *const kEnvarDevsimModifyMemoryFlags =
+    "debug.vulkan.devsim.modifymemoryflags";  // a non-zero integer will enable modifying device memory flags.
 #else
 const char *const kEnvarDevsimFilename = "VK_DEVSIM_FILENAME";          // path of the configuration file(s) to load.
 const char *const kEnvarDevsimDebugEnable = "VK_DEVSIM_DEBUG_ENABLE";   // a non-zero integer will enable debugging output.
@@ -305,6 +307,8 @@ const char *const kEnvarDevsimEmulatePortability =
                                                        // extension.
 const char *const kEnvarDevsimModifyExtensionList =
     "VK_DEVSIM_MODIFY_EXTENSION_LIST";  // a non-zero integer will enable modifying device extensions list.
+const char *const kEnvarDevsimModifyMemoryFlags =
+    "VK_DEVSIM_MODIFY_MEMORY_FLAGS";  // a non-zero integer will enable modifying device memory flags.
 #endif
 
 const char *const kLayerSettingsDevsimFilename =
@@ -318,6 +322,9 @@ const char *const kLayerSettingsDevsimEmulatePortability =
 
 const char *const kLayerSettingsDevsimModifyExtensionList =
     "lunarg_device_simulation.modify_extension_list";  // vk_layer_settings.txt equivalent for kEnvarDevsimModifyExtensionList
+
+const char *const kLayerSettingsDevsimModifyMemoryFlags =
+    "lunarg_device_simulation.modify_memory_flags";  // vk_layer_settings.txt equivalent for kEnvarDevsimModifyMemoryFlags
 
 struct IntSetting {
     int num;
@@ -334,6 +341,7 @@ struct IntSetting debugLevel;
 struct IntSetting errorLevel;
 struct IntSetting emulatePortability;
 struct IntSetting modifyExtensionList;
+struct IntSetting modifyMemoryFlags;
 
 // Various small utility functions ///////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1340,6 +1348,24 @@ static void GetDevSimFilename() {
     }
 }
 
+static int GetBooleanValue(const std::string &value) {
+    std::string temp = value;
+    std::transform(temp.begin(), temp.end(), temp.begin(), ::tolower);
+
+    if (value.empty())
+        return 0;
+    else if (temp == "true")
+        return 1;
+    else if (temp == "false")
+        return 0;
+    else
+#if defined(__ANDROID__)
+        return atoi(temp.c_str());
+#else
+        return std::atoi(temp.c_str());
+#endif
+}
+
 // Fill the debugLevel variable with a value from either vk_layer_settings.txt or environment variables.
 // Environment variables get priority.
 static void GetDevSimDebugLevel() {
@@ -1350,11 +1376,7 @@ static void GetDevSimDebugLevel() {
         debug_setting = env_var;
         debugLevel.fromEnvVar = true;
     }
-#if defined(__ANDROID__)
-    debugLevel.num = atoi(debug_setting.c_str());
-#else
-    debugLevel.num = std::atoi(debug_setting.c_str());
-#endif
+    debugLevel.num = GetBooleanValue(debug_setting);
 }
 
 // Fill the errorLevel variable with a value from either vk_layer_settings.txt or environment variables.
@@ -1367,11 +1389,7 @@ static void GetDevSimErrorLevel() {
         error_setting = env_var;
         errorLevel.fromEnvVar = true;
     }
-#if defined(__ANDROID__)
-    errorLevel.num = atoi(error_setting.c_str());
-#else
-    errorLevel.num = std::atoi(error_setting.c_str());
-#endif
+    errorLevel.num = GetBooleanValue(error_setting);
 }
 
 // Fill the emulatePortability variable with a value from either vk_layer_settings.txt or environment variables.
@@ -1384,11 +1402,7 @@ static void GetDevSimEmulatePortability() {
         emulate_portability = env_var;
         emulatePortability.fromEnvVar = true;
     }
-#if defined(__ANDROID__)
-    emulatePortability.num = atoi(emulate_portability.c_str());
-#else
-    emulatePortability.num = std::atoi(emulate_portability.c_str());
-#endif
+    emulatePortability.num = GetBooleanValue(emulate_portability);
 }
 
 // Fill the modifyExtensionList variable with a value from either vk_layer_settings.txt or environment variables.
@@ -1401,11 +1415,20 @@ static void GetDevSimModifyExtensionList() {
         modify_extension_list = env_var;
         modifyExtensionList.fromEnvVar = true;
     }
-#if defined(__ANDROID__)
-    modifyExtensionList.num = atoi(modify_extension_list.c_str());
-#else
-    modifyExtensionList.num = std::atoi(modify_extension_list.c_str());
-#endif
+    modifyExtensionList.num = GetBooleanValue(modify_extension_list);
+}
+
+// Fill the modifyMemoryFlags variable with a value from either vk_layer_settings.txt or environment variables.
+// Environment variables get priority.
+static void GetDevSimModifyMemoryFlags() {
+    std::string modify_memory_flags = getLayerOption(kLayerSettingsDevsimModifyMemoryFlags);
+    modifyMemoryFlags.fromEnvVar = false;
+    std::string env_var = GetEnvarValue(kEnvarDevsimModifyMemoryFlags);
+    if (!env_var.empty()) {
+        modify_memory_flags = env_var;
+        modifyMemoryFlags.fromEnvVar = true;
+    }
+    modifyMemoryFlags.num = GetBooleanValue(modify_memory_flags);
 }
 
 // Generic layer dispatch table setup, see [LALI].
@@ -1416,6 +1439,7 @@ static VkResult LayerSetupCreateInstance(const VkInstanceCreateInfo *pCreateInfo
     GetDevSimDebugLevel();
     GetDevSimErrorLevel();
     GetDevSimModifyExtensionList();
+    GetDevSimModifyMemoryFlags();
 
     VkLayerInstanceCreateInfo *chain_info = get_chain_info(pCreateInfo, VK_LAYER_LINK_INFO);
     assert(chain_info->u.pLayerInfo);
@@ -1639,7 +1663,19 @@ VKAPI_ATTR void VKAPI_CALL GetPhysicalDeviceMemoryProperties(VkPhysicalDevice ph
     // Are there JSON overrides, or should we call down to return the original values?
     PhysicalDeviceData *pdd = PhysicalDeviceData::Find(physicalDevice);
     if (pdd) {
-        *pMemoryProperties = pdd->physical_device_memory_properties_;
+        if (modifyMemoryFlags.num > 0) {
+            *pMemoryProperties = pdd->physical_device_memory_properties_;
+        } else {
+            dt->GetPhysicalDeviceMemoryProperties(physicalDevice, pMemoryProperties);
+            uint32_t min_memory_heap_count =
+                pMemoryProperties->memoryHeapCount < pdd->physical_device_memory_properties_.memoryHeapCount
+                    ? pMemoryProperties->memoryHeapCount
+                    : pdd->physical_device_memory_properties_.memoryHeapCount;
+            pMemoryProperties->memoryHeapCount = min_memory_heap_count;
+            for (uint32_t i = 0; i < min_memory_heap_count; i++) {
+                pMemoryProperties->memoryHeaps[i].size = pdd->physical_device_memory_properties_.memoryHeaps[i].size;
+            }
+        }
     } else {
         dt->GetPhysicalDeviceMemoryProperties(physicalDevice, pMemoryProperties);
     }
@@ -1750,7 +1786,8 @@ VKAPI_ATTR VkResult VKAPI_CALL GetPhysicalDeviceToolPropertiesEXT(VkPhysicalDevi
     return result;
 }
 
-VKAPI_ATTR VkResult VKAPI_CALL EnumeratePhysicalDevices(VkInstance instance, uint32_t *pPhysicalDeviceCount, VkPhysicalDevice* pPhysicalDevices) {
+VKAPI_ATTR VkResult VKAPI_CALL EnumeratePhysicalDevices(VkInstance instance, uint32_t *pPhysicalDeviceCount,
+                                                        VkPhysicalDevice *pPhysicalDevices) {
     // Our layer-specific initialization...
 
     // TODO (ncesario): Probably want to use a different way to check this. Could possibly use (pPhysicalDevices != nullptr)?
@@ -1760,7 +1797,8 @@ VKAPI_ATTR VkResult VKAPI_CALL EnumeratePhysicalDevices(VkInstance instance, uin
     const auto dt = instance_dispatch_table(instance);
     VkResult result = dt->EnumeratePhysicalDevices(instance, pPhysicalDeviceCount, pPhysicalDevices);
 
-    // HACK!! epd_count is used to ensure the following code only gets called _after_ vkCreateInstance finishes *in the "vkcube + devsim" use case*
+    // HACK!! epd_count is used to ensure the following code only gets called _after_ vkCreateInstance finishes *in the "vkcube +
+    // devsim" use case*
     if (!pdd_initialized && (VK_SUCCESS == result)) {
         std::vector<VkPhysicalDevice> physical_devices;
         result = EnumerateAll<VkPhysicalDevice>(&physical_devices, [&](uint32_t *count, VkPhysicalDevice *results) {
@@ -1898,7 +1936,8 @@ VK_LAYER_EXPORT VKAPI_ATTR VkResult VKAPI_CALL vkEnumerateInstanceExtensionPrope
     return EnumerateInstanceExtensionProperties(pLayerName, pCount, pProperties);
 }
 
-VK_LAYER_EXPORT VKAPI_ATTR VkResult VKAPI_CALL vkEnumeratePhysicalDevices(VkInstance instance, uint32_t *pPhysicalDeviceCount, VkPhysicalDevice* pPhysicalDevices) {
+VK_LAYER_EXPORT VKAPI_ATTR VkResult VKAPI_CALL vkEnumeratePhysicalDevices(VkInstance instance, uint32_t *pPhysicalDeviceCount,
+                                                                          VkPhysicalDevice *pPhysicalDevices) {
     return EnumeratePhysicalDevices(instance, pPhysicalDeviceCount, pPhysicalDevices);
 }
 

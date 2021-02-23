@@ -1,3 +1,114 @@
+lunarg-tools (1.2.170.0~rc1-1lunarg18.04-1) bionic; urgency=medium
+
+  [ Christophe ]
+  * vkconfig: use /.local/share/vulkan/config for devsim #1299
+  * vkconfig: Fix filesystem UI no updated #1298
+  * vkconfig: Improve description layout
+  * vkconfig: add Synchronization layers configuration
+  * vkconfig: Add ConfigurationManager
+  * vkconfig: Add display of VK_LAYER_PATH content in Vulkan Development Status
+  * vkconfig: fix devsim copy #1299
+  * vkconfig: Add devsim default configuration on macOS #1307
+  * vkconfig: Add per platform settings
+  * vkconfig: Add JSON layer loader tests
+  * vkconfig: Fix path management
+  * vkconfig: load legacy user-defined configurations
+  * vkconfig: Fix devsim path
+  * vkconfig: Use types for settings in layers and configs files
+  * vkconfig: Read actual integer and bool from json files
+
+  [ richard-lunarg ]
+  * devsim: Add build for macOS
+
+  [ Nathaniel Cesario ]
+  * devsim: populate PDD after CreateInstance
+
+  [ Christophe ]
+  * vkconfig: Exclude layers from config on unsupported platforms
+  * vkconfig: Bring back Debug Enable setting
+  * vkconfig: Fix devsim configuration files on Linux tar
+
+  [ Richard S. Wright Jr ]
+  * macOS related updates
+  * Fixed typos and nits/Cleanup
+
+  [ Christophe ]
+  * vkconfig: fix configuration reset when a layer is missing
+  * vkconfig: fix remove of legacy configuration
+  * vkconfig: Fix imported configs with same name
+  * vkconfig: clean up configuration manager
+  * vkconfig: Do not reload all configurations when not necessary
+  * vkconfig: layers dialog takes a configuration reference
+  * vkconfig: add per-configuration reset
+  * vkconfig: add configurator manager tests
+  * vkconfig: fix configuration tests that became binaries...
+  * vkconfig: read and write typed bool and int settings
+  * vkconfig: Add all layers configuration 2.1 and 2.2 tests
+  * Add extension filters to load and save file layer settings #1317
+  * vkconfig: fix export and import path truncated
+  * vkconfig: add layers manager tests
+  * vkconfig: test override file output
+  * vkconfig: Expose shader-based individual settings on macOS
+
+  [ richard-lunarg ]
+  * codegen: add new qnx screen platform from vk.xml
+
+  [ Christophe ]
+  * vkconfig: Data-driven layer settings
+  * vkconfig: Add builtin JSON files unit tests
+  * vkconfig: Fix validation 'printf buffer size' exposed as a 'bool'#1338
+  * vkconfig: add default configuration for the first time
+
+  [ Tony Barbour ]
+  * CI: Use github actions instead of Travis
+  * apidump: Turn off debug messages in test
+  * CI: Remove travis
+
+  [ Christophe ]
+  * vkconfig: More strict support of setting type
+  * vkconfig: more strict loading of configurations
+  * vkconfig: move back saving JSON setting in configuration
+  * vkconfig: saving vk_layer_setting.txt setting is all done in override.cpp
+  * vkconfig: streamlining setting data
+  * vkconfig: fix setting meta and data comparison
+  * vkconfig: add setting data unit tests
+  * vkconfig: add setting meta unit tests
+  * vkconfig: add case conversion tests
+  * vkconfig: Enable github actions unit tests run
+  * vkconfig: add env loading
+  * vkconfig: refactor to create setting_set
+  * vkconfig: Clean up
+  * vkconfig: add generic flags widget
+  * vkconfig: Expose  setting from devsim
+  * vkconfig: fix typos
+  * vkconfig: Improve compatbility when setting are changing types
+  * vkconfig: Prepare Feb 2021 SDK release
+  * vkconfig: Fix crash when using older  versions
+  * vkconfig: fix case where preset setting has a different type than layer setting
+  * devsim: Support string based bool for devsim settings
+
+  [ Jeremy Kniager ]
+  * docs: Update Device Simulation Documentation
+
+  [ Jeremy Gebben ]
+  * build: update Vulkan-Headers known_good to v1.2.170
+
+  [ Jeremy Kniager ]
+  * devsim: Add option to enable/disable memory sim
+
+  [ Christophe ]
+  * vkconfig: fix header version
+  * vkconfig: disabled shader-based validation on macOS
+  * devsim: expose modify_memory_flags in vkconfig
+
+  [ Jeremy Gebben ]
+  * build: Update known-good for VVL and Vulkan-Tools
+
+  [ John Zupin ]
+  * packaging: updated control version deps to 170
+
+ -- John Zupin <john@odin>  Mon, 22 Feb 2021 18:03:45 -0700
+
 lunarg-tools (1.2.162.1~rc3-1lunarg18.04-1) bionic; urgency=medium
 
   [ Christophe ]

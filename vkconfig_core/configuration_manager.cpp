@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2020 Valve Corporation
- * Copyright (c) 2020 LunarG, Inc.
+ * Copyright (c) 2020-2021 Valve Corporation
+ * Copyright (c) 2020-2021 LunarG, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,29 +39,40 @@ void ConfigurationManager::LoadAllConfigurations(const std::vector<Layer> &avail
     // configuration files.
     if (environment.first_run) {
         RemoveConfigurationFiles();
-
-        const QFileInfoList &configuration_files = GetJSONFiles(":/configurations/");
-
-        for (int i = 0, n = configuration_files.size(); i < n; ++i) {
-            Configuration configuration;
-            const bool result = configuration.Load(available_layers, configuration_files[i].absoluteFilePath().toStdString());
-            assert(result);
-
-            if (!IsPlatformSupported(configuration.platform_flags)) continue;
-
-            OrderParameter(configuration.parameters, available_layers);
-            available_configurations.push_back(configuration);
-        }
+        LoadDefaultConfigurations(available_layers);
 
         environment.first_run = false;
     }
 
-    LoadConfigurationsPath(available_layers, PATH_CONFIGURATION);
-    if (SUPPORT_VKCONFIG_2_0_3) LoadConfigurationsPath(available_layers, PATH_CONFIGURATION_LEGACY);
+    for (int i = PATH_LAST_CONFIGURATION; i >= PATH_FIRST_CONFIGURATION; --i) {
+        LoadConfigurationsPath(available_layers, static_cast<PathType>(i));
+    }
 
     RefreshConfiguration(available_layers);
 }
 
+void ConfigurationManager::LoadDefaultConfigurations(const std::vector<Layer> &available_layers) {
+    const QFileInfoList &configuration_files = GetJSONFiles(":/configurations/");
+
+    for (int i = 0, n = configuration_files.size(); i < n; ++i) {
+        Configuration configuration;
+        const bool result = configuration.Load(available_layers, configuration_files[i].absoluteFilePath().toStdString());
+        assert(result);
+
+        if (!IsPlatformSupported(configuration.platform_flags)) continue;
+
+        OrderParameter(configuration.parameters, available_layers);
+
+        Configuration *found_configuration = FindByKey(this->available_configurations, configuration.key.c_str());
+        if (found_configuration == nullptr) {
+            this->available_configurations.push_back(configuration);
+        }
+    }
+
+    this->SortConfigurations();
+}
+
+// Discard old built-in configurations that have been replaced by new configurations
 static bool IsConfigurationExcluded(const char *filename) {
     static const char *EXCLUDED_FILENAMES[] = {"Validation - Synchronization (Alpha).json",
                                                "Validation - Standard.json",
@@ -76,10 +87,25 @@ static bool IsConfigurationExcluded(const char *filename) {
                                                "applist.json"};
 
     for (std::size_t i = 0, n = countof(EXCLUDED_FILENAMES); i < n; ++i) {
-        if (std::strcmp(EXCLUDED_FILENAMES[i], filename) == 0) return true;
+        if (std::strcmp(EXCLUDED_FILENAMES[i], filename) == 0) {
+            return true;
+        }
     }
 
     return false;
+}
+
+void ConfigurationManager::SortConfigurations() {
+    this->active_configuration = nullptr;
+
+    struct Compare {
+        bool operator()(const Configuration &a, const Configuration &b) const {
+            const bool result = a.key < b.key;
+            return result;
+        }
+    };
+
+    std::sort(this->available_configurations.begin(), this->available_configurations.end(), Compare());
 }
 
 void ConfigurationManager::LoadConfigurationsPath(const std::vector<Layer> &available_layers, PathType path_type) {
@@ -102,7 +128,7 @@ void ConfigurationManager::LoadConfigurationsPath(const std::vector<Layer> &avai
 
 void ConfigurationManager::SaveAllConfigurations(const std::vector<Layer> &available_layers) {
     for (std::size_t i = 0, n = available_configurations.size(); i < n; ++i) {
-        const std::string path = path_manager.GetFullPath(PATH_CONFIGURATION, available_configurations[i].key.c_str());
+        const std::string path = path_manager.GetFullPath(PATH_LAST_CONFIGURATION, available_configurations[i].key.c_str());
         available_configurations[i].Save(available_layers, path.c_str());
     }
 }
@@ -115,6 +141,7 @@ Configuration &ConfigurationManager::CreateConfiguration(const std::vector<Layer
     new_configuration.key = MakeConfigurationName(available_configurations, configuration_name);
 
     this->available_configurations.push_back(new_configuration);
+    this->SortConfigurations();
 
     SetActiveConfiguration(available_layers, new_configuration.key);
 
@@ -122,12 +149,10 @@ Configuration &ConfigurationManager::CreateConfiguration(const std::vector<Layer
 }
 
 void ConfigurationManager::RemoveConfigurationFiles() {
-    static const PathType PATHS[] = {PATH_CONFIGURATION, PATH_CONFIGURATION_LEGACY};
+    for (int path_index = PATH_LAST_CONFIGURATION; path_index >= PATH_FIRST_CONFIGURATION; --path_index) {
+        const QFileInfoList &configuration_files = GetJSONFiles(path_manager.GetPath(static_cast<PathType>(path_index)).c_str());
 
-    for (std::size_t path_index = 0, path_count = countof(PATHS); path_index < path_count; ++path_index) {
-        const QFileInfoList &configuration_files = GetJSONFiles(path_manager.GetPath(PATHS[path_index]).c_str());
-
-        for (int i = 0, n = configuration_files.size(); i < n; i++) {
+        for (int i = 0, n = configuration_files.size(); i < n; ++i) {
             remove(configuration_files[i].filePath().toStdString().c_str());
         }
     }
@@ -144,12 +169,8 @@ void ConfigurationManager::RemoveConfiguration(const std::vector<Layer> &availab
     }
 
     // Delete the configuration file if it exists
-    const std::string full_path(path_manager.GetFullPath(PATH_CONFIGURATION, configuration_name.c_str()));
-    const bool result_configuration = std::remove(full_path.c_str()) == 0;
-    assert(SUPPORT_VKCONFIG_2_0_3 || result_configuration);
-
-    if (SUPPORT_VKCONFIG_2_0_3 && !result_configuration) {
-        const std::string full_path(path_manager.GetFullPath(PATH_CONFIGURATION_LEGACY, configuration_name.c_str()));
+    for (int i = PATH_LAST_CONFIGURATION; i >= PATH_FIRST_CONFIGURATION; --i) {
+        const std::string full_path(path_manager.GetFullPath(static_cast<PathType>(i), configuration_name.c_str()));
         std::remove(full_path.c_str());
     }
 
@@ -235,6 +256,7 @@ void ConfigurationManager::ImportConfiguration(const std::vector<Layer> &availab
 
     configuration.key = MakeConfigurationName(this->available_configurations, configuration.key + " (Imported)");
     this->available_configurations.push_back(configuration);
+    this->SortConfigurations();
     SetActiveConfiguration(available_layers, configuration.key.c_str());
 }
 
@@ -264,6 +286,16 @@ void ConfigurationManager::ResetDefaultsConfigurations(const std::vector<Layer> 
 
     // Now we need to kind of restart everything
     LoadAllConfigurations(available_layers);
+}
+
+void ConfigurationManager::ReloadDefaultsConfigurations(const std::vector<Layer> &available_layers) {
+    // Clear the current configuration as we may be about to remove it.
+    SetActiveConfiguration(available_layers, nullptr);
+
+    // Now we need to kind of restart everything
+    LoadDefaultConfigurations(available_layers);
+
+    RefreshConfiguration(available_layers);
 }
 
 void ConfigurationManager::FirstDefaultsConfigurations(const std::vector<Layer> &available_layers) {

@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2020 Valve Corporation
- * Copyright (c) 2020 LunarG, Inc.
+ * Copyright (c) 2020-2021 Valve Corporation
+ * Copyright (c) 2020-2021 LunarG, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -75,6 +75,16 @@ std::string GenerateVulkanStatus() {
 
     // return log;  // bug https://github.com/LunarG/VulkanTools/issues/1172
 
+    const Configurator &configurator = Configurator::Get();
+
+    // Layers override configuration
+    if (configurator.configurations.HasActiveConfiguration(configurator.layers.available_layers)) {
+        log +=
+            format("- Layers override: \"%s\" configuration\n", configurator.configurations.GetActiveConfiguration()->key.c_str());
+    } else {
+        log += "- Layers override: None\n";
+    }
+
     // Check Vulkan SDK path
     const std::string search_path(qgetenv("VULKAN_SDK"));
     if (!search_path.empty())
@@ -98,7 +108,8 @@ std::string GenerateVulkanStatus() {
     }
 
     log += GetUserDefinedLayersPathsLog("$VK_LAYER_PATH", USER_DEFINED_LAYERS_PATHS_ENV);
-    log += GetUserDefinedLayersPathsLog("Vulkan Configurator", USER_DEFINED_LAYERS_PATHS_GUI);
+    if (configurator.configurations.HasActiveConfiguration(configurator.layers.available_layers))
+        log += GetUserDefinedLayersPathsLog("Vulkan Configurator", USER_DEFINED_LAYERS_PATHS_GUI);
 
     QLibrary library(GetPlatformString(PLATFORM_STRING_VULKAN_LIBRARY));
     PFN_vkEnumerateInstanceLayerProperties vkEnumerateInstanceLayerProperties =
@@ -117,7 +128,7 @@ std::string GenerateVulkanStatus() {
 
     log += "- Available Layers:\n";
     for (std::size_t i = 0, n = layers_properties.size(); i < n; ++i) {
-        const Layer *layer = FindByKey(Configurator::Get().layers.available_layers, layers_properties[i].layerName);
+        const Layer *layer = FindByKey(configurator.layers.available_layers, layers_properties[i].layerName);
 
         std::string status;
         if (layer != nullptr) {

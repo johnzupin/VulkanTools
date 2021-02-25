@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2020 Valve Corporation
- * Copyright (c) 2020 LunarG, Inc.
+ * Copyright (c) 2020-2021 Valve Corporation
+ * Copyright (c) 2020-2021 LunarG, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,6 +50,8 @@ class ConfigurationListItem : public QTreeWidgetItem {
     ConfigurationListItem &operator=(const ConfigurationListItem &) = delete;
 };
 
+enum Tool { TOOL_VULKAN_INFO, TOOL_VULKAN_INSTALL };
+
 class MainWindow : public QMainWindow {
     Q_OBJECT
 
@@ -89,8 +91,6 @@ class MainWindow : public QMainWindow {
     QPushButton *_launcher_working_browse_button;
     QPushButton *_launcher_log_file_browse_button;
 
-    bool SelectConfigurationItem(const std::string &configuration_name);
-
     ConfigurationListItem *SaveLastItem();
     bool RestoreLastItem(const char *szOverride = nullptr);
     std::string _last_item;
@@ -103,6 +103,7 @@ class MainWindow : public QMainWindow {
     void DuplicateClicked(ConfigurationListItem *item);
     void ExportClicked(ConfigurationListItem *item);
     void ImportClicked(ConfigurationListItem *item);
+    void ReloadDefaultClicked(ConfigurationListItem *item);
     void EditCustomPathsClicked(ConfigurationListItem *item);
 
    public Q_SLOTS:
@@ -155,7 +156,10 @@ class MainWindow : public QMainWindow {
     MainWindow(const MainWindow &) = delete;
     MainWindow &operator=(const MainWindow &) = delete;
 
+    void SetActiveConfiguration(const std::string &configuration_name);
+    bool SelectConfigurationItem(const std::string &configuration_name);
     void ResetLaunchApplication();
+    void StartTool(Tool tool);
 
     std::unique_ptr<Ui::MainWindow> ui;
     bool been_warned_about_old_loader;

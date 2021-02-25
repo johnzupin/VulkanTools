@@ -20,29 +20,6 @@
 
 #pragma once
 
-#include "../vkconfig_core/setting_data.h"
-#include "../vkconfig_core/setting_meta.h"
+#include "../vkconfig_core/command_line.h"
 
-#include <QString>
-#include <QTreeWidgetItem>
-#include <QLineEdit>
-
-class WidgetSettingInt : public QLineEdit {
-    Q_OBJECT
-
-   public:
-    WidgetSettingInt(QTreeWidgetItem* item, const SettingMetaInt& setting_meta, SettingDataInt& setting_data);
-
-   public Q_SLOTS:
-    void itemEdited(const QString& newString);
-
-   Q_SIGNALS:
-    void itemChanged();
-
-   private:
-    WidgetSettingInt(const WidgetSettingInt&) = delete;
-    WidgetSettingInt& operator=(const WidgetSettingInt&) = delete;
-
-    const SettingMetaInt& setting_meta;
-    SettingDataInt& setting_data;
-};
+int run_reset(int argc, char* argv[], const CommandLine& command_line);

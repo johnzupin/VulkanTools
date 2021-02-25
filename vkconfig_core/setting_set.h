@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2020 Valve Corporation
- * Copyright (c) 2020 LunarG, Inc.
+ * Copyright (c) 2020-2021 Valve Corporation
+ * Copyright (c) 2020-2021 LunarG, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,12 +37,13 @@ class SettingSet {
         {
             T* setting = this->Get(key.c_str());
             if (setting != nullptr) {
-                if (setting->type == type)
-                    return *setting;
+                if (setting->type == type) return *setting;
+                /*
                 else {
                     Remove(key.c_str());
                     return Create(key, type);
                 }
+                */
             }
         }
 

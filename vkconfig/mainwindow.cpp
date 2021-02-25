@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2020 Valve Corporation
- * Copyright (c) 2020 LunarG, Inc.
+ * Copyright (c) 2020-2021 Valve Corporation
+ * Copyright (c) 2020-2021 LunarG, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -247,18 +247,14 @@ void MainWindow::UpdateUI() {
 
     if (configurator.request_vulkan_status) {
         ui->log_browser->clear();
-        ui->log_browser->append("Vulkan Development Status:");
+        ui->log_browser->append("<B>Vulkan Development Status:</B>");
         ui->log_browser->append(GenerateVulkanStatus().c_str());
         ui->push_button_clear_log->setEnabled(true);
         configurator.request_vulkan_status = false;
     }
 
     // Update title bar
-    if (has_active_configuration && configurator.environment.UseOverride()) {
-        setWindowTitle(GetMainWindowTitle(true).c_str());
-    } else {
-        setWindowTitle(GetMainWindowTitle(false).c_str());
-    }
+    setWindowTitle(GetMainWindowTitle(has_active_configuration && configurator.environment.UseOverride()).c_str());
 
     ui->configuration_tree->blockSignals(false);
 }
@@ -276,7 +272,7 @@ void MainWindow::LoadConfigurationList() {
 
     Configurator &configurator = Configurator::Get();
 
-    for (std::size_t i = 0, n = configurator.configurations.available_configurations.size(); i < n; i++) {
+    for (std::size_t i = 0, n = configurator.configurations.available_configurations.size(); i < n; ++i) {
         const Configuration &configuration = configurator.configurations.available_configurations[i];
 
         ConfigurationListItem *item = new ConfigurationListItem(configuration.key);
@@ -306,11 +302,11 @@ void MainWindow::LoadConfigurationList() {
 /// when an event occurs. This unambigously answers that question.
 ConfigurationListItem *MainWindow::GetCheckedItem() {
     // Just go through all the top level items
-    for (int i = 0; i < ui->configuration_tree->topLevelItemCount(); i++) {
+    for (int i = 0, n = ui->configuration_tree->topLevelItemCount(); i < n; ++i) {
         ConfigurationListItem *item = dynamic_cast<ConfigurationListItem *>(ui->configuration_tree->topLevelItem(i));
 
-        if (item != nullptr)
-            if (item->radio_button->isChecked()) return item;
+        if (item == nullptr) continue;
+        if (item->radio_button->isChecked()) return item;
     }
 
     return nullptr;
@@ -322,6 +318,7 @@ void MainWindow::on_radio_override_clicked() {
 
     configurator.environment.SetMode(OVERRIDE_MODE_ACTIVE, true);
     configurator.configurations.RefreshConfiguration(configurator.layers.available_layers);
+    configurator.request_vulkan_status = true;
 
     UpdateUI();
 }
@@ -332,6 +329,7 @@ void MainWindow::on_radio_fully_clicked() {
 
     configurator.environment.SetMode(OVERRIDE_MODE_ACTIVE, false);
     configurator.configurations.RefreshConfiguration(configurator.layers.available_layers);
+    configurator.request_vulkan_status = true;
 
     UpdateUI();
 }
@@ -435,9 +433,20 @@ void MainWindow::OnConfigurationItemClicked(bool checked) {
     // to ensure the new item is "selected"
     ui->configuration_tree->setCurrentItem(item);
 
-    Configurator &configurator = Configurator::Get();
-    configurator.environment.Set(ACTIVE_CONFIGURATION, item->configuration_name.c_str());
-    configurator.configurations.RefreshConfiguration(configurator.layers.available_layers);
+    this->SetActiveConfiguration(item->configuration_name);
+
+    UpdateUI();
+}
+
+void MainWindow::OnConfigurationTreeClicked(QTreeWidgetItem *item, int column) {
+    (void)column;
+
+    ConfigurationListItem *configuration_item = dynamic_cast<ConfigurationListItem *>(item);
+    if (configuration_item != nullptr) {
+        this->SetActiveConfiguration(configuration_item->configuration_name);
+    }
+
+    SaveLastItem();
 
     UpdateUI();
 }
@@ -455,42 +464,47 @@ void MainWindow::OnConfigurationItemChanged(QTreeWidgetItem *item, int column) {
 
         // We are renaming the file. Things can go wrong here...
         // This is the name of the configuratin we are changing
-        const std::string full_path(configurator.path.GetFullPath(PATH_CONFIGURATION, configuration_item->configuration_name));
+        const std::string full_path(configurator.path.GetFullPath(PATH_LAST_CONFIGURATION, configuration_item->configuration_name));
 
         // This is the new name we want to use for the configuration
-        const std::string &new_configuration_name = configuration_item->text(1).toStdString();
+        const std::string &new_name = configuration_item->text(1).toStdString();
 
-        if (new_configuration_name.empty()) {
+        if (new_name.empty()) {
             Alert::ConfigurationNameEmpty();
-        } else if (!IsPortableFilename(new_configuration_name)) {
+        } else if (!IsPortableFilename(new_name)) {
             Alert::ConfigurationNameInvalid();
         }
 
-        const bool failed = new_configuration_name.empty() || !IsPortableFilename(new_configuration_name);
+        const bool failed = new_name.empty() || !IsPortableFilename(new_name);
         Configuration *duplicate_configuration =
-            failed ? nullptr : FindByKey(configurator.configurations.available_configurations, new_configuration_name.c_str());
+            failed ? nullptr : FindByKey(configurator.configurations.available_configurations, new_name.c_str());
 
         if (duplicate_configuration != nullptr) {
             Alert::ConfigurationRenamingFailed();
         }
 
         // Find existing configuration using it's old name
-        Configuration *configuration =
-            FindByKey(configurator.configurations.available_configurations, configuration_item->configuration_name.c_str());
+        const std::string old_name = configuration_item->configuration_name;
+        Configuration *configuration = FindByKey(configurator.configurations.available_configurations, old_name.c_str());
 
         if (failed || duplicate_configuration != nullptr) {
             // If the configurate name is empty or the configuration name is taken, keep old configuration name
 
             ui->configuration_tree->blockSignals(true);
-            item->setText(1, configuration_item->configuration_name.c_str());
+            item->setText(1, old_name.c_str());
             ui->configuration_tree->blockSignals(false);
+
+            this->SetActiveConfiguration(old_name);
         } else {
             // Rename configuration ; Remove old configuration file ; change the name of the configuration
             remove(full_path.c_str());
-            configuration->key = configuration_item->configuration_name = new_configuration_name;
-        }
+            configuration->key = configuration_item->configuration_name = new_name;
 
-        configurator.configurations.SetActiveConfiguration(configurator.layers.available_layers, configuration);
+            this->SetActiveConfiguration(new_name);
+
+            LoadConfigurationList();
+            SelectConfigurationItem(new_name.c_str());
+        }
 
         _settings_tree_manager.CreateGUI(ui->settings_tree);
     }
@@ -503,16 +517,21 @@ void MainWindow::OnConfigurationItemChanged(QTreeWidgetItem *item, int column) {
 /// for the radio button, and one to change the editor/information at lower right.
 void MainWindow::OnConfigurationTreeChanged(QTreeWidgetItem *current, QTreeWidgetItem *previous) {
     (void)previous;
-    _settings_tree_manager.CleanupGUI();
+
     // This pointer will only be valid if it's one of the elements with
     // the radio button
     ConfigurationListItem *configuration_item = dynamic_cast<ConfigurationListItem *>(current);
     if (configuration_item == nullptr) return;
 
-    configuration_item->radio_button->setChecked(true);
     Configurator &configurator = Configurator::Get();
-    configurator.configurations.SetActiveConfiguration(configurator.layers.available_layers,
-                                                       configuration_item->configuration_name);
+    if (configurator.configurations.HasActiveConfiguration(configurator.layers.available_layers)) {
+        if (configurator.configurations.GetActiveConfiguration()->key == configuration_item->configuration_name) return;
+    }
+
+    _settings_tree_manager.CleanupGUI();
+
+    configuration_item->radio_button->setChecked(true);
+    SetActiveConfiguration(configuration_item->configuration_name);
 
     _settings_tree_manager.CreateGUI(ui->settings_tree);
 
@@ -527,18 +546,41 @@ void MainWindow::aboutVkConfig(bool checked) {
     dlg.exec();
 }
 
+void MainWindow::StartTool(Tool tool) {
+    std::string active_configuration;
+
+    Configurator &configurator = Configurator::Get();
+    if (configurator.configurations.HasActiveConfiguration(configurator.layers.available_layers)) {
+        active_configuration = configurator.configurations.GetActiveConfiguration()->key;
+        configurator.configurations.SetActiveConfiguration(configurator.layers.available_layers, nullptr);
+    }
+
+    switch (tool) {
+        case TOOL_VULKAN_INFO:
+            vk_info_dialog.reset(new VulkanInfoDialog(this));
+            break;
+        case TOOL_VULKAN_INSTALL:
+            vk_installation_dialog.reset(new VulkanAnalysisDialog(this));
+            break;
+    }
+
+    if (!active_configuration.empty()) {
+        configurator.configurations.SetActiveConfiguration(configurator.layers.available_layers, active_configuration);
+    }
+}
+
 /// Create the VulkanInfo dialog if it doesn't already exits & show it.
 void MainWindow::toolsVulkanInfo(bool checked) {
     (void)checked;
 
-    vk_info_dialog.reset(new VulkanInfoDialog(this));
+    this->StartTool(TOOL_VULKAN_INFO);
 }
 
 /// Create the VulkanTools dialog if it doesn't already exist & show it.
 void MainWindow::toolsVulkanInstallation(bool checked) {
     (void)checked;
 
-    vk_installation_dialog.reset(new VulkanAnalysisDialog(this));
+    this->StartTool(TOOL_VULKAN_INSTALL);
 }
 
 void MainWindow::helpShowHelp(bool checked) {
@@ -658,24 +700,6 @@ ConfigurationListItem *MainWindow::SaveLastItem() {
     return item;
 }
 
-bool MainWindow::SelectConfigurationItem(const std::string &configuration_name) {
-    assert(!configuration_name.empty());
-
-    for (int i = 0, n = ui->configuration_tree->topLevelItemCount(); i < n; ++i) {
-        ConfigurationListItem *item = dynamic_cast<ConfigurationListItem *>(ui->configuration_tree->topLevelItem(i));
-        assert(item != nullptr);
-        assert(!item->configuration_name.empty());
-
-        if (item->configuration_name == configuration_name) {
-            ui->configuration_tree->setCurrentItem(item);
-            return true;
-        }
-    }
-
-    assert(0);
-    return false;
-}
-
 // Partner for above function. Returns false if the last config could not be found.
 bool MainWindow::RestoreLastItem(const char *configuration_override) {
     if (configuration_override != nullptr) _last_item = configuration_override;
@@ -716,18 +740,17 @@ void MainWindow::EditClicked(ConfigurationListItem *item) {
     assert(item);
     assert(!item->configuration_name.empty());
 
-    Configurator &configurator = Configurator::Get();
-
     SaveLastItem();
     _settings_tree_manager.CleanupGUI();
 
+    Configurator &configurator = Configurator::Get();
     LayersDialog dlg(this, *FindByKey(configurator.configurations.available_configurations, item->configuration_name.c_str()));
     dlg.exec();
 
     configurator.configurations.RefreshConfiguration(configurator.layers.available_layers);
-    LoadConfigurationList();
 
     RestoreLastItem();
+    LoadConfigurationList();
     _settings_tree_manager.CreateGUI(ui->settings_tree);
 }
 
@@ -740,13 +763,13 @@ void MainWindow::NewClicked() {
         configurator.configurations.CreateConfiguration(configurator.layers.available_layers, "New Configuration");
 
     LayersDialog dlg(this, new_configuration);
-    if (QDialog::Accepted == dlg.exec()) {
-        configurator.configurations.SetActiveConfiguration(configurator.layers.available_layers, new_configuration.key);
-        LoadConfigurationList();
+    dlg.exec();
 
-        RestoreLastItem(new_configuration.key.c_str());
-        _settings_tree_manager.CreateGUI(ui->settings_tree);
-    }
+    configurator.configurations.SetActiveConfiguration(configurator.layers.available_layers, new_configuration.key);
+
+    RestoreLastItem(new_configuration.key.c_str());
+    LoadConfigurationList();
+    _settings_tree_manager.CreateGUI(ui->settings_tree);
 }
 
 void MainWindow::RemoveClicked(ConfigurationListItem *item) {
@@ -850,6 +873,7 @@ void MainWindow::DuplicateClicked(ConfigurationListItem *item) {
 
 void MainWindow::ImportClicked(ConfigurationListItem *item) {
     (void)item;  // We don't need this
+
     Configurator &configurator = Configurator::Get();
 
     const std::string full_import_path = configurator.path.SelectPath(this, PATH_IMPORT_CONFIGURATION);
@@ -875,6 +899,28 @@ void MainWindow::ExportClicked(ConfigurationListItem *item) {
                                                     item->configuration_name);
 }
 
+void MainWindow::ReloadDefaultClicked(ConfigurationListItem *item) {
+    (void)item;
+
+    QMessageBox alert;
+    alert.setWindowTitle("Reloading Missing Default Configurations...");
+    alert.setText("Are you sure you want to reload the default configurations?");
+    alert.setInformativeText("Add missing default configurations. Existing configurations are preserved.");
+    alert.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+    alert.setDefaultButton(QMessageBox::No);
+    alert.setIcon(QMessageBox::Warning);
+
+    if (alert.exec() == QMessageBox::Yes) {
+        _settings_tree_manager.CleanupGUI();
+
+        Configurator &configurator = Configurator::Get();
+        configurator.configurations.ReloadDefaultsConfigurations(configurator.layers.available_layers);
+
+        LoadConfigurationList();
+        _settings_tree_manager.CreateGUI(ui->settings_tree);
+    }
+}
+
 void MainWindow::EditCustomPathsClicked(ConfigurationListItem *item) {
     (void)item;
     addCustomPaths();
@@ -896,30 +942,15 @@ void MainWindow::OnConfigurationItemExpanded(QTreeWidgetItem *item) {
     ui->settings_tree->resizeColumnToContents(1);
 }
 
-void MainWindow::OnConfigurationTreeClicked(QTreeWidgetItem *item, int column) {
-    (void)column;
-
-    Configurator &configurator = Configurator::Get();
-    configurator.environment.Notify(NOTIFICATION_RESTART);
-
-    ConfigurationListItem *configuration_item = dynamic_cast<ConfigurationListItem *>(item);
-    if (configuration_item != nullptr) {
-        configurator.configurations.SetActiveConfiguration(configurator.layers.available_layers,
-                                                           configuration_item->configuration_name);
-    }
-    SaveLastItem();
-
-    UpdateUI();
-}
-
 void MainWindow::OnSettingsTreeClicked(QTreeWidgetItem *item, int column) {
     (void)column;
     (void)item;
 
+    SaveLastItem();
+
     Configurator &configurator = Configurator::Get();
     configurator.environment.Notify(NOTIFICATION_RESTART);
     configurator.configurations.RefreshConfiguration(configurator.layers.available_layers);
-    SaveLastItem();
 
     UpdateUI();
 }
@@ -1175,6 +1206,12 @@ bool MainWindow::eventFilter(QObject *target, QEvent *event) {
 
             menu.addSeparator();
 
+            QAction *reload_default_action = new QAction("Reload Default Configurations", nullptr);
+            reload_default_action->setEnabled(true);
+            menu.addAction(reload_default_action);
+
+            menu.addSeparator();
+
             QAction *custom_path_action = new QAction("Edit Layers Custom Path...", nullptr);
             custom_path_action->setEnabled(true);
             menu.addAction(custom_path_action);
@@ -1198,6 +1235,8 @@ bool MainWindow::eventFilter(QObject *target, QEvent *event) {
                 ExportClicked(item);
             } else if (action == import_action) {
                 ImportClicked(item);
+            } else if (action == reload_default_action) {
+                ReloadDefaultClicked(item);
             } else if (action == custom_path_action) {
                 EditCustomPathsClicked(item);
             } else {
@@ -1210,6 +1249,33 @@ bool MainWindow::eventFilter(QObject *target, QEvent *event) {
     }
 
     // Pass it on
+    return false;
+}
+
+void MainWindow::SetActiveConfiguration(const std::string &configuration_name) {
+    assert(!configuration_name.empty());
+
+    Configurator &configurator = Configurator::Get();
+    configurator.request_vulkan_status = true;
+
+    configurator.configurations.SortConfigurations();
+    configurator.configurations.SetActiveConfiguration(configurator.layers.available_layers, configuration_name);
+}
+
+bool MainWindow::SelectConfigurationItem(const std::string &configuration_name) {
+    assert(!configuration_name.empty());
+
+    for (int i = 0, n = ui->configuration_tree->topLevelItemCount(); i < n; ++i) {
+        ConfigurationListItem *item = dynamic_cast<ConfigurationListItem *>(ui->configuration_tree->topLevelItem(i));
+        assert(item != nullptr);
+        assert(!item->configuration_name.empty());
+        if (item->configuration_name == configuration_name) {
+            ui->configuration_tree->setCurrentItem(item);
+            return true;
+        }
+    }
+
+    assert(0);
     return false;
 }
 

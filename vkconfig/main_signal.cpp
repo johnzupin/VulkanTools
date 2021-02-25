@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2020 Valve Corporation
- * Copyright (c) 2020 LunarG, Inc.
+ * Copyright (c) 2020-2021 Valve Corporation
+ * Copyright (c) 2020-2021 LunarG, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,10 +23,18 @@
 
 #include "main_signal.h"
 
+#include <QSettings>
+
 #include <csignal>
 
 void SurrenderConfiguration(int signal) {
     (void)signal;
+
+    // Indicate that Vulkan Configurator crashed to handle it on next run
+    {
+        QSettings settings;
+        settings.setValue("crashed", true);
+    }
 
     PathManager paths;
     Environment environment(paths);

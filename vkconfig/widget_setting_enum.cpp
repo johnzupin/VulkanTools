@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2020 Valve Corporation
- * Copyright (c) 2020 LunarG, Inc.
+ * Copyright (c) 2020-2021 Valve Corporation
+ * Copyright (c) 2020-2021 LunarG, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,7 +45,7 @@ WidgetSettingEnum::WidgetSettingEnum(QTreeWidgetItem* item, const SettingMetaEnu
 }
 
 void WidgetSettingEnum::indexChanged(int index) {
-    assert(index >= 0 && index < setting_meta.enum_values.size());
+    assert(index >= 0 && index < static_cast<int>(setting_meta.enum_values.size()));
 
     setting_data.value = setting_meta.enum_values[index].key;
     emit itemChanged();

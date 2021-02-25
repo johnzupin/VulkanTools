@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2020 Valve Corporation
- * Copyright (c) 2020 LunarG, Inc.
+ * Copyright (c) 2020-2021 Valve Corporation
+ * Copyright (c) 2020-2021 LunarG, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -172,16 +172,22 @@ const char* GetPlatformString(PlatformString platform_string) {
             "/.local/share/vulkan/lunarg-vkconfig/"   // PLATFORM_MACOS
         },
         {
-            // PLATFORM_STRING_PATH_CONFIGURATION_LEGACY
+            // PLATFORM_STRING_PATH_CONFIGURATION_2_0
             "/AppData/Local/LunarG/vkconfig/",        // PLATFORM_WINDOWS
             "/.local/share/vulkan/lunarg-vkconfig/",  // PLATFORM_LINUX
             "/.local/share/vulkan/lunarg-vkconfig/"   // PLATFORM_MACOS
         },
         {
-            // PLATFORM_STRING_PATH_CONFIGURATION
+            // PLATFORM_STRING_PATH_CONFIGURATION_2_1
             "/AppData/Local/LunarG/vkconfig/configurations/",        // PLATFORM_WINDOWS
             "/.local/share/vulkan/lunarg-vkconfig/configurations/",  // PLATFORM_LINUX
             "/.local/share/vulkan/lunarg-vkconfig/configurations/"   // PLATFORM_MACOS
+        },
+        {
+            // PLATFORM_STRING_PATH_CONFIGURATION_2_2
+            "/AppData/Local/LunarG/vkconfig/configurations_2_2/",        // PLATFORM_WINDOWS
+            "/.local/share/vulkan/lunarg-vkconfig/configurations_2_2/",  // PLATFORM_LINUX
+            "/.local/share/vulkan/lunarg-vkconfig/configurations_2_2/"   // PLATFORM_MACOS
         },
         {
             // PLATFORM_STRING_PATH_OVERRIDE_LAYERS

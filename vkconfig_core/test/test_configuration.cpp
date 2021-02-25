@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2020 Valve Corporation
- * Copyright (c) 2020 LunarG, Inc.
+ * Copyright (c) 2020-2021 Valve Corporation
+ * Copyright (c) 2020-2021 LunarG, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -375,7 +375,8 @@ TEST(test_configuration, compare_settings) {
     EXPECT_TRUE(!configuration_best_practices.parameters.empty());
     EXPECT_STREQ("Validation - Best Practices", configuration_best_practices.key.c_str());
 
-    EXPECT_TRUE(configuration_standard.parameters != configuration_best_practices.parameters);
+    // Settings are reset to default
+    EXPECT_TRUE(configuration_standard.parameters == configuration_best_practices.parameters);
 }
 
 TEST(test_configuration, find_layer_parameter) {

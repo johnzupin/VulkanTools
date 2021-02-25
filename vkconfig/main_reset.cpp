@@ -18,18 +18,15 @@
  * - Christophe Riccio <christophe@lunarg.com>
  */
 
-#include "main_gui.h"
+#include "main_reset.h"
 
-#include "mainwindow.h"
+#include "configurator.h"
 
-#include "../vkconfig_core/version.h"
-#include "../vkconfig_core/application_singleton.h"
+#include <cassert>
 
 #include <QApplication>
-#include <QCheckBox>
-#include <QMessageBox>
 
-int run_gui(int argc, char* argv[]) {
+static int RunReset(int argc, char* argv[], bool hard) {
     QCoreApplication::setOrganizationName("LunarG");
     QCoreApplication::setOrganizationDomain("lunarg.com");
 
@@ -55,24 +52,33 @@ int run_gui(int argc, char* argv[]) {
 
     QApplication app(argc, argv);
 
-    // This has to go after the construction of QApplication in
-    // order to use a QMessageBox and avoid some QThread warnings.
-    const ApplicationSingleton singleton("vkconfig_single_instance");
-    if (!singleton.IsFirstInstance()) {
-        QMessageBox alert(nullptr);
-        alert.setWindowTitle("Cannot start another instance of vkconfig");
-        alert.setIcon(QMessageBox::Critical);
-        alert.setText("Another copy of vkconfig is currently running. Please close the other instance and try again.");
-        alert.exec();
-        return -1;
+    Configurator& configurator = Configurator::Get();
+    configurator.layers.LoadAllInstalledLayers();
+    configurator.configurations.LoadAllConfigurations(configurator.layers.available_layers);
+
+    if (hard) {
+        configurator.configurations.ResetDefaultsConfigurations(configurator.layers.available_layers);
+    } else {
+        configurator.configurations.ReloadDefaultsConfigurations(configurator.layers.available_layers);
     }
 
-    // We simply cannot run without any layers
-    if (Configurator::Get().Init() == false) return -1;
+    return 0;
+}
 
-    // The main GUI is driven here
-    MainWindow main_window;
-    main_window.show();
+int run_reset(int argc, char* argv[], const CommandLine& command_line) {
+    assert(command_line.command == COMMAND_RESET);
+    assert(command_line.error == ERROR_NONE);
 
-    return app.exec();
+    switch (command_line.command_reset_arg) {
+        case COMMAND_RESET_SOFT: {
+            return RunReset(argc, argv, false);
+        }
+        case COMMAND_RESET_HARD: {
+            return RunReset(argc, argv, true);
+        }
+        default: {
+            assert(0);
+            return -1;
+        }
+    }
 }

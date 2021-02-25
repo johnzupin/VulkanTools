@@ -1,3 +1,26 @@
+lunarg-tools (1.2.170.0~rc2-1lunarg20.04-1) focal; urgency=medium
+
+  [ Christophe ]
+  * vkconfig: Fix devsim setting label
+  * Refresh 'Vulkan Development Status' when the configuration changed #1366
+  * C.I.: Fix build fail due to Ubuntu upgrade to 20.04
+  * build: validation layer broke code that doesn't define NOMINMAX on Windows
+  * Streamline 'configuration tree' UI usage #1369
+  * Add 'Reload Default Configuration' to retrieve missing default configurations #1370
+  * vkconfig: Clean up changelog formating
+  * vkconfig: Fix *Vulkan Info* and *Vulkan Installation Analysis* dialog no longer running with overridden layers
+  * vkconfig: add 'reset' command line argument
+  * vkconfig: Add possible recovery by resetting to default when a crash happened during last run
+  * vkconfig: fix layer configurations compatbility between versions
+  * vkconfig: fix QtCreator build
+  * Doc: Update copyright
+  * vkconfig: Remove Clang build warnings
+
+  [ John Zupin ]
+  * packaging: updated LunarG's copyrights
+
+ -- John Zupin <john@odin>  Thu, 25 Feb 2021 14:36:14 -0700
+
 lunarg-tools (1.2.170.0~rc1-1lunarg20.04-1) focal; urgency=medium
 
   [ Christophe ]

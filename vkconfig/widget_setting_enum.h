@@ -21,30 +21,31 @@
 
 #pragma once
 
-#include "../vkconfig_core/setting_data.h"
-#include "../vkconfig_core/setting_meta.h"
+#include "widget_setting.h"
 
-#include <QObject>
-#include <QWidget>
 #include <QComboBox>
-#include <QTreeWidgetItem>
+#include <QResizeEvent>
 
-class WidgetSettingEnum : public QComboBox {
+class WidgetSettingEnum : public WidgetSettingBase {
     Q_OBJECT
 
    public:
-    explicit WidgetSettingEnum(QTreeWidgetItem* item, const SettingMetaEnum& setting_meta, SettingDataEnum& setting_data);
+    explicit WidgetSettingEnum(QTreeWidget* tree, QTreeWidgetItem* item, const SettingMetaEnum& meta, SettingDataSet& data_set);
+
+    void Refresh(RefreshAreas refresh_areas) override;
 
    public Q_SLOTS:
-    void indexChanged(int index);
+    void OnIndexChanged(int index);
 
    Q_SIGNALS:
     void itemChanged();
 
    private:
-    WidgetSettingEnum(const WidgetSettingEnum&) = delete;
-    WidgetSettingEnum& operator=(const WidgetSettingEnum&) = delete;
+    void resizeEvent(QResizeEvent* event) override;
 
-    const SettingMetaEnum& setting_meta;
-    SettingDataEnum& setting_data;
+    const SettingDataSet& data_set;
+    SettingDataEnum& data;
+    const SettingMetaEnum& meta;
+    QComboBox* field;
+    std::vector<std::size_t> enum_indexes;
 };

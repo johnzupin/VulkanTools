@@ -20,34 +20,60 @@
  */
 
 #include "widget_setting_flags.h"
+#include "widget_setting.h"
 
 #include "../vkconfig_core/layer.h"
 #include "../vkconfig_core/util.h"
 
+#include <QPushButton>
+
 #include <cassert>
 
-WidgetSettingFlag::WidgetSettingFlag(const SettingMetaFlags& setting_meta, SettingDataFlags& setting_data,
-                                     const std::string& setting_flag)
-    : setting_meta(setting_meta), setting_data(setting_data), setting_flag(setting_flag) {
-    assert(&setting_data);
-    assert(!setting_flag.empty());
+WidgetSettingFlag::WidgetSettingFlag(QTreeWidget* tree, QTreeWidgetItem* item, const SettingMetaFlags& meta,
+                                     SettingDataSet& data_set, const std::string& flag)
+    : WidgetSettingBase(tree, item),
+      meta(meta),
+      data(*data_set.Get<SettingDataFlags>(meta.key.c_str())),
+      data_set(data_set),
+      flag(flag),
+      field(new QCheckBox(this)) {
+    assert(&data);
+    assert(!flag.empty());
 
-    const SettingEnumValue* enum_value = FindByKey(setting_meta.enum_values, setting_flag.c_str());
+    const SettingEnumValue* enum_value = FindByKey(meta.enum_values, flag.c_str());
     assert(enum_value);
-    this->setText(enum_value->label.c_str());
-    this->setToolTip(enum_value->description.c_str());
 
-    if (std::find(setting_data.value.begin(), setting_data.value.end(), setting_flag) != setting_data.value.end())
-        this->setChecked(true);
+    this->field->setText(enum_value->label.c_str());
+    this->field->setToolTip(enum_value->description.c_str());
+    this->field->setFont(tree->font());
+    this->field->show();
+    this->connect(this->field, SIGNAL(clicked(bool)), this, SLOT(OnClicked(bool)));
 
-    connect(this, SIGNAL(clicked(bool)), this, SLOT(itemChecked(bool)));
+    tree->setItemWidget(this->item, 0, this);
+    item->setSizeHint(0, QSize(0, ITEM_HEIGHT));
+
+    this->Refresh(REFRESH_ENABLE_AND_STATE);
 }
 
-void WidgetSettingFlag::itemChecked(bool checked) {
+void WidgetSettingFlag::Refresh(RefreshAreas refresh_areas) {
+    const bool enabled = ::CheckDependence(this->meta, data_set);
+
+    this->item->setDisabled(!enabled);
+    this->field->setEnabled(enabled);
+    this->setEnabled(enabled);
+
+    if (refresh_areas == REFRESH_ENABLE_AND_STATE) {
+        this->field->blockSignals(true);
+        this->field->setChecked(std::find(data.value.begin(), data.value.end(), flag) != data.value.end());
+        this->field->blockSignals(false);
+    }
+}
+
+void WidgetSettingFlag::OnClicked(bool checked) {
     if (checked) {
-        AppendString(setting_data.value, setting_flag);
+        AppendString(data.value, flag);
     } else {
-        RemoveString(setting_data.value, setting_flag);
+        RemoveString(data.value, flag);
     }
 
     emit itemChanged();

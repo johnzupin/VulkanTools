@@ -24,7 +24,6 @@
 #include "configurator.h"
 
 #include <QFileDialog>
-#include <QMessageBox>
 
 CustomPathsDialog::CustomPathsDialog(QWidget *parent) : QDialog(parent), ui(new Ui::dialog_custom_paths) {
     ui->setupUi(this);
@@ -33,8 +32,10 @@ CustomPathsDialog::CustomPathsDialog(QWidget *parent) : QDialog(parent), ui(new 
     ui->treeWidget->headerItem()->setText(0, "User-Defined Layers Paths");
 
     RepopulateTree();
-    ui->buttonBox->setEnabled(!Configurator::Get().layers.Empty());
-    Configurator::Get().request_vulkan_status = true;
+
+    Configurator &configurator = Configurator::Get();
+    ui->buttonBox->setEnabled(!configurator.layers.Empty());
+    configurator.request_vulkan_status = true;
 }
 
 CustomPathsDialog::~CustomPathsDialog() {}
@@ -66,7 +67,7 @@ void CustomPathsDialog::RepopulateTree() {
         for (std::size_t i = 0, n = configurator.layers.available_layers.size(); i < n; i++) {
             const Layer &layer = configurator.layers.available_layers[i];
 
-            const QFileInfo file_info(layer._layer_path.c_str());
+            const QFileInfo file_info(layer.path.c_str());
             const std::string path(ConvertNativeSeparators(file_info.path().toStdString()));
             if (path != custom_path) continue;
 
@@ -95,7 +96,7 @@ void CustomPathsDialog::on_pushButtonAdd_clicked() {
         RepopulateTree();
     }
 
-    ui->buttonBox->setEnabled(!Configurator::Get().layers.Empty());
+    ui->buttonBox->setEnabled(!configurator.layers.Empty());
 }
 
 /// Don't make remove button accessable unless an item has been selected
@@ -124,5 +125,5 @@ void CustomPathsDialog::on_pushButtonRemove_clicked() {
     RepopulateTree();
 
     // Nothing is selected, so disable remove button
-    ui->buttonBox->setEnabled(false);
+    ui->buttonBox->setEnabled(!configurator.layers.Empty());
 }

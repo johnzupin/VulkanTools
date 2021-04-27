@@ -109,6 +109,8 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->launcher_tree, SIGNAL(itemCollapsed(QTreeWidgetItem *)), this, SLOT(launchItemCollapsed(QTreeWidgetItem *)));
     connect(ui->launcher_tree, SIGNAL(itemExpanded(QTreeWidgetItem *)), this, SLOT(launchItemExpanded(QTreeWidgetItem *)));
 
+    connect(ui->launcher_loader_debug, SIGNAL(currentIndexChanged(int)), this, SLOT(OnLauncherLoaderMessageChanged(int)));
+
     Configurator &configurator = Configurator::Get();
     const Environment &environment = configurator.environment;
 
@@ -226,6 +228,9 @@ void MainWindow::UpdateUI() {
     ui->push_button_launcher->setEnabled(has_application_list);
     ui->push_button_launcher->setText(_launch_application ? "Terminate" : "Launch");
     ui->check_box_clear_on_launch->setChecked(environment.Get(LAYOUT_LAUNCHER_NOT_CLEAR) != "true");
+    ui->launcher_loader_debug->setCurrentIndex(environment.GetLoaderMessage());
+
+    // ui->launcher_loader_debug
     if (_launcher_working_browse_button) {
         _launcher_working_browse_button->setEnabled(has_application_list);
     }
@@ -251,6 +256,10 @@ void MainWindow::UpdateUI() {
         ui->log_browser->append(GenerateVulkanStatus().c_str());
         ui->push_button_clear_log->setEnabled(true);
         configurator.request_vulkan_status = false;
+
+        if (configurator.configurations.HasActiveConfiguration(configurator.layers.available_layers)) {
+            _settings_tree_manager.CreateGUI(ui->settings_tree);
+        }
     }
 
     // Update title bar
@@ -275,15 +284,17 @@ void MainWindow::LoadConfigurationList() {
     for (std::size_t i = 0, n = configurator.configurations.available_configurations.size(); i < n; ++i) {
         const Configuration &configuration = configurator.configurations.available_configurations[i];
 
+        // Hide built-in configuration when the layer is missing. The Vulkan user may have not installed the necessary layer
+        if (configuration.IsBuiltIn() && HasMissingLayer(configuration.parameters, configurator.layers.available_layers)) continue;
+
         ConfigurationListItem *item = new ConfigurationListItem(configuration.key);
         item->setToolTip(0, configuration.description.c_str());
-        ui->configuration_tree->addTopLevelItem(item);
         item->radio_button = new QRadioButton();
         item->radio_button->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
         item->radio_button->setFixedSize(QSize(24, 24));
         item->radio_button->setToolTip(configuration.description.c_str());
-
         item->setFlags(item->flags() | Qt::ItemIsEditable);
+        ui->configuration_tree->addTopLevelItem(item);
         ui->configuration_tree->setItemWidget(item, 0, item->radio_button);
         connect(item->radio_button, SIGNAL(clicked(bool)), this, SLOT(OnConfigurationItemClicked(bool)));
     }
@@ -292,7 +303,7 @@ void MainWindow::LoadConfigurationList() {
     ui->configuration_tree->resizeColumnToContents(0);
     ui->configuration_tree->resizeColumnToContents(1);
 
-    UpdateUI();
+    this->UpdateUI();
 }
 
 /// Okay, because we are using custom controls, some of
@@ -405,6 +416,8 @@ void MainWindow::toolsResetToDefault(bool checked) {
     _settings_tree_manager.CleanupGUI();
 
     Configurator &configurator = Configurator::Get();
+    configurator.environment.Reset(Environment::CLEAR);
+    configurator.environment.ClearCustomLayerPath();
     configurator.configurations.ResetDefaultsConfigurations(configurator.layers.available_layers);
 
     configurator.configurations.RefreshConfiguration(configurator.layers.available_layers);
@@ -952,7 +965,7 @@ void MainWindow::OnSettingsTreeClicked(QTreeWidgetItem *item, int column) {
     configurator.environment.Notify(NOTIFICATION_RESTART);
     configurator.configurations.RefreshConfiguration(configurator.layers.available_layers);
 
-    UpdateUI();
+    this->UpdateUI();
 }
 
 void MainWindow::SetupLauncherTree() {
@@ -1058,6 +1071,15 @@ void MainWindow::launchItemCollapsed(QTreeWidgetItem *item) {
     ui->launcher_tree->setMinimumHeight(LAUNCH_ROW_HEIGHT + 6);
     ui->launcher_tree->setMaximumHeight(LAUNCH_ROW_HEIGHT + 6);
     Configurator::Get().environment.Set(LAYOUT_LAUNCHER_COLLAPSED, QByteArray("true"));
+}
+
+void MainWindow::OnLauncherLoaderMessageChanged(int level) {
+    Configurator &configurator = Configurator::Get();
+
+    configurator.environment.SetLoaderMessage(static_cast<LoaderMessageLevel>(level));
+    configurator.request_vulkan_status = true;
+
+    this->UpdateUI();
 }
 
 void MainWindow::launchSetLogFile() {
@@ -1289,6 +1311,14 @@ void MainWindow::ResetLaunchApplication() {
     }
 }
 
+QStringList MainWindow::BuildEnvVariables() const {
+    Configurator &configurator = Configurator::Get();
+
+    QStringList env = QProcess::systemEnvironment();
+    env << (QString("VK_LOADER_DEBUG=") + GetLoaderDebugToken(configurator.environment.GetLoaderMessage()).c_str());
+    return env;
+}
+
 void MainWindow::on_push_button_launcher_clicked() {
     // Are we already monitoring a running app? If so, terminate it
     if (_launch_application != nullptr) {
@@ -1360,6 +1390,7 @@ void MainWindow::on_push_button_launcher_clicked() {
 
     _launch_application->setProgram(active_application.executable_path.c_str());
     _launch_application->setWorkingDirectory(active_application.working_folder.c_str());
+    _launch_application->setEnvironment(BuildEnvVariables());
 
     if (!active_application.arguments.empty()) {
         const QStringList args = QString(active_application.arguments.c_str()).split(" ");

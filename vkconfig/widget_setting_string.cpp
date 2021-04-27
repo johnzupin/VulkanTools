@@ -20,23 +20,66 @@
  */
 
 #include "widget_setting_string.h"
+#include "widget_setting.h"
 
 #include <cassert>
 
-WidgetSettingString::WidgetSettingString(QTreeWidgetItem* item, const SettingMetaString& setting_meta,
-                                         SettingDataString& setting_data)
-    : setting_meta(setting_meta), setting_data(setting_data) {
-    assert(item);
-    assert(&setting_meta);
-    assert(&setting_data);
+static const int MIN_FIELD_WIDTH = 120;
 
-    item->setText(0, setting_meta.label.c_str());
-    item->setToolTip(0, setting_meta.description.c_str());
-    this->setText(setting_data.value.c_str());
-    connect(this, SIGNAL(textEdited(const QString&)), this, SLOT(itemEdited(const QString&)));
+WidgetSettingString::WidgetSettingString(QTreeWidget* tree, QTreeWidgetItem* item, const SettingMetaString& meta,
+                                         SettingDataSet& data_set)
+    : WidgetSettingBase(tree, item),
+      meta(meta),
+      data(*data_set.Get<SettingDataString>(meta.key.c_str())),
+      data_set(data_set),
+      field(new QLineEdit(this)) {
+    assert(&meta);
+    assert(&data);
+
+    this->field->setText(data.value.c_str());
+    this->field->setFont(tree->font());
+    this->field->setToolTip(this->field->text());
+    this->field->show();
+
+    this->connect(this->field, SIGNAL(textEdited(const QString&)), this, SLOT(OnTextEdited(const QString&)));
+
+    this->item->setText(0, meta.label.c_str());
+    this->item->setFont(0, this->tree->font());
+    this->item->setToolTip(0, meta.description.c_str());
+    this->item->setSizeHint(0, QSize(0, ITEM_HEIGHT));
+    this->tree->setItemWidget(this->item, 0, this);
+
+    this->Refresh(REFRESH_ENABLE_AND_STATE);
 }
 
-void WidgetSettingString::itemEdited(const QString& new_string) {
-    this->setting_data.value = new_string.toStdString();
+void WidgetSettingString::Refresh(RefreshAreas refresh_areas) {
+    const bool enabled = ::CheckDependence(this->meta, data_set);
+
+    this->item->setDisabled(!enabled);
+    this->field->setEnabled(enabled);
+    this->setEnabled(enabled);
+
+    if (refresh_areas == REFRESH_ENABLE_AND_STATE) {
+        this->field->setText(data.value.c_str());
+    }
+}
+
+void WidgetSettingString::Resize() {
+    const QFontMetrics fm = this->field->fontMetrics();
+    const int width = std::max(HorizontalAdvance(fm, this->field->text() + "00"), MIN_FIELD_WIDTH);
+
+    const QRect field_rect = QRect(this->resize.width() - width, 0, width, this->resize.height());
+    this->field->setGeometry(field_rect);
+}
+
+void WidgetSettingString::resizeEvent(QResizeEvent* event) {
+    this->resize = event->size();
+    this->Resize();
+}
+
+void WidgetSettingString::OnTextEdited(const QString& value) {
+    this->data.value = value.toStdString();
+    this->field->setToolTip(this->field->text());
+
     emit itemChanged();
 }

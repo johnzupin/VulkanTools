@@ -46,6 +46,13 @@ struct SettingData {
     virtual SettingData& Assign(const SettingData& other) = 0;
 };
 
+struct SettingDataGroup : public SettingData {
+    SettingDataGroup(const std::string& key) : SettingData(key, SETTING_GROUP) {}
+    virtual ~SettingDataGroup() {}
+
+    virtual SettingData& Assign(const SettingData& other);
+};
+
 struct SettingDataBool : public SettingData {
     SettingDataBool(const std::string& key) : SettingData(key, SETTING_BOOL), value(false) {}
     virtual ~SettingDataBool() {}
@@ -69,6 +76,17 @@ struct SettingDataInt : public SettingData {
     virtual ~SettingDataInt() {}
 
     int value;
+
+   protected:
+    virtual bool Equal(const SettingData& other) const;
+    virtual SettingData& Assign(const SettingData& other);
+};
+
+struct SettingDataFloat : public SettingData {
+    SettingDataFloat(const std::string& key) : SettingData(key, SETTING_FLOAT), value(0) {}
+    virtual ~SettingDataFloat() {}
+
+    float value;
 
    protected:
     virtual bool Equal(const SettingData& other) const;
@@ -108,37 +126,29 @@ struct SettingDataFolderSave : public SettingDataString {
     virtual ~SettingDataFolderSave() {}
 };
 
-struct SettingDataIntRange : public SettingData {
-    SettingDataIntRange(const std::string& key) : SettingData(key, SETTING_INT_RANGE), min_value(0), max_value(0) {}
-    virtual ~SettingDataIntRange() {}
+struct SettingDataFrames : public SettingDataString {
+    SettingDataFrames(const std::string& key) : SettingDataString(key, SETTING_FRAMES) {}
+    virtual ~SettingDataFrames() {}
+};
 
-    int min_value;
-    int max_value;
+struct SettingDataList : public SettingData {
+    SettingDataList(const std::string& key) : SettingData(key, SETTING_LIST) {}
+    virtual ~SettingDataList() {}
 
-   protected:
+    std::vector<EnabledNumberOrString> value;
+
     virtual bool Equal(const SettingData& other) const;
     virtual SettingData& Assign(const SettingData& other);
 };
 
-struct SettingDataVector : public SettingData {
+struct SettingDataFlags : public SettingData {
+    SettingDataFlags(const std::string& key) : SettingData(key, SETTING_FLAGS) {}
+    virtual ~SettingDataFlags() {}
+
     std::vector<std::string> value;
 
-   protected:
-    SettingDataVector(const std::string& key, const SettingType type) : SettingData(key, type) {}
-    virtual ~SettingDataVector() {}
-
     virtual bool Equal(const SettingData& other) const;
     virtual SettingData& Assign(const SettingData& other);
-};
-
-struct SettingDataVUIDFilter : public SettingDataVector {
-    SettingDataVUIDFilter(const std::string& key) : SettingDataVector(key, SETTING_VUID_FILTER) {}
-    virtual ~SettingDataVUIDFilter() {}
-};
-
-struct SettingDataFlags : public SettingDataVector {
-    SettingDataFlags(const std::string& key) : SettingDataVector(key, SETTING_FLAGS) {}
-    virtual ~SettingDataFlags() {}
 };
 
 typedef SettingSet<SettingData> SettingDataSet;

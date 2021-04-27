@@ -20,33 +20,78 @@
  */
 
 #include "widget_setting_enum.h"
+#include "widget_setting.h"
 
 #include <cassert>
 
-WidgetSettingEnum::WidgetSettingEnum(QTreeWidgetItem* item, const SettingMetaEnum& setting_meta, SettingDataEnum& setting_data)
-    : setting_meta(setting_meta), setting_data(setting_data) {
-    assert(item);
-    assert(&setting_data);
+static const int MIN_FIELD_WIDTH = 80;
 
-    item->setText(0, setting_meta.label.c_str());
-    item->setToolTip(0, setting_meta.description.c_str());
+WidgetSettingEnum::WidgetSettingEnum(QTreeWidget* tree, QTreeWidgetItem* item, const SettingMetaEnum& meta,
+                                     SettingDataSet& data_set)
+    : WidgetSettingBase(tree, item),
+      meta(meta),
+      data(*data_set.Get<SettingDataEnum>(meta.key.c_str())),
+      data_set(data_set),
+      field(new QComboBox(this)) {
+    assert(&meta);
+    assert(&data);
 
-    int selection = 0;
-    for (std::size_t i = 0, n = setting_meta.enum_values.size(); i < n; ++i) {
-        this->addItem(setting_meta.enum_values[i].label.c_str());
-        if (setting_meta.enum_values[i].key == setting_data.value) {
-            selection = static_cast<int>(i);
-        }
-    }
+    this->field->show();
 
-    setCurrentIndex(selection);
+    this->item->setText(0, this->meta.label.c_str());
+    this->item->setFont(0, this->tree->font());
+    this->item->setToolTip(0, this->meta.description.c_str());
+    this->item->setSizeHint(0, QSize(0, ITEM_HEIGHT));
+    this->tree->setItemWidget(this->item, 0, this);
 
-    connect(this, SIGNAL(currentIndexChanged(int)), this, SLOT(indexChanged(int)));
+    this->Refresh(REFRESH_ENABLE_AND_STATE);
+
+    this->connect(this->field, SIGNAL(currentIndexChanged(int)), this, SLOT(OnIndexChanged(int)));
 }
 
-void WidgetSettingEnum::indexChanged(int index) {
-    assert(index >= 0 && index < static_cast<int>(setting_meta.enum_values.size()));
+void WidgetSettingEnum::Refresh(RefreshAreas refresh_areas) {
+    const bool enabled = ::CheckDependence(this->meta, data_set);
 
-    setting_data.value = setting_meta.enum_values[index].key;
+    this->item->setDisabled(!enabled);
+    this->field->setEnabled(enabled);
+    this->setEnabled(enabled);
+
+    if (refresh_areas == REFRESH_ENABLE_AND_STATE) {
+        this->field->blockSignals(true);
+        this->field->clear();
+        this->enum_indexes.clear();
+
+        int selection = 0;
+        for (std::size_t i = 0, n = this->meta.enum_values.size(); i < n; ++i) {
+            if (!IsSupported(&this->meta.enum_values[i])) continue;
+
+            this->field->addItem(this->meta.enum_values[i].label.c_str());
+            if (this->meta.enum_values[i].key == data.value) {
+                selection = static_cast<int>(this->enum_indexes.size());
+            }
+            this->enum_indexes.push_back(i);
+        }
+
+        this->field->setCurrentIndex(selection);
+        this->field->blockSignals(false);
+    }
+}
+
+void WidgetSettingEnum::resizeEvent(QResizeEvent* event) {
+    int width = MIN_FIELD_WIDTH;
+
+    const QFontMetrics fm = this->field->fontMetrics();
+    for (std::size_t i = 0, n = this->meta.enum_values.size(); i < n; ++i) {
+        width = std::max(width, HorizontalAdvance(fm, (this->meta.enum_values[i].label + "0000").c_str()));
+    }
+
+    const QRect button_rect = QRect(event->size().width() - width, 0, width, event->size().height());
+    this->field->setGeometry(button_rect);
+}
+
+void WidgetSettingEnum::OnIndexChanged(int index) {
+    assert(index >= 0 && index < static_cast<int>(this->meta.enum_values.size()));
+
+    this->data.value = this->meta.enum_values[enum_indexes[static_cast<std::size_t>(index)]].key;
     emit itemChanged();
 }

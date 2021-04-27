@@ -42,6 +42,9 @@ bool WriteLayersOverride(const Environment& environment, const std::vector<Layer
 
     bool has_missing_layers = false;
 
+    const QStringList& path_gui = ConvertString(environment.GetUserDefinedLayersPaths(USER_DEFINED_LAYERS_PATHS_GUI));
+    const QStringList& path_env = ConvertString(environment.GetUserDefinedLayersPaths(USER_DEFINED_LAYERS_PATHS_ENV));
+
     QStringList layer_override_paths;
     for (std::size_t i = 0, n = configuration.parameters.size(); i < n; ++i) {
         const Parameter& parameter = configuration.parameters[i];
@@ -58,12 +61,14 @@ bool WriteLayersOverride(const Environment& environment, const std::vector<Layer
         }
 
         // Extract just the path
-        assert(!layer->_layer_path.empty());
-        const QFileInfo file(layer->_layer_path.c_str());
+        assert(!layer->path.empty());
+        const QFileInfo file(layer->path.c_str());
         const std::string absolute_path(ConvertNativeSeparators(file.absolutePath().toStdString()).c_str());
 
         // Make sure the path is not already in the list
         if (layer_override_paths.contains(absolute_path.c_str())) continue;
+
+        if (!path_gui.contains(absolute_path.c_str()) && !path_env.contains(absolute_path.c_str())) continue;
 
         // Okay, add to the list
         layer_override_paths << absolute_path.c_str();
@@ -171,12 +176,28 @@ bool WriteSettingsOverride(const Environment& environment, const std::vector<Lay
         for (std::size_t i = 0, m = parameter.settings.Size(); i < m; ++i) {
             const SettingData& setting_data = parameter.settings[i];
 
+            // Skip missing settings
+            if (FindSettingMeta<SettingMetaInt>(layer->settings, setting_data.key.c_str()) == nullptr) continue;
+
             stream << lc_layer_name << "." << setting_data.key.c_str() << " = ";
             switch (setting_data.type) {
+                case SETTING_GROUP: {
+                    break;
+                }
                 case SETTING_LOAD_FILE:
                 case SETTING_SAVE_FILE:
                 case SETTING_SAVE_FOLDER: {
                     stream << ReplaceBuiltInVariable(static_cast<const SettingDataString&>(setting_data).value.c_str()).c_str();
+                    break;
+                }
+                case SETTING_FRAMES: {
+                    const SettingDataFrames& data = static_cast<const SettingDataFrames&>(setting_data);
+                    const SettingMetaFrames* meta = FindSettingMeta<SettingMetaFrames>(layer->settings, data.key.c_str());
+                    if (meta->IsValid(data)) {
+                        stream << data.value.c_str();
+                    } else {
+                        stream << meta->default_value.c_str();
+                    }
                     break;
                 }
                 case SETTING_ENUM:
@@ -185,12 +206,29 @@ bool WriteSettingsOverride(const Environment& environment, const std::vector<Lay
                     break;
                 }
                 case SETTING_INT: {
-                    stream << static_cast<const SettingDataInt&>(setting_data).value;
+                    const SettingDataInt& data = static_cast<const SettingDataInt&>(setting_data);
+                    const SettingMetaInt* meta = FindSettingMeta<SettingMetaInt>(layer->settings, data.key.c_str());
+
+                    if (meta->IsValid(data)) {
+                        stream << data.value;
+                    } else {
+                        stream << meta->default_value;
+                    }
+
                     break;
                 }
-                case SETTING_INT_RANGE: {
-                    const SettingDataIntRange& setting_object = static_cast<const SettingDataIntRange&>(setting_data);
-                    stream << format("%d-%d", setting_object.min_value, setting_object.max_value).c_str();
+                case SETTING_FLOAT: {
+                    const SettingDataFloat& data = static_cast<const SettingDataFloat&>(setting_data);
+                    const SettingMetaFloat* meta = FindSettingMeta<SettingMetaFloat>(layer->settings, data.key.c_str());
+
+                    const std::string float_format = meta->GetFloatFormat();
+
+                    if (meta->IsValid(data)) {
+                        stream << format(float_format.c_str(), data.value).c_str();
+                    } else {
+                        stream << format(float_format.c_str(), meta->default_value).c_str();
+                    }
+
                     break;
                 }
                 case SETTING_BOOL_NUMERIC_DEPRECATED: {
@@ -201,9 +239,24 @@ bool WriteSettingsOverride(const Environment& environment, const std::vector<Lay
                     stream << (static_cast<const SettingDataBool&>(setting_data).value ? "TRUE" : "FALSE");
                     break;
                 }
-                case SETTING_VUID_FILTER:
+                case SETTING_LIST: {
+                    const SettingDataList& setting_object = static_cast<const SettingDataList&>(setting_data);
+
+                    for (std::size_t i = 0, n = setting_object.value.size(); i < n; ++i) {
+                        if (!setting_object.value[i].enabled) continue;
+
+                        if (i != 0) stream << ",";
+                        if (setting_object.value[i].key.empty()) {
+                            stream << setting_object.value[i].number;
+                        } else {
+                            stream << setting_object.value[i].key.c_str();
+                        }
+                    }
+
+                    break;
+                }
                 case SETTING_FLAGS: {
-                    const SettingDataVector& setting_object = static_cast<const SettingDataVector&>(setting_data);
+                    const SettingDataFlags& setting_object = static_cast<const SettingDataFlags&>(setting_data);
 
                     for (std::size_t i = 0, n = setting_object.value.size(); i < n; ++i) {
                         stream << setting_object.value[i].c_str();

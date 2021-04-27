@@ -21,37 +21,40 @@
 
 #pragma once
 
-#include "../vkconfig_core/layer.h"
+#include "../vkconfig_core/setting_data.h"
+#include "../vkconfig_core/setting_meta.h"
 
-#include <QWidget>
-#include <QTreeWidgetItem>
+#include "widget_setting.h"
+
 #include <QLineEdit>
 #include <QPushButton>
 #include <QResizeEvent>
-#include <QFileDialog>
 
-class WidgetSettingFilesystem : public QWidget {
+class WidgetSettingFilesystem : public WidgetSettingBase {
     Q_OBJECT
 
    public:
-    explicit WidgetSettingFilesystem(QTreeWidgetItem *item, const SettingMetaFilesystem &setting_meta,
-                                     SettingDataString &setting_data);
+    explicit WidgetSettingFilesystem(QTreeWidget *tree, QTreeWidgetItem *item, const SettingMetaFilesystem &meta,
+                                     SettingDataSet &data_set);
+
+    void Refresh(RefreshAreas refresh_areas) override;
 
    public Q_SLOTS:
     void browseButtonClicked();
-    void textFieldChanged(const QString &newText);
+    void textFieldChanged(const QString &value);
 
    Q_SIGNALS:
     void itemChanged();
 
+   protected:
+    void resizeEvent(QResizeEvent *event) override;
+
    private:
-    WidgetSettingFilesystem(const WidgetSettingFilesystem &) = delete;
-    WidgetSettingFilesystem &operator=(const WidgetSettingFilesystem &) = delete;
+    QTreeWidgetItem *item_child;
+    const SettingDataSet &data_set;
+    SettingDataString &data;
+    const SettingMetaFilesystem &meta;
 
-    virtual void resizeEvent(QResizeEvent *event) override;
-
-    const SettingMetaFilesystem &setting_meta;
-    SettingDataString &setting_data;
-    QLineEdit *_line_edit;
-    QPushButton *_push_button;
+    QLineEdit *field;
+    QPushButton *button;
 };

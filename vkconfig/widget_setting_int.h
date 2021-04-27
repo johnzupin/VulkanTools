@@ -23,26 +23,44 @@
 #include "../vkconfig_core/setting_data.h"
 #include "../vkconfig_core/setting_meta.h"
 
-#include <QString>
-#include <QTreeWidgetItem>
-#include <QLineEdit>
+#include "widget_setting.h"
 
-class WidgetSettingInt : public QLineEdit {
+#include <QLineEdit>
+#include <QResizeEvent>
+#include <QTimer>
+
+class WidgetSettingInt : public WidgetSettingBase {
     Q_OBJECT
 
    public:
-    WidgetSettingInt(QTreeWidgetItem* item, const SettingMetaInt& setting_meta, SettingDataInt& setting_data);
+    WidgetSettingInt(QTreeWidget* tree, QTreeWidgetItem* item, const SettingMetaInt& meta, SettingDataSet& data_set);
+    virtual ~WidgetSettingInt();
+
+    void Refresh(RefreshAreas refresh_areas) override;
 
    public Q_SLOTS:
-    void itemEdited(const QString& newString);
+    void OnTextEdited(const QString& value);
+    void OnErrorValue();
+    void OnValidValue();
 
    Q_SIGNALS:
     void itemChanged();
 
-   private:
-    WidgetSettingInt(const WidgetSettingInt&) = delete;
-    WidgetSettingInt& operator=(const WidgetSettingInt&) = delete;
+   protected:
+    void resizeEvent(QResizeEvent* event) override;
 
-    const SettingMetaInt& setting_meta;
-    SettingDataInt& setting_data;
+   private:
+    void Resize();
+    SettingInputError ProcessInputValue();
+
+    const SettingDataSet& data_set;
+    SettingDataInt& data;
+    const SettingMetaInt& meta;
+
+    std::string value_buffer;
+    QLineEdit* field;
+    QTimer* timer_error;
+    QTimer* timer_valid;
+    QSize resize;
+    QPalette default_palette;
 };

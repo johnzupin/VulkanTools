@@ -1,10 +1,9 @@
 {
-    "file_format_version" : "1.4.0",
+    "file_format_version" : "1.2.0",
     "layer": {
         "name": "VK_LAYER_KHRONOS_synchronization2",
-        "type": "GLOBAL",
         "library_path": "./libVkLayer_khronos_synchronization2.so",
-        "api_version": "1.2.165",
+        "api_version": "1.2.171",
         "implementation_version": "1",
         "description": "Khronos Synchronization2 layer",
         "status": "BETA",

@@ -94,19 +94,72 @@ JSON file formats consumed by the DevSim layer are specified by one of the JSON 
 | Schema Use | Canonical URI |
 |:----------:|:-------------:|
 | Vulkan v1.0 | https://schema.khronos.org/vulkan/devsim_1_0_0.json# |
+| Vulkan v1.1 | https://schema.khronos.org/vulkan/devsim_1_1_0.json# |
+| Vulkan v1.2 | https://schema.khronos.org/vulkan/devsim_1_2_0.json# |
 | VK_KHR_portability_subset | https://schema.khronos.org/vulkan/devsim_VK_KHR_portability_subset-provisional-1.json# |
+| VK_KHR_8bit_storage | https://schema.khronos.org/vulkan/devsim_VK_KHR_8bit_storage_1.json# |
+| VK_KHR_16bit_storage | https://schema.khronos.org/vulkan/devsim_VK_KHR_16bit_storage_1.json# |
+| VK_KHR_buffer_device_address | https://schema.khronos.org/vulkan/devsim_VK_KHR_buffer_device_address_1.json# |
+| VK_KHR_depth_stencil_resolve | https://schema.khronos.org/vulkan/devsim_VK_KHR_depth_stencil_resolve_1.json# |
+| VK_EXT_descriptor_indexing | https://schema.khronos.org/vulkan/devsim_VK_EXT_descriptor_indexing_1.json# |
+| VK_EXT_host_query_reset | https://schema.khronos.org/vulkan/devsim_VK_EXT_host_query_reset_1.json# |
+| VK_KHR_imageless_framebuffer | https://schema.khronos.org/vulkan/devsim_VK_KHR_imageless_framebuffer_1.json# |
+| VK_KHR_maintenance2 | https://schema.khronos.org/vulkan/devsim_VK_KHR_maintenance2_1.json# |
+| VK_KHR_maintenance3 | https://schema.khronos.org/vulkan/devsim_VK_KHR_maintenance3_1.json# |
+| VK_KHR_multiview | https://schema.khronos.org/vulkan/devsim_VK_KHR_multiview_1.json# |
+| VK_EXT_sampler_filter_minmax | https://schema.khronos.org/vulkan/devsim_VK_EXT_sampler_filter_minmax_1.json# |
+| VK_KHR_sampler_ycbcr_conversion | https://schema.khronos.org/vulkan/devsim_VK_KHR_sampler_ycbcr_conversion_1.json# |
+| VK_EXT_scalar_block_layout | https://schema.khronos.org/vulkan/devsim_VK_EXT_scalar_block_layout_1.json# |
+| VK_KHR_separate_depth_stencil_layouts | https://schema.khronos.org/vulkan/devsim_VK_KHR_separate_depth_stencil_layouts_1.json# |
+| VK_KHR_shader_atomic_int64 | https://schema.khronos.org/vulkan/devsim_VK_KHR_shader_atomic_int64_1.json# |
+| VK_KHR_shader_float_controls | https://schema.khronos.org/vulkan/devsim_VK_KHR_shader_float_controls_1.json# |
+| VK_KHR_shader_float16_int8 | https://schema.khronos.org/vulkan/devsim_VK_KHR_shader_float16_int8_1.json# |
+| VK_KHR_shader_subgroup_extended_types | https://schema.khronos.org/vulkan/devsim_VK_KHR_shader_subgroup_extended_types_1.json# |
+| VK_KHR_timeline_semaphore | https://schema.khronos.org/vulkan/devsim_VK_KHR_timeline_semaphore_1.json# |
+| VK_KHR_uniform_buffer_standard_layout | https://schema.khronos.org/vulkan/devsim_VK_KHR_uniform_buffer_standard_layout_1.json# |
+| VK_KHR_variable_pointers | https://schema.khronos.org/vulkan/devsim_VK_KHR_variable_pointers_1.json# |
+| VK_KHR_vulkan_memory_model | https://schema.khronos.org/vulkan/devsim_VK_KHR_vulkan_memory_model_1.json# |
 
-Usually you will be using configuration files validated with the Vulkan v1.0 schema.
+Usually you will be using configuration files validated with the Vulkan v1.2 schema.
 
 The top-level sections of such configuration files are processed as follows:
 * `$schema` - Mandatory.  Must be the URI string referencing the JSON schema.
 * `comments` - Optional.  May contain arbitrary comments, description, copyright, etc.
 * `VkPhysicalDeviceProperties` - Optional.  Only values specified in the JSON will be modified.
+* `VkPhysicalDeviceDepthStencilResolveProperties` - Optional.  Only values specified in the JSON will be modified.
+* `VkPhysicalDeviceDescriptorIndexingProperties` - Optional.  Only values specified in the JSON will be modified.
+* `VkPhysicalDeviceFloatControlsProperties` - Optional.  Only values specified in the JSON will be modified.
+* `VkPhysicalDeviceMaintenance3Properties` - Optional.  Only values specified in the JSON will be modified.
+* `VkPhysicalDeviceMultiviewProperties` - Optional.  Only values specified in the JSON will be modified.
+* `VkPhysicalDevicePointClippingProperties` - Optional.  Only values specified in the JSON will be modified.
+* `VkPhysicalDeviceProtectedMemoryProperties` - Optional.  Only values specified in the JSON will be modified.
+* `VkPhysicalDeviceSamplerFilterMinmaxProperties` - Optional.  Only values specified in the JSON will be modified.
+* `VkPhysicalDeviceTimelineSemaphoreProperties` - Optional.  Only values specified in the JSON will be modified.
 * `VkPhysicalDeviceFeatures` - Optional.  Only values specified in the JSON will be modified.
+* `VkPhysicalDevice16BitStorageFeatures` - Optional.  Only values specified in the JSON will be modified.
+* `VkPhysicalDevice8BitStorageFeatures` - Optional.  Only values specified in the JSON will be modified.
+* `VkPhysicalDeviceDescriptorIndexingFeatures` - Optional.  Only values specified in the JSON will be modified.
+* `VkPhysicalDeviceHostQueryResetFeatures` - Optional.  Only values specified in the JSON will be modified.
+* `VkPhysicalDeviceImagelessFramebufferFeatures` - Optional.  Only values specified in the JSON will be modified.
+* `VkPhysicalDeviceMultiviewFeatures` - Optional.  Only values specified in the JSON will be modified.
+* `VkPhysicalDeviceProtectedMemoryFeatures` - Optional.  Only values specified in the JSON will be modified.
+* `VkPhysicalDeviceSamplerYcbcrConversionFeatures` - Optional.  Only values specified in the JSON will be modified.
+* `VkPhysicalDeviceScalarBlockLayoutFeatures` - Optional.  Only values specified in the JSON will be modified.
+* `VkPhysicalDeviceSeparateDepthStencilLayoutsFeatures` - Optional.  Only values specified in the JSON will be modified.
+* `VkPhysicalDeviceShaderAtomicInt64Features` - Optional.  Only values specified in the JSON will be modified.
+* `VkPhysicalDeviceShaderDrawParametersFeatures` - Optional.  Only values specified in the JSON will be modified.
+* `VkPhysicalDeviceShaderFloat16Int8Features` - Optional.  Only values specified in the JSON will be modified.
+* `VkPhysicalDeviceShaderSubgroupExtendedTypesFeatures` - Optional.  Only values specified in the JSON will be modified.
+* `VkPhysicalDeviceTimelineSemaphoreFeatures` - Optional.  Only values specified in the JSON will be modified.
+* `VkPhysicalDeviceUniformBufferStandardLayoutFeatures` - Optional.  Only values specified in the JSON will be modified.
+* `VkPhysicalDeviceVariablePointersFeatures` - Optional.  Only values specified in the JSON will be modified.
+* `VkPhysicalDeviceVulkanMemoryModelFeatures` - Optional.  Only values specified in the JSON will be modified.
 * `VkPhysicalDeviceMemoryProperties` - Optional.  Only values specified in the JSON will be modified.
 * `ArrayOfVkQueueFamilyProperties` - Optional.  If present, all values of all elements must be specified.
 * `ArrayOfVkFormatProperties` - Optional.  If present, all values of all elements must be specified.
 * `ArrayOfVkExtensionProperties` - Optional.  If present, all values of all elements must be specified. Modifies the list returned by `vkEnumerateDeviceExtensionProperties`.
+* `Vulkan12Features` - Optional.  Only values specified in the JSON will be modified.
+* `Vulkan12Properties` - Optional.  Only values specified in the JSON will be modified.
 * The remaining top-level sections of the schema are not yet supported by DevSim.
 
 The schema permits additional top-level sections to be optionally included in configuration files;
@@ -116,7 +169,7 @@ The schemas define basic range checking for common Vulkan data types, but they c
 If a configuration defines capabilities beyond what the actual device is natively capable of providing, the results are undefined.
 DevSim has some simple checking of configuration values and writes debug messages (if enabled) for values that are incompatible with the capabilities of the actual device.
 
-This version of DevSim currently supports only Vulkan v1.0.
+This version of DevSim currently supports Vulkan v1.2 and below.
 If the application requests an unsupported version of the Vulkan API, DevSim will emit an error message.
 If you wish DevSim to terminate on errors, set the `VK_DEVSIM_EXIT_ON_ERROR` environment variable (see below).
 

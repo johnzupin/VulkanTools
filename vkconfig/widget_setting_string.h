@@ -24,26 +24,35 @@
 #include "../vkconfig_core/setting_data.h"
 #include "../vkconfig_core/setting_meta.h"
 
-#include <QString>
-#include <QTreeWidgetItem>
+#include "widget_setting.h"
+
+#include <QResizeEvent>
 #include <QLineEdit>
 
-class WidgetSettingString : public QLineEdit {
+class WidgetSettingString : public WidgetSettingBase {
     Q_OBJECT
 
    public:
-    WidgetSettingString(QTreeWidgetItem* item, const SettingMetaString& setting_meta, SettingDataString& setting_data);
+    WidgetSettingString(QTreeWidget* tree, QTreeWidgetItem* item, const SettingMetaString& meta, SettingDataSet& data_set);
+
+    void Refresh(RefreshAreas refresh_areas) override;
 
    public Q_SLOTS:
-    void itemEdited(const QString& newString);
+    void OnTextEdited(const QString& value);
 
    Q_SIGNALS:
     void itemChanged();
 
-   private:
-    WidgetSettingString(const WidgetSettingString&) = delete;
-    WidgetSettingString& operator=(const WidgetSettingString&) = delete;
+   protected:
+    void resizeEvent(QResizeEvent* event) override;
 
-    const SettingMetaString& setting_meta;
-    SettingDataString& setting_data;
+   private:
+    void Resize();
+
+    const SettingDataSet& data_set;
+    const SettingMetaString& meta;
+    SettingDataString& data;
+
+    QLineEdit* field;
+    QSize resize;
 };

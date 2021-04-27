@@ -25,6 +25,8 @@
 enum SettingType {  // Enum value can't be changed
     SETTING_STRING = 0,
     SETTING_INT,
+    SETTING_FLOAT,
+    SETTING_GROUP,
     SETTING_SAVE_FILE,
     SETTING_LOAD_FILE,
     SETTING_SAVE_FOLDER,
@@ -32,17 +34,17 @@ enum SettingType {  // Enum value can't be changed
     SETTING_BOOL_NUMERIC_DEPRECATED,  // Deprecated
     SETTING_ENUM,
     SETTING_FLAGS,
-    SETTING_INT_RANGE,
-    SETTING_VUID_FILTER,
+    SETTING_FRAMES,
+    SETTING_LIST,
 
     SETTING_FIRST = SETTING_STRING,
-    SETTING_LAST = SETTING_VUID_FILTER
+    SETTING_LAST = SETTING_LIST
 };
 
 enum { SETTING_COUNT = SETTING_LAST - SETTING_FIRST + 1 };
 
 SettingType GetSettingType(const char* token);
-const char* GetSettingToken(SettingType type);
+const char* GetSettingTypeToken(SettingType type);
 
 inline bool IsEnum(SettingType type) {
     assert(type >= SETTING_FIRST && type <= SETTING_LAST);
@@ -55,3 +57,17 @@ inline bool IsPath(SettingType type) {
 
     return type == SETTING_SAVE_FILE || type == SETTING_LOAD_FILE || type == SETTING_SAVE_FOLDER;
 }
+
+enum SettingView {
+    SETTING_VIEW_STANDARD = 0,
+    SETTING_VIEW_ADVANCED,
+    SETTING_VIEW_HIDDEN,
+
+    SETTING_VIEW_FIRST = SETTING_VIEW_STANDARD,
+    SETTING_VIEW_LAST = SETTING_VIEW_HIDDEN
+};
+
+enum { SETTING_VIEW_COUNT = SETTING_VIEW_LAST - SETTING_VIEW_FIRST + 1 };
+
+SettingView GetSettingView(const char* token);
+const char* GetSettingViewToken(SettingView state);

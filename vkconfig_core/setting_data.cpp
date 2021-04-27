@@ -21,6 +21,7 @@
 #include "setting_data.h"
 
 #include <cassert>
+#include <limits>
 
 SettingData::SettingData(const std::string& key, const SettingType type) : key(key), type(type) { assert(!this->key.empty()); }
 
@@ -35,6 +36,11 @@ bool SettingData::Equal(const SettingData& other) const {
     else if (this->type != other.type)
         return false;
     return true;
+}
+
+SettingData& SettingDataGroup::Assign(const SettingData& other) {
+    assert(this->type == other.type);
+    return *this;
 }
 
 bool SettingDataBool::Equal(const SettingData& other) const {
@@ -63,6 +69,19 @@ SettingData& SettingDataInt::Assign(const SettingData& other) {
     return *this;
 }
 
+bool SettingDataFloat::Equal(const SettingData& other) const {
+    if (!SettingData::Equal(other)) return false;
+
+    return std::abs(this->value - static_cast<const SettingDataFloat&>(other).value) <= std::numeric_limits<float>::epsilon();
+}
+
+SettingData& SettingDataFloat::Assign(const SettingData& other) {
+    assert(this->type == other.type);
+
+    this->value = static_cast<const SettingDataInt&>(other).value;
+    return *this;
+}
+
 bool SettingDataString::Equal(const SettingData& other) const {
     if (!SettingData::Equal(other)) return false;
 
@@ -76,39 +95,60 @@ SettingData& SettingDataString::Assign(const SettingData& other) {
     return *this;
 }
 
-bool SettingDataIntRange::Equal(const SettingData& other) const {
+bool SettingDataList::Equal(const SettingData& other) const {
     if (!SettingData::Equal(other)) return false;
 
-    const SettingDataIntRange& data = static_cast<const SettingDataIntRange&>(other);
+    const SettingDataList& data = static_cast<const SettingDataList&>(other);
 
-    return this->min_value == data.min_value && this->max_value == data.max_value;
-}
-
-SettingData& SettingDataIntRange::Assign(const SettingData& other) {
-    assert(this->type == other.type);
-
-    this->min_value = static_cast<const SettingDataIntRange&>(other).min_value;
-    this->max_value = static_cast<const SettingDataIntRange&>(other).max_value;
-    return *this;
-}
-
-bool SettingDataVector::Equal(const SettingData& other) const {
-    if (!SettingData::Equal(other)) return false;
-
-    const SettingDataVector& data = static_cast<const SettingDataVector&>(other);
-
-    if (this->value.size() != data.value.size()) return false;
+    if (this->value.size() != data.value.size()) {
+        return false;
+    }
 
     for (std::size_t i = 0, n = this->value.size(); i < n; ++i) {
-        if (std::find(data.value.begin(), data.value.end(), this->value[i].c_str()) == data.value.end()) return false;
+        const EnabledNumberOrString& value = this->value[i];
+
+        auto it = std::find(data.value.begin(), data.value.end(), value);
+        if (it == data.value.end()) {
+            return false;
+        }
     }
 
     return true;
 }
 
-SettingData& SettingDataVector::Assign(const SettingData& other) {
+SettingData& SettingDataList::Assign(const SettingData& other) {
     assert(this->type == other.type);
 
-    this->value = static_cast<const SettingDataVector&>(other).value;
+    const SettingDataList& data = static_cast<const SettingDataList&>(other);
+
+    this->value = data.value;
+    return *this;
+}
+
+bool SettingDataFlags::Equal(const SettingData& other) const {
+    if (!SettingData::Equal(other)) return false;
+
+    const SettingDataFlags& data = static_cast<const SettingDataFlags&>(other);
+
+    if (this->value.size() != data.value.size()) {
+        return false;
+    }
+
+    for (std::size_t i = 0, n = this->value.size(); i < n; ++i) {
+        const std::string& value = this->value[i];
+
+        auto it = std::find(data.value.begin(), data.value.end(), value);
+        if (it == data.value.end()) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+SettingData& SettingDataFlags::Assign(const SettingData& other) {
+    assert(this->type == other.type);
+
+    this->value = static_cast<const SettingDataFlags&>(other).value;
     return *this;
 }

@@ -9,18 +9,33 @@
 
 <p align="center"><img src="./images/vulkan_configurator.png" width="400" /></p>
 
-# Known issues:
-
-- *Using Vulkan Configurator is exclusive from using layer environment variables. Choose one or the other method.*
-- Layers will use the override layer settings and ignore the local file with no warning to the user.
-- Layers settings fields are not checked for syntax errors.
-- Layer changes are not autodetected. If changes are made to the layer environment, *Vulkan Configurator* must be restarted to take into account these changes.
-- On *macOS*, *vkcube* and *vkcubepp* need to be run at least once to get past the security checks before they can be used from *Vulkan Configurator*.
-- The screenshot layer can crash if you do not specify a working directory that is writable by the current user.
-
 # Release notes
 
-## [Vulkan Configurator 2.2.0 for Vulkan SDK 1.2.170.0](https://github.com/LunarG/VulkanTools/tree/sdk-1.2.170.0) - February 2021
+## [Vulkan Configurator 2.3.0 for Vulkan SDK 1.2.176.0](https://github.com/LunarG/VulkanTools/tree/sdk-1.2.176.0) - Mai 2021
+
+### Features:
+- Add Vulkan loader debug message to application launcher #1372
+- Redesigned of the full layer settings UI #1420
+
+### Improvements:
+- Add display of layer execution order in the setting tree #1390
+- Add layer settings UI inputs checking
+- Add API dump presets #1414
+- Add validation layer VUIDs loading from Vulkan Header to keep it up to date #1434
+- Improve 'High Validation Layer Overhead' warning UI
+
+### Fixes:
+- Hide 'Callback' from validation layer 'Debug Action' debug action that is NOOP
+- Fix crash when SDK path is included in 'override_paths' of 'VkLayer_override.json'
+- Fix default value of validation layer 'Check Out of Bounds #1435
+- Fix duplicate configurations #1445
+- Fix layer reordering crash #1449
+- Fix Vulkan application crash when updating the Vulkan loader
+- Fix User-Defined layer path window 'Ok' button being disabled incorrectly
+- Fix blank setting tree after using the user-defined layer path window #1377
+- Fix 'Reset To Default' than wasn't bringing back notification pop-ups.
+
+## [Vulkan Configurator 2.2.0 for Vulkan SDK 1.2.170.0](https://github.com/LunarG/VulkanTools/tree/sdk-1.2.170.0) - March 2021
 
 ### Features:
 - Add *Synchronization* default configuration #1304
@@ -47,6 +62,7 @@
 - Fix validation layer 'printf buffer size' setting exposed as a 'bool' instead of a 'int' #1338
 - Fix crash when using older `VK_LAYER_KHRONOS_validation` versions
 - Fix *Vulkan Info* and *Vulkan Installation Analysis* dialog no longer running with overridden layers
+- Fix preset changed causing the setting tree to be rebuild #1300
 
 ## [Vulkan Configurator 2.1.0 for Vulkan SDK 1.2.162.1](https://github.com/LunarG/VulkanTools/tree/sdk-1.2.162.1) - January 2021
 

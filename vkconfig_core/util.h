@@ -55,7 +55,11 @@ inline constexpr std::size_t countof(C<T, Alloc> const& data) noexcept {
 
 std::string format(const char* message, ...);
 
+bool IsFrames(const std::string& s);
+
 bool IsNumber(const std::string& s);
+
+bool IsFloat(const std::string& s);
 
 template <typename T>
 T* FindByKey(std::vector<T>& container, const char* key) {
@@ -101,3 +105,40 @@ QStringList ConvertString(const std::vector<std::string>& strings);
 std::string ToLowerCase(const std::string& value);
 
 std::string ToUpperCase(const std::string& value);
+
+struct NumberOrString {
+    NumberOrString() : number(0) {}
+
+    std::string key;
+    int number;
+};
+
+struct EnabledNumberOrString : public NumberOrString {
+    bool enabled;
+};
+
+inline bool operator==(const NumberOrString& a, const NumberOrString& b) { return a.key == b.key && a.number == b.number; }
+
+inline bool operator!=(const NumberOrString& a, const NumberOrString& b) { return !(a == b); }
+
+inline bool operator<(const NumberOrString& a, const NumberOrString& b) {
+    if (a.key.empty() && b.key.empty())
+        return a.number < b.number;
+    else if (a.key.empty() && !b.key.empty())
+        return true;
+    else if (!a.key.empty() && b.key.empty())
+        return false;
+    return a.key < b.key;
+}
+
+// Remove a value if it's present
+void RemoveValue(std::vector<NumberOrString>& list, const NumberOrString& value);
+
+// Add a value with no duplicate
+void AppendValue(std::vector<NumberOrString>& list, const NumberOrString& value);
+
+bool IsValueFound(const std::vector<NumberOrString>& list, const NumberOrString& value);
+
+bool IsValueFound(const std::vector<EnabledNumberOrString>& list, const NumberOrString& value);
+
+QStringList ConvertValues(const std::vector<NumberOrString>& values);

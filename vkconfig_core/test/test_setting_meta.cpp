@@ -61,12 +61,10 @@ TEST(test_setting_meta, equal_int) {
 }
 
 TEST(test_setting_meta, equal_int_range) {
-    SettingMetaIntRange data0("data");
-    data0.default_min_value = 6;
-    data0.default_max_value = 7;
-    SettingMetaIntRange data1("data");
-    data1.default_min_value = 6;
-    data1.default_max_value = 7;
+    SettingMetaFrames data0("data");
+    data0.default_value = "6-7";
+    SettingMetaFrames data1("data");
+    data1.default_value = "6-7";
 
     EXPECT_EQ(data0, data1);
 
@@ -77,9 +75,8 @@ TEST(test_setting_meta, equal_int_range) {
     EXPECT_EQ(*ptr0, data1);
     EXPECT_EQ(data0, *ptr1);
 
-    SettingMetaIntRange dataX("dataX");
-    dataX.default_min_value = 6;
-    dataX.default_max_value = 7;
+    SettingMetaFrames dataX("dataX");
+    dataX.default_value = "6-7";
 
     EXPECT_NE(data0, dataX);
 
@@ -88,9 +85,8 @@ TEST(test_setting_meta, equal_int_range) {
     EXPECT_NE(*ptr0, dataX);
     EXPECT_NE(data0, *ptrX);
 
-    SettingMetaIntRange dataY("data");
-    dataY.default_min_value = 5;
-    dataY.default_max_value = 7;
+    SettingMetaFrames dataY("data");
+    dataY.default_value = "5-7";
 
     EXPECT_NE(data0, dataY);
 
@@ -218,4 +214,19 @@ TEST(test_setting_meta, equal_flags) {
     EXPECT_NE(*ptr0, *ptrY);
     EXPECT_NE(*ptr0, dataY);
     EXPECT_NE(data0, *ptrY);
+}
+
+TEST(test_setting_meta, children) {
+    SettingMetaSet settings;
+
+    SettingMetaBool& meta_parent0 = settings.Create<SettingMetaBool>("parent0", SETTING_BOOL);
+    SettingMetaBool& meta_parent1 = settings.Create<SettingMetaBool>("parent1", SETTING_BOOL);
+    SettingMetaInt& meta_child1 = meta_parent1.children.Create<SettingMetaInt>("child1", SETTING_INT);
+    meta_child1.default_value = 76;
+
+    EXPECT_TRUE(FindSettingMeta(settings, "child1") != nullptr);
+    EXPECT_EQ(SETTING_INT, FindSettingMeta(settings, "child1")->type);
+
+    const SettingMetaInt& meta_child1_found = static_cast<const SettingMetaInt&>(*FindSettingMeta(settings, "child1"));
+    EXPECT_EQ(76, meta_child1_found.default_value);
 }

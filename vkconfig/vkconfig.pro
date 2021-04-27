@@ -7,6 +7,10 @@ CONFIG += sdk_no_version_check
 
 INCLUDEPATH += ../Vulkan-Headers/include
 INCLUDEPATH += ../Build/Vulkan-Headers/include
+# INCLUDEPATH += ../external
+
+# Ignore JSON validation
+DEFINES += JSON_VALIDATION_OFF
 
 # The following define makes your compiler emit warnings if you use
 # any Qt feature that has been marked deprecated (the exact warnings
@@ -33,6 +37,7 @@ SOURCES += \
     ../vkconfig_core/header.cpp \
     ../vkconfig_core/help.cpp \
     ../vkconfig_core/json.cpp \
+    ../vkconfig_core/json_validator.cpp \
     ../vkconfig_core/layer.cpp \
     ../vkconfig_core/layer_manager.cpp \
     ../vkconfig_core/layer_preset.cpp \
@@ -53,15 +58,17 @@ SOURCES += \
     vulkan.cpp \
     alert.cpp \
     widget_preset.cpp \
+    widget_setting.cpp \
     widget_setting_bool.cpp \
     widget_setting_enum.cpp \
     widget_setting_filesystem.cpp \
     widget_setting_flags.cpp \
+    widget_setting_float.cpp \
     widget_setting_int.cpp \
-    widget_setting_int_range.cpp \
+    widget_setting_frames.cpp \
     widget_setting_string.cpp \
-    widget_setting_vuid_filter.cpp \
-    widget_setting_vuid_search.cpp \
+    widget_setting_list_element.cpp \
+    widget_setting_list.cpp \
     widget_tree_friendly_combobox.cpp \
     dialog_about.cpp \
     dialog_applications.cpp \
@@ -89,9 +96,10 @@ HEADERS += \
     ../vkconfig_core/header.h \
     ../vkconfig_core/help.h \
     ../vkconfig_core/json.h \
+    ../vkconfig_core/json_validator.h \
     ../vkconfig_core/layer.h \
     ../vkconfig_core/layer_manager.h \
-	../vkconfig_core/layer_preset.h \
+    ../vkconfig_core/layer_preset.h \
     ../vkconfig_core/layer_state.h \
     ../vkconfig_core/layer_type.h \
     ../vkconfig_core/override.h \
@@ -109,15 +117,17 @@ HEADERS += \
     vulkan.h \
     alert.h \
     widget_preset.h \
+    widget_setting.h \
     widget_setting_bool.h \
     widget_setting_enum.h \
     widget_setting_filesystem.h \
     widget_setting_flags.h \
+    widget_setting_float.h \
     widget_setting_int.h \
-    widget_setting_int_range.h \
+    widget_setting_frames.h \
     widget_setting_string.h \
-    widget_setting_vuid_filter.h \
-    widget_setting_vuid_search.h \
+    widget_setting_list_element.h \
+    widget_setting_list.h \
     widget_tree_friendly_combobox.h \
     dialog_about.h \
     dialog_applications.h \

@@ -27,6 +27,10 @@
 #include <vector>
 #include <memory>
 
+struct SettingMeta;
+
+typedef SettingSet<SettingMeta> SettingMetaSet;
+
 struct SettingMeta : public Header {
     SettingMeta(const std::string& key, const SettingType type);
     virtual ~SettingMeta() {}
@@ -37,26 +41,80 @@ struct SettingMeta : public Header {
     const std::string key;
     const SettingType type;
     std::string env;
+    SettingMetaSet children;
+    SettingDataSet dependence;
+    DependenceMode dependence_mode;
 
    protected:
     virtual bool Equal(const SettingMeta& other) const;
 };
 
+struct SettingMetaGroup : public SettingMeta {
+    SettingMetaGroup(const std::string& key) : SettingMeta(key, SETTING_GROUP) {}
+    virtual ~SettingMetaGroup() {}
+};
+
 struct SettingMetaString : public SettingMeta {
-    SettingMetaString(const std::string& key) : SettingMeta(key, SETTING_STRING) {}
+    SettingMetaString(const std::string& key) : SettingMetaString(key, SETTING_STRING) {}
     virtual ~SettingMetaString() {}
 
     std::string default_value;
 
    protected:
+    SettingMetaString(const std::string& key, const SettingType& setting_type) : SettingMeta(key, setting_type) {}
+
     virtual bool Equal(const SettingMeta& other) const;
 };
 
 struct SettingMetaInt : public SettingMeta {
-    SettingMetaInt(const std::string& key) : SettingMeta(key, SETTING_INT), default_value(0) {}
+    SettingMetaInt(const std::string& key)
+        : SettingMeta(key, SETTING_INT),
+          default_value(0),
+          min_value(std::numeric_limits<int>::min()),
+          max_value(std::numeric_limits<int>::max()) {}
     virtual ~SettingMetaInt() {}
 
     int default_value;
+    int min_value;
+    int max_value;
+    std::string unit;
+
+    bool IsValid(const SettingDataInt& data) const { return data.value >= this->min_value && data.value <= this->max_value; }
+
+   protected:
+    virtual bool Equal(const SettingMeta& other) const;
+};
+
+struct SettingMetaFloat : public SettingMeta {
+    SettingMetaFloat(const std::string& key)
+        : SettingMeta(key, SETTING_FLOAT), default_value(0.0f), min_value(0.0f), max_value(0.0f), precision(0), width(0) {}
+    virtual ~SettingMetaFloat() {}
+
+    float default_value;
+    float min_value;
+    float max_value;
+    int precision;
+    int width;
+    std::string unit;
+
+    bool HasRange() const { return std::abs(this->max_value - this->min_value) > std::numeric_limits<float>::epsilon(); }
+
+    bool HasPrecision() const { return this->precision != 0 || this->width != 0; }
+
+    std::string GetFloatFormat() const {
+        if (this->HasPrecision()) {
+            return "%" + format("%d.%df", this->width, this->precision);
+        } else {
+            return "%f";
+        }
+    }
+
+    bool IsValid(const SettingDataFloat& data) const {
+        if (this->HasRange())
+            return data.value >= this->min_value && data.value <= this->max_value;
+        else
+            return true;
+    }
 
    protected:
     virtual bool Equal(const SettingMeta& other) const;
@@ -79,15 +137,11 @@ struct SettingMetaBoolNumeric : public SettingMeta {
     bool default_value;
 };
 
-struct SettingMetaIntRange : public SettingMeta {
-    SettingMetaIntRange(const std::string& key) : SettingMeta(key, SETTING_INT_RANGE), default_min_value(0), default_max_value(0) {}
-    virtual ~SettingMetaIntRange() {}
+struct SettingMetaFrames : public SettingMetaString {
+    SettingMetaFrames(const std::string& key) : SettingMetaString(key, SETTING_FRAMES) {}
+    virtual ~SettingMetaFrames() {}
 
-    int default_min_value;
-    int default_max_value;
-
-   protected:
-    virtual bool Equal(const SettingMeta& other) const;
+    bool IsValid(const SettingDataFrames& data) const { return IsFrames(data.value) || data.value.empty(); }
 };
 
 struct SettingMetaFilesystem : public SettingMeta {
@@ -118,6 +172,7 @@ struct SettingMetaFolderSave : public SettingMetaFilesystem {
 
 struct SettingEnumValue : public Header {
     std::string key;
+    SettingMetaSet settings;
 };
 
 bool operator==(const SettingEnumValue& a, const SettingEnumValue& b);
@@ -153,15 +208,25 @@ struct SettingMetaFlags : public SettingMetaEnumeration {
     virtual bool Equal(const SettingMeta& other) const;
 };
 
-struct SettingMetaVUIDFilter : public SettingMeta {
-    SettingMetaVUIDFilter(const std::string& key) : SettingMeta(key, SETTING_VUID_FILTER) {}
-    virtual ~SettingMetaVUIDFilter() {}
+struct SettingMetaList : public SettingMeta {
+    SettingMetaList(const std::string& key) : SettingMeta(key, SETTING_LIST), list_only(false) {}
+    virtual ~SettingMetaList() {}
 
-    std::vector<std::string> list;
-    std::vector<std::string> default_value;
+    std::vector<NumberOrString> list;
+    std::vector<EnabledNumberOrString> default_value;
+    bool list_only;
 
    protected:
     virtual bool Equal(const SettingMeta& other) const;
 };
 
-typedef SettingSet<SettingMeta> SettingMetaSet;
+const SettingMeta* FindSettingMeta(const SettingMetaSet& settings, const char* key);
+
+template <typename SETTING_META>
+inline const SETTING_META* FindSettingMeta(const SettingMetaSet& settings, const char* key) {
+    return static_cast<const SETTING_META*>(FindSettingMeta(settings, key));
+}
+
+std::size_t CountSettings(const SettingMetaSet& settings);
+
+bool CheckDependence(const SettingMeta& meta, const SettingDataSet& data_set);

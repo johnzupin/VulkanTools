@@ -32,6 +32,7 @@
 #include <QStringList>
 
 #include <cctype>
+#include <regex>
 
 std::string format(const char* message, ...) {
     std::size_t const STRING_BUFFER(4096);
@@ -49,16 +50,22 @@ std::string format(const char* message, ...) {
     return buffer;
 }
 
+bool IsFrames(const std::string& s) {
+    static const std::regex FRAME_REGEX("^([0-9]+([-][0-9]+){0,2})(,([0-9]+([-][0-9]+){0,2}))*$");
+
+    return std::regex_search(s, FRAME_REGEX);
+}
+
 bool IsNumber(const std::string& s) {
-    if (s.empty()) return false;
+    static const std::regex FRAME_REGEX("^-?[0-9]*$");
 
-    for (std::size_t i = 0, n = s.length(); i < n; ++i) {
-        if (std::isdigit(s[i])) continue;
+    return std::regex_search(s, FRAME_REGEX);
+}
 
-        return false;
-    }
+bool IsFloat(const std::string& s) {
+    static const std::regex FRAME_REGEX("^-?[0-9]*([.][0-9]*)?$");
 
-    return true;
+    return std::regex_search(s, FRAME_REGEX);
 }
 
 void RemoveString(std::vector<std::string>& list, const std::string& value) {
@@ -86,6 +93,55 @@ bool IsStringFound(const std::vector<std::string>& list, const std::string& valu
     }
 
     return false;
+}
+
+void RemoveValue(std::vector<NumberOrString>& list, const NumberOrString& value) {
+    std::vector<NumberOrString> new_list;
+    new_list.reserve(list.size());
+
+    for (std::size_t i = 0, n = list.size(); i < n; ++i) {
+        if (list[i] != value) {
+            new_list.push_back(list[i]);
+        }
+    }
+
+    std::swap(list, new_list);
+}
+
+void AppendValue(std::vector<NumberOrString>& list, const NumberOrString& value) {
+    if (std::find(list.begin(), list.end(), value) == list.end()) {
+        list.push_back(value);
+    }
+}
+
+bool IsValueFound(const std::vector<NumberOrString>& list, const NumberOrString& value) {
+    for (std::size_t i = 0, n = list.size(); i < n; ++i) {
+        if (list[i] == value) return true;
+    }
+
+    return false;
+}
+
+bool IsValueFound(const std::vector<EnabledNumberOrString>& list, const NumberOrString& value) {
+    for (std::size_t i = 0, n = list.size(); i < n; ++i) {
+        if (list[i] == value) return true;
+    }
+
+    return false;
+}
+
+QStringList ConvertValues(const std::vector<NumberOrString>& values) {
+    QStringList string_list;
+
+    for (std::size_t i = 0, n = values.size(); i < n; ++i) {
+        if (values[i].key.empty()) {
+            string_list.append(format("%d", values[i].number).c_str());
+        } else {
+            string_list.append(values[i].key.c_str());
+        }
+    }
+
+    return string_list;
 }
 
 std::vector<std::string> ConvertString(const QStringList& string_list) {

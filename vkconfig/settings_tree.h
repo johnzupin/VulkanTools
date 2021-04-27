@@ -33,6 +33,7 @@
 #include <QComboBox>
 
 #include <vector>
+#include <memory>
 
 class SettingsTreeManager : QObject {
     Q_OBJECT
@@ -46,11 +47,8 @@ class SettingsTreeManager : QObject {
     int SetTreeState(QByteArray &byte_array, int index, QTreeWidgetItem *top_item);
 
    public Q_SLOTS:
-    void khronosDebugChanged(int index);
-    void OnPresetChanged(int index);  // Okay, is this a custom guy HERE, or do we move it out
-                                      // It really forces a reload of the entire branch of this tree
-                                      // Reset layer defaults for the profile, and then call BuildKhronosTree again
-    void OnSettingChanged();          // The profile has been edited and should be saved
+    void OnSettingChanged();
+    void OnPresetChanged();
 
    private:
     SettingsTreeManager(const SettingsTreeManager &) = delete;
@@ -58,14 +56,11 @@ class SettingsTreeManager : QObject {
 
     void BuildValidationTree(QTreeWidgetItem *parent, Parameter &parameter);
     void BuildGenericTree(QTreeWidgetItem *parent, Parameter &parameter);
+    void BuildTreeItem(QTreeWidgetItem *parent, const SettingMetaSet &meta_set, SettingDataSet &data_set, const SettingMeta &meta);
 
-    QTreeWidget *_settings_tree;
-    std::vector<QTreeWidgetItem *> _compound_widgets;  // These have special cleanup requirements
+    void Refresh(RefreshAreas refresh_areas);
+    void RefreshItem(RefreshAreas refresh_areas, QTreeWidgetItem *parent);
 
-    std::vector<WidgetPreset *> _presets_comboboxes;
-
-    QTreeWidgetItem *_validation_log_file_item;
-    WidgetSettingFilesystem *_validation_log_file_widget;
-    WidgetSettingFlag *_validation_debug_action;
-    SettingsValidationAreas *_validation_areas;
+    QTreeWidget *tree;
+    std::unique_ptr<WidgetSettingValidation> validation;
 };

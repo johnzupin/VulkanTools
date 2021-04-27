@@ -23,19 +23,44 @@
 
 #include <cassert>
 
-WidgetSettingBool::WidgetSettingBool(const SettingMetaBool& setting_meta, SettingDataBool& setting_data)
-    : setting_meta(setting_meta), setting_data(setting_data) {
-    assert(&setting_meta);
-    assert(&setting_data);
+WidgetSettingBool::WidgetSettingBool(QTreeWidget* tree, QTreeWidgetItem* item, const SettingMetaBool& meta,
+                                     SettingDataSet& data_set)
+    : WidgetSettingBase(tree, item),
+      meta(meta),
+      data(*data_set.Get<SettingDataBool>(meta.key.c_str())),
+      data_set(data_set),
+      field(new QCheckBox(this)) {
+    assert(&this->meta);
+    assert(&this->data);
 
-    setText(setting_meta.label.c_str());
-    setToolTip(setting_meta.description.c_str());
-    setChecked(setting_data.value);
-    connect(this, SIGNAL(clicked()), this, SLOT(itemToggled()));
+    this->field->setText(this->meta.label.c_str());
+    this->field->setFont(this->tree->font());
+    this->field->setToolTip(this->meta.description.c_str());
+    this->field->show();
+    this->connect(this->field, SIGNAL(clicked()), this, SLOT(OnClicked()));
+
+    this->tree->setItemWidget(this->item, 0, this);
+    this->item->setSizeHint(0, QSize(0, ITEM_HEIGHT));
+
+    this->Refresh(REFRESH_ENABLE_AND_STATE);
 }
 
-void WidgetSettingBool::itemToggled() {
-    setting_data.value = isChecked();
+void WidgetSettingBool::Refresh(RefreshAreas refresh_areas) {
+    const bool enabled = ::CheckDependence(this->meta, this->data_set);
+
+    this->item->setDisabled(!enabled);
+    this->field->setEnabled(enabled);
+    this->setEnabled(enabled);
+
+    if (refresh_areas == REFRESH_ENABLE_AND_STATE) {
+        this->field->blockSignals(true);
+        this->field->setChecked(this->data.value);
+        this->field->blockSignals(false);
+    }
+}
+
+void WidgetSettingBool::OnClicked() {
+    this->data.value = this->field->isChecked();
 
     emit itemChanged();
 }

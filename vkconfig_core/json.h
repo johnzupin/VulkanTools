@@ -19,6 +19,7 @@
  */
 
 #include "version.h"
+#include "util.h"
 
 #include <QJsonObject>
 
@@ -35,6 +36,9 @@ QJsonArray ReadArray(const QJsonObject& json_object, const char* key);
 std::string ReadStringValue(const QJsonObject& json_object, const char* key);
 
 // Read a string value from the json_object
+NumberOrString ReadNumberOrStringValue(const QJsonObject& json_object, const char* key);
+
+// Read a string value from the json_object
 std::vector<std::string> ReadStringArray(const QJsonObject& json_object, const char* key);
 
 // Read a concatenated string from the json_object
@@ -42,6 +46,9 @@ std::string ReadString(const QJsonObject& json_object, const char* key);
 
 // Read an int value from the json_object
 int ReadIntValue(const QJsonObject& json_object, const char* key);
+
+// Read a float value from the json_object
+float ReadFloatValue(const QJsonObject& json_object, const char* key);
 
 // Read a bool value from the json_object
 bool ReadBoolValue(const QJsonObject& json_object, const char* key);

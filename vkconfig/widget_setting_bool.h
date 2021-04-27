@@ -24,28 +24,28 @@
 #include "../vkconfig_core/setting_meta.h"
 #include "../vkconfig_core/setting_data.h"
 
-#include <QObject>
-#include <QWidget>
+#include "widget_setting.h"
+
 #include <QCheckBox>
 
-#include <string>
-
-class WidgetSettingBool : public QCheckBox {
+class WidgetSettingBool : public WidgetSettingBase {
     Q_OBJECT
 
    public:
-    explicit WidgetSettingBool(const SettingMetaBool& setting_meta, SettingDataBool& setting_data);
+    explicit WidgetSettingBool(QTreeWidget* tree, QTreeWidgetItem* item, const SettingMetaBool& meta, SettingDataSet& data_set);
+
+    void Refresh(RefreshAreas refresh_areas) override;
 
    public Q_SLOTS:
-    void itemToggled();
+    void OnClicked();
 
    Q_SIGNALS:
     void itemChanged();
 
    private:
-    WidgetSettingBool(const WidgetSettingBool&) = delete;
-    WidgetSettingBool& operator=(const WidgetSettingBool&) = delete;
+    const SettingDataSet& data_set;
+    SettingDataBool& data;
+    const SettingMetaBool& meta;
 
-    const SettingMetaBool& setting_meta;
-    SettingDataBool& setting_data;
+    QCheckBox* field;
 };

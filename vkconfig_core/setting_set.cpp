@@ -27,10 +27,14 @@ std::shared_ptr<SettingData> SettingSet<SettingData>::AllocSetting(const std::st
     assert(!key.empty());
 
     switch (type) {
+        case SETTING_GROUP:
+            return std::shared_ptr<SettingData>(new SettingDataGroup(key));
         case SETTING_STRING:
             return std::shared_ptr<SettingData>(new SettingDataString(key));
         case SETTING_INT:
             return std::shared_ptr<SettingData>(new SettingDataInt(key));
+        case SETTING_FLOAT:
+            return std::shared_ptr<SettingData>(new SettingDataFloat(key));
         case SETTING_SAVE_FILE:
             return std::shared_ptr<SettingData>(new SettingDataFileSave(key));
         case SETTING_LOAD_FILE:
@@ -45,10 +49,10 @@ std::shared_ptr<SettingData> SettingSet<SettingData>::AllocSetting(const std::st
             return std::shared_ptr<SettingData>(new SettingDataEnum(key));
         case SETTING_FLAGS:
             return std::shared_ptr<SettingData>(new SettingDataFlags(key));
-        case SETTING_INT_RANGE:
-            return std::shared_ptr<SettingData>(new SettingDataIntRange(key));
-        case SETTING_VUID_FILTER:
-            return std::shared_ptr<SettingData>(new SettingDataVUIDFilter(key));
+        case SETTING_FRAMES:
+            return std::shared_ptr<SettingData>(new SettingDataFrames(key));
+        case SETTING_LIST:
+            return std::shared_ptr<SettingData>(new SettingDataList(key));
         default:
             assert(0);
             return std::shared_ptr<SettingData>();
@@ -60,10 +64,14 @@ std::shared_ptr<SettingMeta> SettingSet<SettingMeta>::AllocSetting(const std::st
     assert(!key.empty());
 
     switch (type) {
+        case SETTING_GROUP:
+            return std::shared_ptr<SettingMeta>(new SettingMetaGroup(key));
         case SETTING_STRING:
             return std::shared_ptr<SettingMeta>(new SettingMetaString(key));
         case SETTING_INT:
             return std::shared_ptr<SettingMeta>(new SettingMetaInt(key));
+        case SETTING_FLOAT:
+            return std::shared_ptr<SettingMeta>(new SettingMetaFloat(key));
         case SETTING_SAVE_FILE:
             return std::shared_ptr<SettingMeta>(new SettingMetaFileSave(key));
         case SETTING_LOAD_FILE:
@@ -78,10 +86,10 @@ std::shared_ptr<SettingMeta> SettingSet<SettingMeta>::AllocSetting(const std::st
             return std::shared_ptr<SettingMeta>(new SettingMetaEnum(key));
         case SETTING_FLAGS:
             return std::shared_ptr<SettingMeta>(new SettingMetaFlags(key));
-        case SETTING_INT_RANGE:
-            return std::shared_ptr<SettingMeta>(new SettingMetaIntRange(key));
-        case SETTING_VUID_FILTER:
-            return std::shared_ptr<SettingMeta>(new SettingMetaVUIDFilter(key));
+        case SETTING_FRAMES:
+            return std::shared_ptr<SettingMeta>(new SettingMetaFrames(key));
+        case SETTING_LIST:
+            return std::shared_ptr<SettingMeta>(new SettingMetaList(key));
         default:
             assert(0);
             return std::shared_ptr<SettingMeta>();

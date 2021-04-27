@@ -42,6 +42,7 @@
 // Saved settings for the application
 #define VKCONFIG_KEY_INITIALIZE_FILES "FirstTimeRun"
 #define VKCONFIG_KEY_OVERRIDE_MODE "OverrideMode"
+#define VKCONFIG_KEY_LOADER_MESSAGE "LoaderMessage"
 
 #define VKCONFIG_KEY_EXIT "warnAboutShutdownState"
 #define VKCONFIG_KEY_RESTART "restartWarning"
@@ -76,8 +77,8 @@ static const char* GetActiveDefault(Active active) {
     assert(active >= ACTIVE_FIRST && active <= ACTIVE_LAST);
 
     static const char* table[] = {
-        "Validation - Standard",  // ACTIVE_CONFIGURATION
-        ""                        // ACTIVE_EXECUTABLE
+        "Validation",  // ACTIVE_CONFIGURATION
+        ""             // ACTIVE_EXECUTABLE
     };
     static_assert(countof(table) == ACTIVE_COUNT, "The tranlation table size doesn't match the enum number of elements");
 
@@ -103,8 +104,33 @@ static const char* GetLayoutStateToken(LayoutState state) {
     return table[state];
 }
 
+LoaderMessageLevel GetLoaderDebug(const std::string& value) {
+    for (int i = LAODER_MESSAGE_FIRST, n = LAODER_MESSAGE_LAST; i <= n; ++i) {
+        const LoaderMessageLevel level = static_cast<LoaderMessageLevel>(i);
+        if (GetLoaderDebugToken(level) == value) return level;
+    }
+
+    return LAODER_MESSAGE_NONE;
+}
+
+std::string GetLoaderDebugToken(LoaderMessageLevel level) {
+    static const char* LOADER_MESSAGE_LEVEL[]{
+        "",       // LAODER_MESSAGE_NONE
+        "error",  // LAODER_MESSAGE_ERROR
+        "warn",   // LAODER_MESSAGE_WARN
+        "info",   // LAODER_MESSAGE_INFO
+        "debug",  // LAODER_MESSAGE_DEBUG
+        "all"     // LAODER_MESSAGE_ALL
+    };
+    static_assert(countof(LOADER_MESSAGE_LEVEL) == LAODER_MESSAGE_COUNT,
+                  "The tranlation table size doesn't match the enum number of elements");
+
+    return LOADER_MESSAGE_LEVEL[level];
+}
+
 Environment::Environment(PathManager& paths, const Version& api_version)
     : api_version(api_version),
+      loader_message_level(GetLoaderDebug(qgetenv("VK_LOADER_DEBUG").toStdString())),
 // Hack for GitHub C.I.
 #if VKC_PLATFORM == VKC_PLATFORM_WINDOWS && (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
       running_as_administrator(IsUserAnAdmin()),
@@ -183,7 +209,7 @@ void Environment::Reset(ResetMode mode) {
     switch (mode) {
         case DEFAULT: {
             first_run = true;
-            version = Version::VKCONFIG;
+            version = Version::LAYER_CONFIG;
             override_state = OVERRIDE_STATE_GLOBAL_TEMPORARY;
 
             for (std::size_t i = 0; i < ACTIVE_COUNT; ++i) {
@@ -193,6 +219,35 @@ void Environment::Reset(ResetMode mode) {
             applications = CreateDefaultApplications();
 
             Set(ACTIVE_CONFIGURATION, "Validation");
+            break;
+        }
+        case CLEAR: {
+            this->Reset(DEFAULT);
+
+            QSettings settings;
+            settings.setValue("VKCONFIG_WIDGET_SETTING_INT", false);
+            settings.setValue("VKCONFIG_WIDGET_SETTING_FLOAT", false);
+            settings.setValue("VKCONFIG_WIDGET_SETTING_FRAMES", false);
+            settings.setValue("VKCONFIG_WARN_MISSING_LAYERS_IGNORE", false);
+            settings.setValue("VKCONFIG_WARN_CORE_SHADER_IGNORE", false);
+
+            settings.setValue("overrideActive", false);
+            settings.setValue("applyOnlyToList", false);
+            settings.setValue("keepActiveOnExit", false);
+
+            settings.setValue("restartWarning", false);
+            settings.setValue("warnAboutShutdownState", false);
+
+            settings.setValue(VKCONFIG_KEY_EXIT, false);
+            settings.setValue(VKCONFIG_KEY_RESTART, false);
+
+            const std::string loader_debug_message(qgetenv("VK_LOADER_DEBUG"));
+            if (loader_debug_message.empty()) {
+                loader_message_level = LAODER_MESSAGE_NONE;
+            } else {
+                loader_message_level = GetLoaderDebug(loader_debug_message);
+            }
+            settings.setValue(VKCONFIG_KEY_LOADER_MESSAGE, static_cast<int>(loader_message_level));
             break;
         }
         case SYSTEM: {
@@ -215,12 +270,11 @@ bool Environment::Load() {
     QSettings settings;
 
     // Load "first_run"
-    first_run = settings.value(VKCONFIG_KEY_INITIALIZE_FILES, QVariant(first_run)).toBool();
+    first_run = settings.value(VKCONFIG_KEY_INITIALIZE_FILES, first_run).toBool();
 
     // Load "version": If the version doesn't exist of it's an old version of vkconfig
-    const Version default_version(first_run || !SUPPORT_VKCONFIG_2_0_0 ? version : Version("2.0.0"));
-    version =
-        Version(settings.value(VKCONFIG_KEY_VKCONFIG_VERSION, QVariant(default_version.str().c_str())).toString().toStdString());
+    const Version default_version(first_run || !SUPPORT_LAYER_CONFIG_2_0_0 ? version : Version("2.0.0"));
+    version = Version(settings.value(VKCONFIG_KEY_VKCONFIG_VERSION, default_version.str().c_str()).toString().toStdString());
 
     if (version == Version("2.0.0")) {  // The version is an old development version, unknown and unsupported, hard reset.
         Reset(DEFAULT);
@@ -228,10 +282,10 @@ bool Environment::Load() {
     }
 
     // Load 'override_mode"
-    if (SUPPORT_VKCONFIG_2_0_1 && version <= Version("2.0.1")) {
-        const bool active = settings.value("overrideActive", QVariant(first_run)).toBool();
-        const bool active_list = settings.value("applyOnlyToList", QVariant(first_run)).toBool();
-        const bool active_persistent = settings.value("keepActiveOnExit", QVariant(first_run)).toBool();
+    if (SUPPORT_LAYER_CONFIG_2_0_1 && version <= Version("2.0.1")) {
+        const bool active = settings.value("overrideActive", first_run).toBool();
+        const bool active_list = settings.value("applyOnlyToList", first_run).toBool();
+        const bool active_persistent = settings.value("keepActiveOnExit", first_run).toBool();
         if (!active)
             override_state = OVERRIDE_STATE_DISABLED;
         else if (active_list && active_persistent)
@@ -249,6 +303,10 @@ bool Environment::Load() {
     } else {
         override_state = static_cast<OverrideState>(settings.value(VKCONFIG_KEY_OVERRIDE_MODE, QVariant(override_state)).toInt());
     }
+
+    // Load loader debug message state
+    loader_message_level = static_cast<LoaderMessageLevel>(
+        settings.value(VKCONFIG_KEY_LOADER_MESSAGE, static_cast<int>(loader_message_level)).toInt());
 
     // Load active configuration
     for (std::size_t i = 0; i < ACTIVE_COUNT; ++i) {
@@ -336,14 +394,17 @@ bool Environment::LoadApplications() {
 bool Environment::Save() const {
     QSettings settings;
 
-    // Save "first_run"
+    // Save 'first_run'
     settings.setValue(VKCONFIG_KEY_INITIALIZE_FILES, first_run);
 
-    // Save "version"
-    settings.setValue(VKCONFIG_KEY_VKCONFIG_VERSION, Version::VKCONFIG.str().c_str());
+    // Save 'version'
+    settings.setValue(VKCONFIG_KEY_VKCONFIG_VERSION, Version::LAYER_CONFIG.str().c_str());
 
-    // Save 'override_mode"
+    // Save 'override_mode'
     settings.setValue(VKCONFIG_KEY_OVERRIDE_MODE, override_state);
+
+    // Save 'loader_message'
+    settings.setValue(VKCONFIG_KEY_LOADER_MESSAGE, static_cast<int>(loader_message_level));
 
     // Save active state
     for (std::size_t i = 0; i < ACTIVE_COUNT; ++i) {
@@ -560,6 +621,8 @@ bool Environment::RemoveCustomLayerPath(const std::string& path) {
     std::swap(custom_layer_paths_gui, new_custom_layer_paths_gui);
     return found;
 }
+
+void Environment::ClearCustomLayerPath() { user_defined_layers_paths[USER_DEFINED_LAYERS_PATHS_GUI].clear(); }
 
 bool Environment::IsDefaultConfigurationInit(const std::string& default_configuration_filename) const {
     for (std::size_t i = 0, n = default_configuration_filenames.size(); i < n; ++i) {

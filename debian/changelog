@@ -1,3 +1,348 @@
+lunarg-tools (1.2.176.0~rc1-1lunarg20.04-1) focal; urgency=medium
+
+  [ Christophe ]
+  * vkconfig: Fix devsim setting label
+  * Refresh 'Vulkan Development Status' when the configuration changed #1366
+  * C.I.: Fix build fail due to Ubuntu upgrade to 20.04
+  * build: validation layer broke code that doesn't define NOMINMAX on Windows
+  * Streamline 'configuration tree' UI usage #1369
+  * Add 'Reload Default Configuration' to retrieve missing default configurations #1370
+  * vkconfig: Clean up changelog formating
+  * vkconfig: Fix *Vulkan Info* and *Vulkan Installation Analysis* dialog no longer running with overridden layers
+  * vkconfig: add 'reset' command line argument
+  * vkconfig: Add possible recovery by resetting to default when a crash happened during last run
+  * vkconfig: fix layer configurations compatbility between versions
+  * vkconfig: fix QtCreator build
+  * Doc: Update copyright
+  * vkconfig: Remove Clang build warnings
+
+  [ Charles Giessen ]
+  * vkconfig: Make vulkaninfo layer info subobjects of the layer
+
+  [ Christophe ]
+  * vkconfig: Use 'environment variable' instead of &
+  * vkconfig: First commit for April SDK release
+  * vkconfig: Add 2.1.0, 2.2.0 and latest configurations
+  * vkconfig: Add Configurations 2.1.0 load tests
+  * vkconfig: Add Configurations 2.2.0 load tests
+  * vkconfig: check loaded layer count
+  * vkconfig: show configuration files in EDI solutions
+  * vkconfig: Fix tests
+  * vkconfig: switch to configuration files 2.2.1
+  * vkconfig: Add layers 170 unit tests
+  * vkconfig: Use separated folders for conf files
+  * vkconfig: bold font for layers in setting tree
+  * vkconfig: more data driven best practices and shader-based
+  * vkconfig: data-driven core validation
+  * vkconfig: Add layer JSON schema with settings and presets
+  * vkconfig: Remove bool numeric unit test
+
+  [ Jeremy Kniager ]
+  * devsim: Add VK_KHR_16bit_storage support
+  * devsim: Add support for VK_KHR_maintenance2
+  * devsim: Add support for VK_KHR_maintenance3
+  * devsim: Add support for VK_KHR_multiview
+  * devsim: Add support for sampler ycbcr conversion
+  * devsim: Add support for VK_KHR_variable_pointers
+  * devsim: Add support for various 1.1 core functions
+  * devsim: Make struct overrides overall consistant
+  * devsim: Update copyright and version
+  * devsim: Add Devsim Vulkan 1.1 config support
+
+  [ Christophe ]
+  * vkconfig: make vuid_exclude a generic type with list
+  * vkconfig: add generic setting list UI
+  * vkconfig: Refactor configuration file testing
+
+  [ Jeremy Kniager ]
+  * docs: Update Devsim documentation
+  * devsim: Update Devsim supported version error
+
+  [ Christophe ]
+  * vkconfig: int ranges is a formatted string
+  * vkconfig: display of layer execution order in the setting tree #1390
+  * vkconfig: uniformalized cell height
+  * vkconfig: Clean up setting tree initialization
+  * vkconfig: Streamline setting tree initialization
+  * vkconfig: refactor bool and filesystem widget
+  * vkconfig: improve int type support
+  * vkconfig: fix build with Qt 5.9.9
+  * vkconfig: refactor api dump setting order
+  * vkconfig: add validation layer informations
+  * vkconfig: fix printf buffer size signal
+  * vkconfig: clean up code
+  * vkconfig: fix LineEdit resize when the input value is not valid
+  * vkconfig: Fix QtCreator build
+  * vkconfig: add unit tests for optional setting type
+  * vkconfig: factorize size global variable
+  * vkconfig: add env variable unit tests
+  * vkconfig: updated JSON schema to take into account int changes
+  * vkconfig: rename int_ranges to frames
+  * vkconfig: Fix JSON schema
+  * vkconfig: Fix JSON schema
+  * Add Vulkan loader debug message to application launcher #1372
+
+  [ John Zupin ]
+  * packaging: update debian/copyright file
+
+  [ Christophe ]
+  * vkconfig: add 'view' property to settings and enum values
+  * vkconfig: factorize UI code
+  * vkconfig: Set 'duplicate_message_limit' default value to 0
+  * vkconfig: Fix loader debug message UI tooltip
+  * vkconfig: refined list setting type
+  * vkconfig: fix list unit tests
+  * vkconfig: add list element UI
+  * vkconfig: add EnabledString
+  * vkconfig: Init checked in list element UI
+  * vkconfig: Fixed unit test build
+  * vkconfig: added list_only parameter to list setting type
+  * vkconfig: Refactor validation layer setting order
+  * vkconfig: fix UI update of added and removed list ement
+  * vkconfig: Make list search field more readable
+  * vkconfig: Specify only areas that matter for layers settings
+  * vkconfig: add float setting type
+  * vkconfig: fix regex
+  * vkconfig: Uniformalize setting type attribute order
+  * vkconfig: fix list setting type definition
+  * vkconfig: list can take strings and numbers simultanously
+  * vkconfig: add interval support to frames type
+  * vkconfig: fix list setting type
+  * vkconfig: create VK_LAYER_LUNARG_reference to test JSON schema
+  * vkconfig: Improve preset value coverage
+  * vkconfig: add Unit test data for preset
+  * vkconfig: fix unit test
+  * vkconfig: add preset data for unit tests
+  * vkconfig: add all preset setting type unit tests
+  * vkconfig: fix preset setting list loading
+  * vkconfig: refactor list setting UI code
+  * vkconfig: fix list setting type with no list case
+  * vkconfig: allow using 'enter' to add list element
+  * vkconfig: update dev Status when changing loader messages
+  * vkconfig: clean up known issues
+  * vkconfig: fix JSON schema preset setting and clean up
+  * vkconfig: add support for mix number and string list
+  * vkconfig: make it easier to test preset on Windows
+  * vkconfig: add float setting type
+  * vkconfig: remove duplicated VUIDs
+  * vkconfig: schema specification refinements
+  * vkconfig: add JSON schema within vkconfig
+  * vkconfig: fix Qt warning
+  * vkconfig: add json schema with vkconfig
+  * vkconfig: fix list UI behavior
+  * vkconfig: refactor
+  * vkconfig: add description, add missing float values
+  * vkconfig: code clean up
+  * vkconfig: fix schema loaded as a layer
+  * vkconfig: improve 'frames' UI
+  * vkconfig: clean up header
+  * vkconfig: ensure override file is correct
+  * vkconfig: fix schema and improve frames regex
+  * vkconfig: improve regex to check frames, int, float
+  * vkconfig: improve float, frames, int input check
+  * vkconfig: fix float format with precision
+  * vkconfig: more compact labels
+  * vkconfig: allow validation developers to add settings
+  * vkconfig: fix enum setting with hidden values
+  * vkconfig: fix init of enum with hidden view
+  * vkconfig: make filesystem setting easier to read
+  * vkconfig: remove useless expensive reset
+  * vkconfig: bound int field display to int range
+  * vkconfig: update filesystem tooltip
+  * vkconfig: refactor string UI
+  * vkconfig: clean up
+  * vkconfig: add validation test of layer manifests
+  * vkconfig: add presets to API dump
+  * vkconfig: fix unit tests due to API dump changes
+  * vkconfig: updated release note
+  * vkconfig: reduce JSON schema validation, too slow
+  * vkconfig: fix handling of integers into the list
+  * vkconfig: bring back Vulkan status
+  * vkconfig: remove dead code
+  * vkconfig: refactor JSON schema to prevent validator bug..
+
+  [ Jeremy Kniager ]
+  * devsim: Add support got VK_KHR_8bit_storage
+  * devsim: Add VK_KHR_buffer_device_address
+  * devsim: Add support for depth_stencil_resolve
+  * devsim: Add support for imageless_framebuffer
+  * devsim: Add support for extension
+  * devsim: Add support for VK_KHR_shader_atomic_int64
+  * devsim: Add support for VK_KHR_shader_float16_int8
+  * devsim: Add support for shader_float_controls
+  * devsim: Add support for extension
+  * devsim: Add support for VK_KHR_timeline_semaphore
+  * devsim: Add support for extension
+  * devsim: Add support for VK_KHR_vulkan_memory_model
+  * devsim: Add support for VK_EXT_descriptor_indexing
+  * devsim: Add support for VK_EXT_host_query_reset
+  * devsim: Add support for sampler_filter_minmax
+  * devsim: Add support for VK_EXT_scalar_block_layout
+  * devsim: Add Vulkan 1.2 Support
+  * devsim: Add Vulkan 1.1 structs
+
+  [ Christophe ]
+  * vkconfig: fix list values checking
+
+  [ Mike Schuchardt ]
+  * monitor: Fix crash on Wayland
+  * monitor: Add platform info to docs
+
+  [ Christophe ]
+  * vkconfig: Fix crash when SDK path is included in 'VkLayer_override.json'
+  * vkconfig: fix unit test
+  * vkconfig: add setting group
+  * vkconfig: bool setting type chidren are disabled in the UI
+  * vkconfig: fix validation debug action UI
+  * vkconfig: add enable to list type
+  * vkconfig: add setting group
+  * vkconfig: disociate vkconfig and layers config versions
+  * vkconfig: bring back schema validation
+  * vkconfig: add setting group to layer schema
+  * vkconfig: full schema backup due to validator bug
+  * vkconfig: fix setting children duing override
+  * vkconfig: Refactor API dump to leverage setting groups
+  * vkconfig: refactor gfxrecon settings to use groups
+  * vkconfig: fix build
+  * vkconfig: refactor layer setting data load for code sharing
+  * vkconfig: add parsing of dependences
+  * vkconfig: add none dependence mode
+  * vkconfig: add none dependence mode
+  * vkconfig: add UI dependence support
+  * vkconfig: add filesystem dependences
+  * vkconfig: use json schema dependence for validation layer
+  * vkconfig: replace built-in by data-driven dependence
+  * vkconfig: fix UI artifacts
+  * vkconfig: clean up dead code
+
+  [ Danylo Piliaiev ]
+  * devsim: allow multiple enumerations of phys devices
+
+  [ Christophe ]
+  * vkconfig: data-driven depedencies UI
+  * vkconfig: add string UI dependency support
+  * vkconfig: add dependency support to flags setting type
+  * vkconfig: add dependency support to list setting type
+  * vkconfig: add dependency support to list element
+  * vkconfig: fix list element dependence UI update
+  * vkconfig: update API dump dependence
+  * vkconfig: fix infinite signals
+  * vkconfig: updated all versions of gfxrecon with dependences
+  * vkconfig: add dependence to all validation
+  * vkconfig: add data-driven dependence to flag setting type
+  * vkconfig: use dd-layers setting flags for validation layer
+  * vkconfig: clean up
+  * vkconfig: refactor API dump settings dependences
+  * Screenshot: add settings to layer manifest
+  * devsim: add settings to layer manifest
+  * vkconfig: add valiation layer dependences
+  * devsim: fix layer file verison
+  * screenshot: fix file format version
+  * vkconfig: fix file format version
+  * vkconfig: fix unit test
+  * vkconfig: fix unit test
+  * vkconfig: clean up layer schema version
+  * API Dump: add layers settings to JSON files
+  * API-dump: refactor dependences
+  * API dump: fix layer file verison
+  * API Dump: fixes from review
+  * API Dump: fixes from review
+  * vkconfig: fix API dump text from review
+  * vkconfig: add VUIDs files
+  * vkconfig: remove unnecessary VUIDs files
+  * vkconfig: add loading of VUID from validusage.json
+
+  [ Jeremy Kniager ]
+  * tests: Update DevSim Tests
+
+  [ Bob Ellison ]
+  * changes during live review - incomplete
+  * devsim: final results of live review and rework
+
+  [ Jeremy Kniager ]
+  * devsim: Fine tune after live review and rewrite
+  * tests: Update Devsim test script in GitHub Actions
+
+  [ Christophe ]
+  * vkconfig: fix default buffer oob
+  * vkconfig: fix default buffer oob
+  * vkconfig: refresh changelog
+  * vkconfig: clean up invalid layer error messages
+  * vkconfig: fix invalid layer manifest checking
+  * vkconfig: add loading of VUIDs from VULKAN_SDK path
+  * vkconfig: add Linux tarball support
+  * vkconfig: add Linux tarball support
+  * vkconfig: fix Linux package SDK VUIDs loading
+  * vkconfig: remove submodules
+  * vkconfig: use valijon to validate layer manifest
+  * vkconfig: remove workaround due to previous schema parser bug
+  * vkconfig: remove unused file
+  * vkconfig: fix qt creator build
+  * vkconfig: reduce loading time
+  * vkconfig: remove workaround due to previous parser bug
+  * vkconfig: fix test
+  * vkconfig: built-in configs are optional
+  * vkconfig: add unit test for optional SDK layers
+  * vkconfig: clean up list completer UI behavior
+  * vkconfig: clean not necessary code
+  * vkconfig: refactor validation panel
+  * vkconfig: fix crash when settings are missing
+  * vkconfig: 'library_path' is optional
+  * vkconfig: fix optional layers
+  * vkconifg: fix Clang warnings
+  * vkconfig: streamline 'preset' widget UI refresh
+  * vkconfig: Fix duplicate configurations #1445
+  * vkconfig: fix unit test
+  * vkconfig: ensure that no invalid value are saved
+  * vkconfig: fix loading of built-in settings
+  * vkconfig: clean up
+  * vkconfig: fix APi dump inconsistency #1454
+  * vkconfig: fix crash when adding new layers #1446 #1449
+  * vkconfig: fix unit tests
+  * vkconfig: Fix layer reordering crash #1449
+  * vkconfig: updated changelog
+  * vkconfig: fix search built-in settings version
+  * vkconfig: fix validation settings for SDK 135
+  * vkconfig: fix Ok button disabled incorrectly
+  * vkconfig: fix blank setting tree #1377
+  * vkconfig: fix blank setting tree #1377
+
+  [ Tony-LunarG ]
+  * monitor: Use monitor_layer_data to avoid layer_data namespace
+  * factory: Adapt to new definition of VK_NULL_HANDLE
+
+  [ Charles Giessen ]
+  * cmake: Disable autogen for video extensions
+
+  [ Tony-LunarG ]
+  * build: update known_good to v1.2.176 headers
+
+  [ Christophe ]
+  * vkconfig: redesign setting UI dependences
+  * vkconfig: fix macOS build
+  * vkconfig: fix validation settings update
+  * vkconfig: fix validation UI displayed on unsupported platforms
+  * vkconfig: dual mode widget refresh
+  * vkconfig: clean up shader-based refresh
+  * vkconfig: ensure all widget are up to date
+  * vkconfig: refactor list widget
+  * vkconfig: updated changelog
+  * vkconfig: Avoid API dump log to go in SDK bin dir #1469
+  * vkconfig: use  directory by default
+  * vkconfig: fix file dialog location with built-in var
+  * vkconfig: fix expected listed layer #1460
+  * vkconfig: fix tree state for sync config
+  * vkconfig: 'Reset To Default' that reset more things
+  * API dump: fix output_format documentation #1342
+  * screenshot: add missing doc for FORMAT setting #1341
+  * vkconfig: Improve 'High Validation Layer Overhead' warning UI
+  * vkconfig: fix completer not initialized #1468
+
+  [ John Zupin ]
+  * packaging: updated control version deps
+
+ -- John Zupin <john@odin>  Tue, 27 Apr 2021 14:32:59 -0600
+
 lunarg-tools (1.2.170.0~rc2-1lunarg20.04-1) focal; urgency=medium
 
   [ Christophe ]

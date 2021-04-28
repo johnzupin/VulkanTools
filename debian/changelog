@@ -1,3 +1,15 @@
+lunarg-tools (1.2.176.0~rc2-1lunarg18.04-1) bionic; urgency=medium
+
+  [ Christophe ]
+  * vkconfig: fix built-in variables #1474
+  * Revert "vkconfig: fix built-in variables #1474"
+  * vkconfig: prevent processing built-in var
+
+  [ Tony-LunarG ]
+  * build: Fix VK_HEADER_VERSION
+
+ -- John Zupin <john@odin>  Wed, 28 Apr 2021 10:50:05 -0600
+
 lunarg-tools (1.2.176.0~rc1-1lunarg18.04-1) bionic; urgency=medium
 
   [ Christophe ]

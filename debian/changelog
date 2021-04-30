@@ -1,3 +1,18 @@
+lunarg-tools (1.2.176.0~rc3-1lunarg18.04-1) bionic; urgency=medium
+
+  [ Christophe ]
+  * vkconfig: fix forward compatibility of old vkconfig
+  * vkconfig: fix forward compatibility of old vkconfig
+  * api dump: fix layer settings to use schema
+  * devsim: fix layer settings to use layer schema
+  * screenshot: fix layer settings to use layer schema
+  * monitor: uniformalize json format
+  * vkconfig: in application help for layer execution order #1479
+  * vkconfig: fix list UI
+  * vkconfig: fix list element resize
+
+ -- John Zupin <john@odin>  Fri, 30 Apr 2021 12:05:47 -0600
+
 lunarg-tools (1.2.176.0~rc2-1lunarg18.04-1) bionic; urgency=medium
 
   [ Christophe ]

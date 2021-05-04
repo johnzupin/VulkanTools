@@ -1,3 +1,61 @@
+lunarg-tools (1.2.176.0~rc5-1lunarg20.04-1) focal; urgency=medium
+
+  [ Christophe ]
+  * vkconfig: Improve 'High Validation Layer Overhead' warning UI
+
+  [ Charles Giessen ]
+  * apidump: Use VkInstance instead of NULL in GIPA
+
+  [ Christophe ]
+  * vkconfig: clean up dead code
+  * vkconfig: add IsFloat unit test
+  * vkconfig: add NumberOrString unit test
+  * vkconfig: add NumberOrString comparison unit tests
+  * vkconfig: add ConvertValues unit test
+  * vkconfig: fix build
+  * vkconfig: fix completer not initialized #1468
+  * vkconfig: fix built-in variables #1474
+  * vkconfig: add version compat for old built-in vars
+  * vkconfig: prevent processing built-in var
+  * Revert "vkconfig: add version compat for old built-in vars"
+  * Revert "vkconfig: fix built-in variables #1474"
+  * vkconfig: fix comment
+
+  [ Tony-LunarG ]
+  * build: Fix VK_HEADER_VERSION
+
+  [ Mike Schuchardt ]
+  * scripts: Switch from mkpath to makedirs
+
+  [ Christophe ]
+  * vkconfig: fix forward compatibility of old vkconfig
+  * vkconfig: fix forward compatibility of old vkconfig
+  * api dump: fix layer settings to use schema
+  * devsim: fix layer settings to use layer schema
+  * screenshot: fix layer settings to use layer schema
+  * monitor: uniformalize json format
+  * vkconfig: in application help for layer execution order #1479
+  * vkconfig: fix list UI
+  * vkconfig: fix list element resize
+  * vkconfig: clean up
+
+  [ Charles Giessen ]
+  * vkconfig: Fix grammar in tooltip for layer order
+
+  [ Christophe ]
+  * vkconfig: fix urls
+  * vkconfig: Fix creating a new 'Configuration' can be cancelled
+  * vkconfig: fix double notification
+  * vkconfig: clean up
+  * vkconfig: add GatherParameters unit tests
+  * vkconfig: add IsSupported unit test
+  * vkconfig: add ProcessInput unit tests
+  * vkconfig add RemoveValue unit tests
+  * vkconfig: fix windows location for override files
+  * vkconfig: fix mac URL
+
+ -- John Zupin <john@odin>  Tue, 04 May 2021 14:28:17 -0600
+
 lunarg-tools (1.2.176.0~rc4-1lunarg20.04-1) focal; urgency=medium
 
   [ Charles Giessen ]

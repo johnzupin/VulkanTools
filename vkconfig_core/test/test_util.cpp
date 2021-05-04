@@ -192,6 +192,17 @@ TEST(test_util, is_number) {
     EXPECT_EQ(false, IsNumber("$%#&@()-_[]{}"));
 }
 
+TEST(test_util, is_float) {
+    EXPECT_EQ(true, IsFloat("1.0"));
+    EXPECT_EQ(true, IsFloat("-1.0"));
+    EXPECT_EQ(true, IsFloat("1"));
+    EXPECT_EQ(true, IsFloat("-1"));
+    EXPECT_EQ(true, IsFloat("1."));
+    EXPECT_EQ(true, IsFloat("-1."));
+    EXPECT_EQ(false, IsFloat("1.0f"));
+    EXPECT_EQ(false, IsFloat("-1.0f"));
+}
+
 TEST(test_util, is_frames) {
     EXPECT_EQ(true, IsFrames("0"));
     EXPECT_EQ(true, IsFrames("0-2"));
@@ -219,4 +230,171 @@ TEST(test_util, is_frames) {
     EXPECT_EQ(false, IsFrames("76,-"));
     EXPECT_EQ(false, IsFrames("76,-82"));
     EXPECT_EQ(false, IsFrames("1-8-2-1"));
+}
+
+TEST(test_util, number_or_string_ctr) {
+    NumberOrString expected0;
+    expected0.key = "key";
+    expected0.number = 0;
+
+    EXPECT_EQ(expected0, NumberOrString("key"));
+
+    NumberOrString expected1;
+    expected1.key = "";
+    expected1.number = 76;
+
+    EXPECT_EQ(expected1, NumberOrString("76"));
+
+    NumberOrString expected2;
+    expected2.key = "";
+    expected2.number = 76;
+
+    EXPECT_EQ(expected2, NumberOrString(76));
+}
+
+TEST(test_util, number_or_string_cmp) {
+    EXPECT_TRUE(NumberOrString("B") < NumberOrString("C"));
+    EXPECT_FALSE(NumberOrString("D") < NumberOrString("C"));
+    EXPECT_FALSE(NumberOrString("C") < NumberOrString("C"));
+
+    EXPECT_TRUE(NumberOrString(76) < NumberOrString(82));
+    EXPECT_FALSE(NumberOrString(76) < NumberOrString(75));
+    EXPECT_FALSE(NumberOrString(76) < NumberOrString(76));
+}
+
+TEST(test_util, number_or_string_list) {
+    std::vector<NumberOrString> list;
+    EXPECT_FALSE(IsValueFound(list, NumberOrString(76)));
+    EXPECT_FALSE(IsValueFound(list, NumberOrString(75)));
+    EXPECT_EQ(0, list.size());
+
+    AppendValue(list, NumberOrString(76));
+    EXPECT_TRUE(IsValueFound(list, NumberOrString(76)));
+    EXPECT_FALSE(IsValueFound(list, NumberOrString(75)));
+    EXPECT_EQ(1, list.size());
+
+    AppendValue(list, NumberOrString(76));
+    EXPECT_TRUE(IsValueFound(list, NumberOrString(76)));
+    EXPECT_FALSE(IsValueFound(list, NumberOrString(75)));
+    EXPECT_EQ(1, list.size());
+
+    RemoveValue(list, NumberOrString(76));
+    EXPECT_FALSE(IsValueFound(list, NumberOrString(76)));
+    EXPECT_FALSE(IsValueFound(list, NumberOrString(75)));
+    EXPECT_EQ(0, list.size());
+}
+
+TEST(test_util, enabled_number_or_string_ctr) {
+    EnabledNumberOrString expected0;
+    expected0.key = "key";
+    expected0.number = 0;
+
+    EXPECT_EQ(expected0, EnabledNumberOrString("key"));
+
+    EnabledNumberOrString expected1;
+    expected1.key = "";
+    expected1.number = 76;
+
+    EXPECT_EQ(expected1, EnabledNumberOrString("76"));
+
+    EnabledNumberOrString expected2;
+    expected2.key = "";
+    expected2.number = 76;
+
+    EXPECT_EQ(expected2, EnabledNumberOrString(76));
+}
+
+TEST(test_util, enabled_number_or_string_equal) {
+    EnabledNumberOrString expected0A;
+    expected0A.key = "key";
+    expected0A.number = 0;
+    expected0A.enabled = true;
+
+    EXPECT_EQ(expected0A, EnabledNumberOrString("key"));
+
+    EnabledNumberOrString expected0B;
+    expected0B.key = "key";
+    expected0B.number = 0;
+    expected0B.enabled = false;
+
+    EXPECT_EQ(expected0B, EnabledNumberOrString("key"));
+    EXPECT_EQ(expected0B, expected0A);
+
+    EnabledNumberOrString expected1A;
+    expected1A.key = "";
+    expected1A.number = 76;
+    expected1A.enabled = true;
+
+    EXPECT_EQ(expected1A, EnabledNumberOrString("76"));
+
+    EnabledNumberOrString expected1B;
+    expected1B.key = "";
+    expected1B.number = 76;
+    expected1B.enabled = false;
+
+    EXPECT_EQ(expected1B, EnabledNumberOrString("76"));
+    EXPECT_EQ(expected1B, expected1A);
+
+    EnabledNumberOrString expected2A;
+    expected2A.key = "";
+    expected2A.number = 76;
+    expected2A.enabled = true;
+
+    EXPECT_EQ(expected2A, EnabledNumberOrString(76));
+    EXPECT_EQ(expected2A, expected1A);
+
+    EnabledNumberOrString expected2B;
+    expected2B.key = "";
+    expected2B.number = 76;
+    expected2B.enabled = false;
+
+    EXPECT_EQ(expected2B, EnabledNumberOrString(76));
+    EXPECT_EQ(expected2B, expected2A);
+    EXPECT_EQ(expected2B, expected1B);
+}
+
+TEST(test_util, enabled_number_or_string_cmp) {
+    EXPECT_TRUE(EnabledNumberOrString("B") < EnabledNumberOrString("C"));
+    EXPECT_FALSE(EnabledNumberOrString("D") < EnabledNumberOrString("C"));
+    EXPECT_FALSE(EnabledNumberOrString("C") < EnabledNumberOrString("C"));
+
+    EXPECT_TRUE(EnabledNumberOrString(76) < EnabledNumberOrString(82));
+    EXPECT_FALSE(EnabledNumberOrString(76) < EnabledNumberOrString(75));
+    EXPECT_FALSE(EnabledNumberOrString(76) < EnabledNumberOrString(76));
+}
+
+TEST(test_util, enabled_number_or_string_list) {
+    std::vector<EnabledNumberOrString> list;
+    EXPECT_FALSE(IsValueFound(list, EnabledNumberOrString(76)));
+    EXPECT_EQ(0, list.size());
+
+    list.push_back(EnabledNumberOrString(76));
+    EXPECT_TRUE(IsValueFound(list, EnabledNumberOrString(76)));
+    EXPECT_FALSE(IsValueFound(list, EnabledNumberOrString(75)));
+    EXPECT_EQ(1, list.size());
+
+    RemoveValue(list, EnabledNumberOrString(76));
+    EXPECT_FALSE(IsValueFound(list, EnabledNumberOrString(76)));
+    EXPECT_FALSE(IsValueFound(list, EnabledNumberOrString(75)));
+    EXPECT_EQ(0, list.size());
+}
+
+TEST(test_util, enabled_number_or_string_convert) {
+    std::vector<NumberOrString> list;
+    AppendValue(list, NumberOrString(76));
+    AppendValue(list, NumberOrString(75));
+    AppendValue(list, NumberOrString("key"));
+    AppendValue(list, NumberOrString(82));
+    EXPECT_EQ(4, list.size());
+
+    QStringList qlist = ConvertValues(list);
+    EXPECT_EQ(4, qlist.size());
+
+    QStringList expected;
+    expected.push_back("76");
+    expected.push_back("75");
+    expected.push_back("key");
+    expected.push_back("82");
+
+    EXPECT_EQ(expected, qlist);
 }

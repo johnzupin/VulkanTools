@@ -183,22 +183,13 @@ void WidgetSettingList::OnCompleted(const QString &value) {
 }
 
 void WidgetSettingList::OnElementAppended() {
-    const QString entry = this->field->text();
-    if (entry.isEmpty()) return;
+    const std::string entry = this->field->text().toStdString();
+    if (entry.empty()) return;
 
-    const std::string string_value = entry.toStdString();
-    const bool is_number = IsNumber(string_value);
-
-    EnabledNumberOrString value;
-    value.key = is_number ? "" : string_value;
-    value.number = is_number ? std::atoi(string_value.c_str()) : 0;
-    value.enabled = true;
-
-    if (this->meta.list_only && !IsValueFound(this->meta.list, value)) {
+    if (this->meta.list_only && !IsValueFound(this->meta.list, entry)) {
         QMessageBox alert;
         alert.setWindowTitle("Invalid value");
-        alert.setText(
-            format("'%s' setting doesn't accept '%s' as a value", this->meta.label.c_str(), entry.toStdString().c_str()).c_str());
+        alert.setText(format("'%s' setting doesn't accept '%s' as a value", this->meta.label.c_str(), entry.c_str()).c_str());
         alert.setInformativeText("Please select a value from the list.");
         alert.setIcon(QMessageBox::Warning);
         alert.exec();
@@ -206,12 +197,10 @@ void WidgetSettingList::OnElementAppended() {
     }
 
     // Add the value if it's not in the list already
-    if (IsValueFound(this->data.value, value)) {
+    if (IsValueFound(this->data.value, entry)) {
         QMessageBox alert;
         alert.setWindowTitle("Duplicated value");
-        alert.setText(
-            format("'%s' setting already has the value '%s' listed", this->meta.label.c_str(), entry.toStdString().c_str())
-                .c_str());
+        alert.setText(format("'%s' setting already has the value '%s' listed", this->meta.label.c_str(), entry.c_str()).c_str());
         alert.setIcon(QMessageBox::Warning);
         alert.exec();
         return;
@@ -219,9 +208,9 @@ void WidgetSettingList::OnElementAppended() {
 
     this->field->setText("");
 
-    this->data.value.push_back(value);
+    this->data.value.push_back(entry);
     std::sort(this->data.value.begin(), this->data.value.end());
-    ::RemoveValue(this->list, value);
+    ::RemoveValue(this->list, entry);
 
     emit itemChanged();
 }
@@ -229,8 +218,6 @@ void WidgetSettingList::OnElementAppended() {
 void WidgetSettingList::OnTextEdited(const QString &value) {
     assert(this->add_button);
     assert(this->field);
-
-    // this->tree->blockSignals(true);
 
     if (value.isEmpty()) {
         this->item->setText(0, (this->meta.label + "  ").c_str());
@@ -241,34 +228,13 @@ void WidgetSettingList::OnTextEdited(const QString &value) {
     this->Resize();
 
     this->add_button->setEnabled(!value.isEmpty());
-
-    // this->tree->blockSignals(false);
-
-    // this->field->setFocus();
 }
 
 void WidgetSettingList::OnElementRemoved(const QString &element) {
-    const std::string string_value = element.toStdString();
-    const bool is_number = IsNumber(string_value);
-
-    NumberOrString list_value;
-    list_value.key = is_number ? "" : string_value;
-    list_value.number = is_number ? std::atoi(string_value.c_str()) : 0;
+    NumberOrString list_value(element.toStdString());
     this->list.push_back(list_value);
 
-    EnabledNumberOrString data_value;
-    data_value.key = list_value.key;
-    data_value.number = list_value.number;
-    data_value.enabled = true;
-
-    for (auto it = this->data.value.begin(), end = this->data.value.end(); it != end; ++it) {
-        if (*it == data_value) {
-            this->data.value.erase(it);
-            break;
-        }
-    }
-
-    std::sort(this->data.value.begin(), this->data.value.end());
+    RemoveValue(this->data.value, EnabledNumberOrString(list_value));
 }
 
 void WidgetSettingList::OnElementRejected() { this->OnTextEdited(""); }

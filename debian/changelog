@@ -1,3 +1,15 @@
+lunarg-tools (1.2.176.0~rc4-1lunarg20.04-1) focal; urgency=medium
+
+  [ Charles Giessen ]
+  * vkconfig: Fix grammar in tooltip for layer order
+
+  [ Christophe ]
+  * vkconfig: fix urls
+  * vkconfig: Fix creating a new 'Configuration' can be cancelled
+  * vkconfig: fix double notification
+
+ -- John Zupin <john@odin>  Tue, 04 May 2021 10:22:39 -0600
+
 lunarg-tools (1.2.176.0~rc3-1lunarg20.04-1) focal; urgency=medium
 
   [ Christophe ]

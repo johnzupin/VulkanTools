@@ -108,12 +108,19 @@ std::string ToUpperCase(const std::string& value);
 
 struct NumberOrString {
     NumberOrString() : number(0) {}
+    NumberOrString(int value) : number(value) {}
+    NumberOrString(const std::string& value)
+        : key(IsNumber(value) ? "" : value), number(IsNumber(value) ? std::atoi(value.c_str()) : 0) {}
 
     std::string key;
     int number;
 };
 
 struct EnabledNumberOrString : public NumberOrString {
+    EnabledNumberOrString() : enabled(true) {}
+    EnabledNumberOrString(const std::string& value) : NumberOrString(value), enabled(true) {}
+    EnabledNumberOrString(const NumberOrString& value) : NumberOrString(value), enabled(true) {}
+
     bool enabled;
 };
 
@@ -133,6 +140,8 @@ inline bool operator<(const NumberOrString& a, const NumberOrString& b) {
 
 // Remove a value if it's present
 void RemoveValue(std::vector<NumberOrString>& list, const NumberOrString& value);
+
+void RemoveValue(std::vector<EnabledNumberOrString>& list, const EnabledNumberOrString& value);
 
 // Add a value with no duplicate
 void AppendValue(std::vector<NumberOrString>& list, const NumberOrString& value);

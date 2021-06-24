@@ -26,6 +26,7 @@
 #include "../vkconfig_core/version.h"
 #include "../vkconfig_core/platform.h"
 #include "../vkconfig_core/util.h"
+#include "../vkconfig_core/setting_bool.h"
 
 #include <QSettings>
 #include <QMessageBox>
@@ -38,6 +39,7 @@ static const char *TOKEN_CORE_QUERY = "VALIDATION_CHECK_DISABLE_QUERY_VALIDATION
 static const char *TOKEN_CORE_DESC = "VALIDATION_CHECK_DISABLE_IDLE_DESCRIPTOR_SET";
 static const char *TOKEN_CORE_SHADER = "VK_VALIDATION_FEATURE_DISABLE_SHADERS_EXT";
 static const char *TOKEN_CORE_PUSH = "VALIDATION_CHECK_DISABLE_PUSH_CONSTANT_RANGE";
+static const char *TOKEN_CORE_CACHING = "VK_VALIDATION_FEATURE_DISABLE_SHADER_VALIDATION_CACHE_EXT";
 
 static const char *TOKEN_MISC_THREAD = "VK_VALIDATION_FEATURE_DISABLE_THREAD_SAFETY_EXT";
 static const char *TOKEN_MISC_UNIQUE = "VK_VALIDATION_FEATURE_DISABLE_UNIQUE_HANDLES_EXT";
@@ -108,6 +110,8 @@ WidgetSettingValidation::WidgetSettingValidation(QTreeWidget *tree, QTreeWidgetI
       widget_shader_gpu_reserve(nullptr),
       item_shader_gpu_oob(nullptr),
       widget_shader_gpu_oob(nullptr),
+      item_shader_gpu_indirect(nullptr),
+      widget_shader_gpu_indirect(nullptr),
       item_shader_printf(nullptr),
       widget_shader_printf(nullptr),
 
@@ -129,46 +133,58 @@ WidgetSettingValidation::WidgetSettingValidation(QTreeWidget *tree, QTreeWidgetI
       data_set(data_set) {
     assert(&meta_set);
     assert(&data_set);
-    assert(meta_set.Get<SettingMetaFlags>("enables") != nullptr);
-    assert(meta_set.Get<SettingMetaFlags>("disables") != nullptr);
-    assert(data_set.Get<SettingDataFlags>("enables") != nullptr);
-    assert(data_set.Get<SettingDataFlags>("disables") != nullptr);
+    assert(FindSetting(meta_set, "enables") != nullptr);
+    assert(FindSetting(meta_set, "disables") != nullptr);
+    assert(FindSetting(data_set, "enables") != nullptr);
+    assert(FindSetting(data_set, "disables") != nullptr);
 
     this->item->setText(0, "Validation Areas");
     this->item->setSizeHint(0, QSize(0, ITEM_HEIGHT));
+    this->item->setExpanded(false);
 
     // Core
     this->widget_core = this->CreateWidget(this->item, &this->item_core, "disables", TOKEN_CORE);
     if (this->widget_core != nullptr) {
         this->connect(this->widget_core, SIGNAL(clicked(bool)), this, SLOT(OnCoreChecked(bool)));
 
-        this->widget_core_layout = this->CreateWidget(this->item_core, &this->item_core_layout, "disables", TOKEN_CORE_LAYOUT);
-        if (this->widget_core_layout != nullptr)
-            this->connect(this->widget_core_layout, SIGNAL(clicked(bool)), this, SLOT(OnCoreLayoutChecked(bool)));
+        Configurator &configurator = Configurator::Get();
+        Configuration *configuration = configurator.configurations.GetActiveConfiguration();
 
-        this->widget_core_cmd = this->CreateWidget(this->item_core, &this->item_core_command, "disables", TOKEN_CORE_CMD);
-        if (this->widget_core_cmd != nullptr)
-            this->connect(this->widget_core_cmd, SIGNAL(clicked(bool)), this, SLOT(OnCoreCommandChecked(bool)));
+        if (configuration->view_advanced_settings) {
+            this->widget_core_layout = this->CreateWidget(this->item_core, &this->item_core_layout, "disables", TOKEN_CORE_LAYOUT);
+            if (this->widget_core_layout != nullptr)
+                this->connect(this->widget_core_layout, SIGNAL(clicked(bool)), this, SLOT(OnCoreLayoutChecked(bool)));
 
-        this->widget_core_object = this->CreateWidget(this->item_core, &this->item_core_object, "disables", TOKEN_CORE_OBJECT);
-        if (this->widget_core_object != nullptr)
-            this->connect(this->widget_core_object, SIGNAL(clicked(bool)), this, SLOT(OnCoreObjectChecked(bool)));
+            this->widget_core_cmd = this->CreateWidget(this->item_core, &this->item_core_command, "disables", TOKEN_CORE_CMD);
+            if (this->widget_core_cmd != nullptr)
+                this->connect(this->widget_core_cmd, SIGNAL(clicked(bool)), this, SLOT(OnCoreCommandChecked(bool)));
 
-        this->widget_core_query = this->CreateWidget(this->item_core, &this->item_core_query, "disables", TOKEN_CORE_QUERY);
-        if (this->widget_core_query != nullptr)
-            this->connect(this->widget_core_query, SIGNAL(clicked(bool)), this, SLOT(OnCoreQueryChecked(bool)));
+            this->widget_core_object = this->CreateWidget(this->item_core, &this->item_core_object, "disables", TOKEN_CORE_OBJECT);
+            if (this->widget_core_object != nullptr)
+                this->connect(this->widget_core_object, SIGNAL(clicked(bool)), this, SLOT(OnCoreObjectChecked(bool)));
 
-        this->widget_core_desc = this->CreateWidget(this->item_core, &this->item_core_desc, "disables", TOKEN_CORE_DESC);
-        if (this->widget_core_desc != nullptr)
-            this->connect(this->widget_core_desc, SIGNAL(clicked(bool)), this, SLOT(OnCoreDescChecked(bool)));
+            this->widget_core_query = this->CreateWidget(this->item_core, &this->item_core_query, "disables", TOKEN_CORE_QUERY);
+            if (this->widget_core_query != nullptr)
+                this->connect(this->widget_core_query, SIGNAL(clicked(bool)), this, SLOT(OnCoreQueryChecked(bool)));
 
-        this->widget_core_shader = this->CreateWidget(this->item_core, &this->item_core_shader, "disables", TOKEN_CORE_SHADER);
-        if (this->widget_core_shader != nullptr)
-            this->connect(this->widget_core_shader, SIGNAL(clicked(bool)), this, SLOT(OnCoreShaderChecked(bool)));
+            this->widget_core_desc = this->CreateWidget(this->item_core, &this->item_core_desc, "disables", TOKEN_CORE_DESC);
+            if (this->widget_core_desc != nullptr)
+                this->connect(this->widget_core_desc, SIGNAL(clicked(bool)), this, SLOT(OnCoreDescChecked(bool)));
 
-        this->widget_core_push = this->CreateWidget(this->item_core, &this->item_core_push, "disables", TOKEN_CORE_PUSH);
-        if (this->widget_core_push != nullptr)
-            this->connect(this->widget_core_push, SIGNAL(clicked(bool)), this, SLOT(OnCorePushChecked(bool)));
+            this->widget_core_shader = this->CreateWidget(this->item_core, &this->item_core_shader, "disables", TOKEN_CORE_SHADER);
+            if (this->widget_core_shader != nullptr) {
+                this->connect(this->widget_core_shader, SIGNAL(clicked(bool)), this, SLOT(OnCoreShaderChecked(bool)));
+
+                this->widget_core_caching =
+                    this->CreateWidget(this->item_core_shader, &this->item_core_caching, "disables", TOKEN_CORE_CACHING);
+                if (this->widget_core_caching != nullptr)
+                    this->connect(this->widget_core_caching, SIGNAL(clicked(bool)), this, SLOT(OnCoreCachingChecked(bool)));
+            }
+
+            this->widget_core_push = this->CreateWidget(this->item_core, &this->item_core_push, "disables", TOKEN_CORE_PUSH);
+            if (this->widget_core_push != nullptr)
+                this->connect(this->widget_core_push, SIGNAL(clicked(bool)), this, SLOT(OnCorePushChecked(bool)));
+        }
     }
 
     // Misc: VK_VALIDATION_FEATURE_DISABLE_THREAD_SAFETY_EXT
@@ -222,7 +238,7 @@ WidgetSettingValidation::WidgetSettingValidation(QTreeWidget *tree, QTreeWidgetI
                 this->connect(this->widget_shader_gpu_reserve, SIGNAL(clicked(bool)), this, SLOT(OnShaderGPUReserveChecked(bool)));
 
             {
-                const SettingMetaBool *value = FindSettingMeta<SettingMetaBool>(meta_set, "gpuav_buffer_oob");
+                const SettingMetaBool *value = FindSetting<SettingMetaBool>(meta_set, "gpuav_buffer_oob");
                 if (IsSupported(value)) {
                     this->item_shader_gpu_oob = new QTreeWidgetItem();
                     this->item_shader_gpu_oob->setSizeHint(0, QSize(0, ITEM_HEIGHT));
@@ -233,6 +249,22 @@ WidgetSettingValidation::WidgetSettingValidation(QTreeWidget *tree, QTreeWidgetI
                     this->widget_shader_gpu_oob->setToolTip(value->description.c_str());
                     this->tree->setItemWidget(this->item_shader_gpu_oob, 0, this->widget_shader_gpu_oob);
                     this->connect(this->widget_shader_gpu_oob, SIGNAL(clicked(bool)), this, SLOT(OnShaderGPUOOBChecked(bool)));
+                }
+            }
+
+            {
+                const SettingMetaBool *value = FindSetting<SettingMetaBool>(meta_set, "validate_draw_indirect");
+                if (IsSupported(value)) {
+                    this->item_shader_gpu_indirect = new QTreeWidgetItem();
+                    this->item_shader_gpu_indirect->setSizeHint(0, QSize(0, ITEM_HEIGHT));
+                    this->item_shader_gpu->addChild(this->item_shader_gpu_indirect);
+
+                    this->widget_shader_gpu_indirect = new QCheckBox(this);
+                    this->widget_shader_gpu_indirect->setText(value->label.c_str());
+                    this->widget_shader_gpu_indirect->setToolTip(value->description.c_str());
+                    this->tree->setItemWidget(this->item_shader_gpu_indirect, 0, this->widget_shader_gpu_indirect);
+                    this->connect(this->widget_shader_gpu_indirect, SIGNAL(clicked(bool)), this,
+                                  SLOT(OnShaderGPUIndirectChecked(bool)));
                 }
             }
 
@@ -247,7 +279,7 @@ WidgetSettingValidation::WidgetSettingValidation(QTreeWidget *tree, QTreeWidgetI
             this->connect(this->widget_shader_printf, SIGNAL(toggled(bool)), this, SLOT(OnShaderPrintfChecked(bool)));
 
             {
-                const SettingMetaBool *value = FindSettingMeta<SettingMetaBool>(meta_set, "printf_to_stdout");
+                const SettingMetaBool *value = FindSetting<SettingMetaBool>(meta_set, "printf_to_stdout");
                 if (IsSupported(value)) {
                     this->item_shader_printf_to_stdout = new QTreeWidgetItem();
                     this->item_shader_printf_to_stdout->setSizeHint(0, QSize(0, ITEM_HEIGHT));
@@ -263,7 +295,7 @@ WidgetSettingValidation::WidgetSettingValidation(QTreeWidget *tree, QTreeWidgetI
             }
 
             {
-                const SettingMetaBool *value = FindSettingMeta<SettingMetaBool>(meta_set, "printf_verbose");
+                const SettingMetaBool *value = FindSetting<SettingMetaBool>(meta_set, "printf_verbose");
                 if (IsSupported(value)) {
                     this->item_shader_printf_verbose = new QTreeWidgetItem();
                     this->item_shader_printf_verbose->setSizeHint(0, QSize(0, ITEM_HEIGHT));
@@ -279,7 +311,7 @@ WidgetSettingValidation::WidgetSettingValidation(QTreeWidget *tree, QTreeWidgetI
             }
 
             {
-                const SettingMetaInt *value = FindSettingMeta<SettingMetaInt>(meta_set, "printf_buffer_size");
+                const SettingMetaInt *value = FindSetting<SettingMetaInt>(meta_set, "printf_buffer_size");
                 if (IsSupported(value)) {
                     this->item_shader_printf_size = new QTreeWidgetItem();
                     this->item_shader_printf->addChild(this->item_shader_printf_size);
@@ -336,6 +368,7 @@ void WidgetSettingValidation::OnCoreChecked(bool checked) {
         this->UpdateFlag("disables", TOKEN_CORE_DESC, false);
         this->UpdateFlag("disables", TOKEN_CORE_SHADER, false);
         this->UpdateFlag("disables", TOKEN_CORE_PUSH, false);
+        this->UpdateFlag("disables", TOKEN_CORE_CACHING, false);
     }
 
     if (widget_core_layout != nullptr) {
@@ -355,6 +388,9 @@ void WidgetSettingValidation::OnCoreChecked(bool checked) {
     }
     if (widget_core_shader != nullptr) {
         widget_core_shader->setChecked(!HasDataFlag("disables", TOKEN_CORE_SHADER));
+        if (widget_core_caching != nullptr) {
+            widget_core_caching->setChecked(!HasDataFlag("disables", TOKEN_CORE_CACHING));
+        }
     }
     if (widget_core_push != nullptr) {
         widget_core_push->setChecked(!HasDataFlag("disables", TOKEN_CORE_PUSH));
@@ -395,6 +431,11 @@ void WidgetSettingValidation::OnCoreShaderChecked(bool checked) {
 
 void WidgetSettingValidation::OnCorePushChecked(bool checked) {
     this->UpdateFlag("disables", TOKEN_CORE_PUSH, !checked);
+    this->OnSettingChanged();
+}
+
+void WidgetSettingValidation::OnCoreCachingChecked(bool checked) {
+    this->UpdateFlag("disables", TOKEN_CORE_CACHING, !checked);
     this->OnSettingChanged();
 }
 
@@ -451,7 +492,12 @@ void WidgetSettingValidation::OnShaderGPUReserveChecked(bool checked) {
 }
 
 void WidgetSettingValidation::OnShaderGPUOOBChecked(bool checked) {
-    this->data_set.Get<SettingDataBool>("gpuav_buffer_oob")->value = checked;
+    static_cast<SettingDataBool *>(FindSetting(this->data_set, "gpuav_buffer_oob"))->value = checked;
+    this->OnSettingChanged();
+}
+
+void WidgetSettingValidation::OnShaderGPUIndirectChecked(bool checked) {
+    static_cast<SettingDataBool *>(FindSetting(this->data_set, "validate_draw_indirect"))->value = checked;
     this->OnSettingChanged();
 }
 
@@ -462,12 +508,12 @@ void WidgetSettingValidation::OnShaderPrintfChecked(bool checked) {
 }
 
 void WidgetSettingValidation::OnShaderPrintfStdoutChecked(bool checked) {
-    this->data_set.Get<SettingDataBool>("printf_to_stdout")->value = checked;
+    static_cast<SettingDataBool *>(FindSetting(this->data_set, "printf_to_stdout"))->value = checked;
     this->OnSettingChanged();
 }
 
 void WidgetSettingValidation::OnShaderPrintfVerboseChecked(bool checked) {
-    this->data_set.Get<SettingDataBool>("printf_verbose")->value = checked;
+    static_cast<SettingDataBool *>(FindSetting(this->data_set, "printf_verbose"))->value = checked;
     this->OnSettingChanged();
 }
 
@@ -542,7 +588,7 @@ bool WidgetSettingValidation::CheckOverhead(Overhead candidate) const {
 void WidgetSettingValidation::OnSettingChanged() { emit itemChanged(); }
 
 void WidgetSettingValidation::UpdateFlag(const char *key, const char *flag, bool append) {
-    SettingDataFlags *data = data_set.Get<SettingDataFlags>(key);
+    SettingDataFlags *data = static_cast<SettingDataFlags *>(FindSetting(this->data_set, key));
     assert(data != nullptr);
 
     if (append) {
@@ -552,14 +598,18 @@ void WidgetSettingValidation::UpdateFlag(const char *key, const char *flag, bool
     }
 }
 
-bool WidgetSettingValidation::HasDataBool(const char *key) const { return data_set.Get<SettingDataBool>(key)->value; }
+bool WidgetSettingValidation::HasDataBool(const char *key) const {
+    return static_cast<SettingDataBool *>(FindSetting(this->data_set, key))->value;
+}
 
 bool WidgetSettingValidation::HasDataFlag(const char *key, const char *flag) const {
-    return IsStringFound(data_set.Get<SettingDataFlags>(key)->value, flag);
+    const SettingDataFlags *data = static_cast<const SettingDataFlags *>(FindSetting(this->data_set, key));
+
+    return IsStringFound(data->value, flag);
 }
 
 const SettingEnumValue *WidgetSettingValidation::GetMetaFlag(const char *key, const char *flag) const {
-    return FindByKey(meta_set.Get<SettingMetaFlags>(key)->enum_values, flag);
+    return FindByKey(static_cast<const SettingMetaFlags *>(FindSetting(this->meta_set, key))->enum_values, flag);
 }
 
 void WidgetSettingValidation::Refresh(RefreshAreas refresh_areas) {
@@ -600,8 +650,16 @@ void WidgetSettingValidation::Refresh(RefreshAreas refresh_areas) {
 
     if (this->widget_core_shader != nullptr) {
         this->widget_core_shader->setEnabled(core_enabled);
-        if (refresh_areas == REFRESH_ENABLE_AND_STATE)
-            this->widget_core_shader->setChecked(!HasDataFlag("disables", TOKEN_CORE_SHADER));
+
+        const bool shader_enabled = !HasDataFlag("disables", TOKEN_CORE_SHADER);
+
+        if (refresh_areas == REFRESH_ENABLE_AND_STATE) this->widget_core_shader->setChecked(shader_enabled);
+
+        if (this->widget_core_caching != nullptr) {
+            this->widget_core_caching->setEnabled(core_enabled && shader_enabled);
+            if (refresh_areas == REFRESH_ENABLE_AND_STATE)
+                this->widget_core_caching->setChecked(!HasDataFlag("disables", TOKEN_CORE_CACHING));
+        }
     }
 
     if (this->widget_core_push != nullptr) {
@@ -651,6 +709,12 @@ void WidgetSettingValidation::Refresh(RefreshAreas refresh_areas) {
                 this->widget_shader_gpu_oob->setEnabled(shader_gpu);
                 if (refresh_areas == REFRESH_ENABLE_AND_STATE)
                     this->widget_shader_gpu_oob->setChecked(this->HasDataBool("gpuav_buffer_oob"));
+            }
+
+            if (this->widget_shader_gpu_indirect != nullptr) {
+                this->widget_shader_gpu_indirect->setEnabled(shader_gpu);
+                if (refresh_areas == REFRESH_ENABLE_AND_STATE)
+                    this->widget_shader_gpu_indirect->setChecked(this->HasDataBool("validate_draw_indirect"));
             }
 
             if (this->widget_shader_printf != nullptr) {

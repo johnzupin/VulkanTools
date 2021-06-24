@@ -69,7 +69,7 @@ namespace {
 // layersvt/VkLayer_device_simulation.json.in
 
 const uint32_t kVersionDevsimMajor = 1;
-const uint32_t kVersionDevsimMinor = 7;
+const uint32_t kVersionDevsimMinor = 9;
 const uint32_t kVersionDevsimPatch = 0;
 const uint32_t kVersionDevsimImplementation = VK_MAKE_VERSION(kVersionDevsimMajor, kVersionDevsimMinor, kVersionDevsimPatch);
 
@@ -286,6 +286,14 @@ const VkFormat StandardVkFormatEnumList[] = {
     VK_FORMAT_ASTC_12x12_SRGB_BLOCK,
 };
 
+enum ArrayCombinationMode {
+    ARRAY_COMBINATION_MODE_NONE,
+    ARRAY_COMBINATION_MODE_REPLACE,
+    ARRAY_COMBINATION_MODE_WHITELIST,
+    ARRAY_COMBINATION_MODE_BLACKLIST,
+    ARRAY_COMBINATION_MODE_INTERSECT
+};
+
 // Environment variables defined by this layer ///////////////////////////////////////////////////////////////////////////////////
 
 #if defined(__ANDROID__)
@@ -299,6 +307,18 @@ const char *const kEnvarDevsimModifyExtensionList =
     "debug.vulkan.devsim.modifyextensionlist";  // a non-zero integer will enable modifying device extensions list.
 const char *const kEnvarDevsimModifyMemoryFlags =
     "debug.vulkan.devsim.modifymemoryflags";  // a non-zero integer will enable modifying device memory flags.
+const char *const kEnvarDevsimModifyFormatList =
+    "debug.vulkan.devsim.modifyformatlist";  // an ArrayCombinationMode value sets how the device and config format lists are
+                                             // combined.
+const char *const kEnvarDevsimModifyFormatProperties =
+    "debug.vulkan.devsim.modifyformatproperties";  // an ArrayCombinationMode value sets how the device and config format properties
+                                                   // are combined.
+const char *const kEnvarDevsimModifySurfaceFormats =
+    "debug.vulkan.devsim.modifysurfaceformats";  // an ArrayCombinationMode value sets how the device and config surface format
+                                                 // lists are combined.
+const char *const kEnvarDevsimModifyPresentModes =
+    "debug.vulkan.devsim.modifypresentmodes";  // an ArrayCombinationMode value sets how the device and config present modes are
+                                               // combined.
 #else
 const char *const kEnvarDevsimFilename = "VK_DEVSIM_FILENAME";          // path of the configuration file(s) to load.
 const char *const kEnvarDevsimDebugEnable = "VK_DEVSIM_DEBUG_ENABLE";   // a non-zero integer will enable debugging output.
@@ -307,9 +327,20 @@ const char *const kEnvarDevsimEmulatePortability =
     "VK_DEVSIM_EMULATE_PORTABILITY_SUBSET_EXTENSION";  // a non-zero integer will enable emulation of the VK_KHR_portability_subset
                                                        // extension.
 const char *const kEnvarDevsimModifyExtensionList =
-    "VK_DEVSIM_MODIFY_EXTENSION_LIST";  // a non-zero integer will enable modifying device extensions list.
+    "VK_DEVSIM_MODIFY_EXTENSION_LIST";  // an ArrayCombinationMode value sets how the device and config extension lists are
+                                        // combined.
 const char *const kEnvarDevsimModifyMemoryFlags =
     "VK_DEVSIM_MODIFY_MEMORY_FLAGS";  // a non-zero integer will enable modifying device memory flags.
+const char *const kEnvarDevsimModifyFormatList =
+    "VK_DEVSIM_MODIFY_FORMAT_LIST";  // an ArrayCombinationMode value sets how the device and config format lists are combined.
+const char *const kEnvarDevsimModifyFormatProperties =
+    "VK_DEVSIM_MODIFY_FORMAT_PROPERTIES";  // an ArrayCombinationMode value sets how the device and config format properties are
+                                           // combined.
+const char *const kEnvarDevsimModifySurfaceFormats =
+    "VK_DEVSIM_MODIFY_SURFACE_FORMATS";  // an ArrayCombinationMode value sets how the device and config surface format lists are
+                                         // combined.
+const char *const kEnvarDevsimModifyPresentModes =
+    "VK_DEVSIM_MODIFY_PRESENT_MODES";  // an ArrayCombinationMode value sets how the device and config present modes are combined.
 #endif
 
 const char *const kLayerSettingsDevsimFilename =
@@ -327,6 +358,24 @@ const char *const kLayerSettingsDevsimModifyExtensionList =
 const char *const kLayerSettingsDevsimModifyMemoryFlags =
     "lunarg_device_simulation.modify_memory_flags";  // vk_layer_settings.txt equivalent for kEnvarDevsimModifyMemoryFlags
 
+const char *const kLayerSettingsDevsimModifyFormatList =
+    "lunarg_device_simulation.modify_format_list";  // an ArrayCombinationMode value sets how the device and config format lists are
+                                                    // combined.
+const char *const kLayerSettingsDevsimModifyFormatProperties =
+    "lunarg_device_simulation.modify_format_properties";  // an ArrayCombinationMode value sets how the device and config format
+                                                          // properties are combined.
+const char *const kLayerSettingsDevsimModifySurfaceFormats =
+    "lunarg_device_simulation.modify_surface_formats";  // an ArrayCombinationMode value sets how the device and config surface
+                                                        // format lists are combined.
+const char *const kLayerSettingsDevsimModifyPresentModes =
+    "lunarg_device_simulation.modify_present_modes";  // an ArrayCombinationMode value sets how the device and config present modes
+                                                      // are combined.
+
+struct ArrayCombinationModeSetting {
+    ArrayCombinationMode mode;
+    bool fromEnvVar;
+};
+
 struct IntSetting {
     int num;
     bool fromEnvVar;
@@ -341,8 +390,12 @@ struct StringSetting inputFilename;
 struct IntSetting debugLevel;
 struct IntSetting errorLevel;
 struct IntSetting emulatePortability;
-struct IntSetting modifyExtensionList;
+struct ArrayCombinationModeSetting modifyExtensionList;
 struct IntSetting modifyMemoryFlags;
+struct ArrayCombinationModeSetting modifyFormatList;
+struct ArrayCombinationModeSetting modifyFormatProperties;
+struct ArrayCombinationModeSetting modifySurfaceFormats;
+struct ArrayCombinationModeSetting modifyPresentModes;
 
 // Various small utility functions ///////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -461,6 +514,754 @@ void ErrorPrintf(const char *fmt, ...) {
     }
 }
 
+std::string vkFormatToString(VkFormat fmt) {
+    switch (fmt) {
+        case VK_FORMAT_UNDEFINED:
+            return "VK_FORMAT_UNDEFINED";
+            break;
+        case VK_FORMAT_R4G4_UNORM_PACK8:
+            return "VK_FORMAT_R4G4_UNORM_PACK8";
+            break;
+        case VK_FORMAT_R4G4B4A4_UNORM_PACK16:
+            return "VK_FORMAT_R4G4B4A4_UNORM_PACK16";
+            break;
+        case VK_FORMAT_B4G4R4A4_UNORM_PACK16:
+            return "VK_FORMAT_B4G4R4A4_UNORM_PACK16";
+            break;
+        case VK_FORMAT_R5G6B5_UNORM_PACK16:
+            return "VK_FORMAT_R5G6B5_UNORM_PACK16";
+            break;
+        case VK_FORMAT_B5G6R5_UNORM_PACK16:
+            return "VK_FORMAT_B5G6R5_UNORM_PACK16";
+            break;
+        case VK_FORMAT_R5G5B5A1_UNORM_PACK16:
+            return "VK_FORMAT_R5G5B5A1_UNORM_PACK16";
+            break;
+        case VK_FORMAT_B5G5R5A1_UNORM_PACK16:
+            return "VK_FORMAT_B5G5R5A1_UNORM_PACK16";
+            break;
+        case VK_FORMAT_A1R5G5B5_UNORM_PACK16:
+            return "VK_FORMAT_A1R5G5B5_UNORM_PACK16";
+            break;
+        case VK_FORMAT_R8_UNORM:
+            return "VK_FORMAT_R8_UNORM";
+            break;
+        case VK_FORMAT_R8_SNORM:
+            return "VK_FORMAT_R8_SNORM";
+            break;
+        case VK_FORMAT_R8_USCALED:
+            return "VK_FORMAT_R8_USCALED";
+            break;
+        case VK_FORMAT_R8_SSCALED:
+            return "VK_FORMAT_R8_SSCALED";
+            break;
+        case VK_FORMAT_R8_UINT:
+            return "VK_FORMAT_R8_UINT";
+            break;
+        case VK_FORMAT_R8_SINT:
+            return "VK_FORMAT_R8_SINT";
+            break;
+        case VK_FORMAT_R8_SRGB:
+            return "VK_FORMAT_R8_SRGB";
+            break;
+        case VK_FORMAT_R8G8_UNORM:
+            return "VK_FORMAT_R8G8_UNORM";
+            break;
+        case VK_FORMAT_R8G8_SNORM:
+            return "VK_FORMAT_R8G8_SNORM";
+            break;
+        case VK_FORMAT_R8G8_USCALED:
+            return "VK_FORMAT_R8G8_USCALED";
+            break;
+        case VK_FORMAT_R8G8_SSCALED:
+            return "VK_FORMAT_R8G8_SSCALED";
+            break;
+        case VK_FORMAT_R8G8_UINT:
+            return "VK_FORMAT_R8G8_UINT";
+            break;
+        case VK_FORMAT_R8G8_SINT:
+            return "VK_FORMAT_R8G8_SINT";
+            break;
+        case VK_FORMAT_R8G8_SRGB:
+            return "VK_FORMAT_R8G8_SRGB";
+            break;
+        case VK_FORMAT_R8G8B8_UNORM:
+            return "VK_FORMAT_R8G8B8_UNORM";
+            break;
+        case VK_FORMAT_R8G8B8_SNORM:
+            return "VK_FORMAT_R8G8B8_SNORM";
+            break;
+        case VK_FORMAT_R8G8B8_USCALED:
+            return "VK_FORMAT_R8G8B8_USCALED";
+            break;
+        case VK_FORMAT_R8G8B8_SSCALED:
+            return "VK_FORMAT_R8G8B8_SSCALED";
+            break;
+        case VK_FORMAT_R8G8B8_UINT:
+            return "VK_FORMAT_R8G8B8_UINT";
+            break;
+        case VK_FORMAT_R8G8B8_SINT:
+            return "VK_FORMAT_R8G8B8_SINT";
+            break;
+        case VK_FORMAT_R8G8B8_SRGB:
+            return "VK_FORMAT_R8G8B8_SRGB";
+            break;
+        case VK_FORMAT_B8G8R8_UNORM:
+            return "VK_FORMAT_B8G8R8_UNORM";
+            break;
+        case VK_FORMAT_B8G8R8_SNORM:
+            return "VK_FORMAT_B8G8R8_SNORM";
+            break;
+        case VK_FORMAT_B8G8R8_USCALED:
+            return "VK_FORMAT_B8G8R8_USCALED";
+            break;
+        case VK_FORMAT_B8G8R8_SSCALED:
+            return "VK_FORMAT_B8G8R8_SSCALED";
+            break;
+        case VK_FORMAT_B8G8R8_UINT:
+            return "VK_FORMAT_B8G8R8_UINT";
+            break;
+        case VK_FORMAT_B8G8R8_SINT:
+            return "VK_FORMAT_B8G8R8_SINT";
+            break;
+        case VK_FORMAT_B8G8R8_SRGB:
+            return "VK_FORMAT_B8G8R8_SRGB";
+            break;
+        case VK_FORMAT_R8G8B8A8_UNORM:
+            return "VK_FORMAT_R8G8B8A8_UNORM";
+            break;
+        case VK_FORMAT_R8G8B8A8_SNORM:
+            return "VK_FORMAT_R8G8B8A8_SNORM";
+            break;
+        case VK_FORMAT_R8G8B8A8_USCALED:
+            return "VK_FORMAT_R8G8B8A8_USCALED";
+            break;
+        case VK_FORMAT_R8G8B8A8_SSCALED:
+            return "VK_FORMAT_R8G8B8A8_SSCALED";
+            break;
+        case VK_FORMAT_R8G8B8A8_UINT:
+            return "VK_FORMAT_R8G8B8A8_UINT";
+            break;
+        case VK_FORMAT_R8G8B8A8_SINT:
+            return "VK_FORMAT_R8G8B8A8_SINT";
+            break;
+        case VK_FORMAT_R8G8B8A8_SRGB:
+            return "VK_FORMAT_R8G8B8A8_SRGB";
+            break;
+        case VK_FORMAT_B8G8R8A8_UNORM:
+            return "VK_FORMAT_B8G8R8A8_UNORM";
+            break;
+        case VK_FORMAT_B8G8R8A8_SNORM:
+            return "VK_FORMAT_B8G8R8A8_SNORM";
+            break;
+        case VK_FORMAT_B8G8R8A8_USCALED:
+            return "VK_FORMAT_B8G8R8A8_USCALED";
+            break;
+        case VK_FORMAT_B8G8R8A8_SSCALED:
+            return "VK_FORMAT_B8G8R8A8_SSCALED";
+            break;
+        case VK_FORMAT_B8G8R8A8_UINT:
+            return "VK_FORMAT_B8G8R8A8_UINT";
+            break;
+        case VK_FORMAT_B8G8R8A8_SINT:
+            return "VK_FORMAT_B8G8R8A8_SINT";
+            break;
+        case VK_FORMAT_B8G8R8A8_SRGB:
+            return "VK_FORMAT_B8G8R8A8_SRGB";
+            break;
+        case VK_FORMAT_A8B8G8R8_UNORM_PACK32:
+            return "VK_FORMAT_A8B8G8R8_UNORM_PACK32";
+            break;
+        case VK_FORMAT_A8B8G8R8_SNORM_PACK32:
+            return "VK_FORMAT_A8B8G8R8_SNORM_PACK32";
+            break;
+        case VK_FORMAT_A8B8G8R8_USCALED_PACK32:
+            return "VK_FORMAT_A8B8G8R8_USCALED_PACK32";
+            break;
+        case VK_FORMAT_A8B8G8R8_SSCALED_PACK32:
+            return "VK_FORMAT_A8B8G8R8_SSCALED_PACK32";
+            break;
+        case VK_FORMAT_A8B8G8R8_UINT_PACK32:
+            return "VK_FORMAT_A8B8G8R8_UINT_PACK32";
+            break;
+        case VK_FORMAT_A8B8G8R8_SINT_PACK32:
+            return "VK_FORMAT_A8B8G8R8_SINT_PACK32";
+            break;
+        case VK_FORMAT_A8B8G8R8_SRGB_PACK32:
+            return "VK_FORMAT_A8B8G8R8_SRGB_PACK32";
+            break;
+        case VK_FORMAT_A2R10G10B10_UNORM_PACK32:
+            return "VK_FORMAT_A2R10G10B10_UNORM_PACK32";
+            break;
+        case VK_FORMAT_A2R10G10B10_SNORM_PACK32:
+            return "VK_FORMAT_A2R10G10B10_SNORM_PACK32";
+            break;
+        case VK_FORMAT_A2R10G10B10_USCALED_PACK32:
+            return "VK_FORMAT_A2R10G10B10_USCALED_PACK32";
+            break;
+        case VK_FORMAT_A2R10G10B10_SSCALED_PACK32:
+            return "VK_FORMAT_A2R10G10B10_SSCALED_PACK32";
+            break;
+        case VK_FORMAT_A2R10G10B10_UINT_PACK32:
+            return "VK_FORMAT_A2R10G10B10_UINT_PACK32";
+            break;
+        case VK_FORMAT_A2R10G10B10_SINT_PACK32:
+            return "VK_FORMAT_A2R10G10B10_SINT_PACK32";
+            break;
+        case VK_FORMAT_A2B10G10R10_UNORM_PACK32:
+            return "VK_FORMAT_A2B10G10R10_UNORM_PACK32";
+            break;
+        case VK_FORMAT_A2B10G10R10_SNORM_PACK32:
+            return "VK_FORMAT_A2B10G10R10_SNORM_PACK32";
+            break;
+        case VK_FORMAT_A2B10G10R10_USCALED_PACK32:
+            return "VK_FORMAT_A2B10G10R10_USCALED_PACK32";
+            break;
+        case VK_FORMAT_A2B10G10R10_SSCALED_PACK32:
+            return "VK_FORMAT_A2B10G10R10_SSCALED_PACK32";
+            break;
+        case VK_FORMAT_A2B10G10R10_UINT_PACK32:
+            return "VK_FORMAT_A2B10G10R10_UINT_PACK32";
+            break;
+        case VK_FORMAT_A2B10G10R10_SINT_PACK32:
+            return "VK_FORMAT_A2B10G10R10_SINT_PACK32";
+            break;
+        case VK_FORMAT_R16_UNORM:
+            return "VK_FORMAT_R16_UNORM";
+            break;
+        case VK_FORMAT_R16_SNORM:
+            return "VK_FORMAT_R16_SNORM";
+            break;
+        case VK_FORMAT_R16_USCALED:
+            return "VK_FORMAT_R16_USCALED";
+            break;
+        case VK_FORMAT_R16_SSCALED:
+            return "VK_FORMAT_R16_SSCALED";
+            break;
+        case VK_FORMAT_R16_UINT:
+            return "VK_FORMAT_R16_UINT";
+            break;
+        case VK_FORMAT_R16_SINT:
+            return "VK_FORMAT_R16_SINT";
+            break;
+        case VK_FORMAT_R16_SFLOAT:
+            return "VK_FORMAT_R16_SFLOAT";
+            break;
+        case VK_FORMAT_R16G16_UNORM:
+            return "VK_FORMAT_R16G16_UNORM";
+            break;
+        case VK_FORMAT_R16G16_SNORM:
+            return "VK_FORMAT_R16G16_SNORM";
+            break;
+        case VK_FORMAT_R16G16_USCALED:
+            return "VK_FORMAT_R16G16_USCALED";
+            break;
+        case VK_FORMAT_R16G16_SSCALED:
+            return "VK_FORMAT_R16G16_SSCALED";
+            break;
+        case VK_FORMAT_R16G16_UINT:
+            return "VK_FORMAT_R16G16_UINT";
+            break;
+        case VK_FORMAT_R16G16_SINT:
+            return "VK_FORMAT_R16G16_SINT";
+            break;
+        case VK_FORMAT_R16G16_SFLOAT:
+            return "VK_FORMAT_R16G16_SFLOAT";
+            break;
+        case VK_FORMAT_R16G16B16_UNORM:
+            return "VK_FORMAT_R16G16B16_UNORM";
+            break;
+        case VK_FORMAT_R16G16B16_SNORM:
+            return "VK_FORMAT_R16G16B16_SNORM";
+            break;
+        case VK_FORMAT_R16G16B16_USCALED:
+            return "VK_FORMAT_R16G16B16_USCALED";
+            break;
+        case VK_FORMAT_R16G16B16_SSCALED:
+            return "VK_FORMAT_R16G16B16_SSCALED";
+            break;
+        case VK_FORMAT_R16G16B16_UINT:
+            return "VK_FORMAT_R16G16B16_UINT";
+            break;
+        case VK_FORMAT_R16G16B16_SINT:
+            return "VK_FORMAT_R16G16B16_SINT";
+            break;
+        case VK_FORMAT_R16G16B16_SFLOAT:
+            return "VK_FORMAT_R16G16B16_SFLOAT";
+            break;
+        case VK_FORMAT_R16G16B16A16_UNORM:
+            return "VK_FORMAT_R16G16B16A16_UNORM";
+            break;
+        case VK_FORMAT_R16G16B16A16_SNORM:
+            return "VK_FORMAT_R16G16B16A16_SNORM";
+            break;
+        case VK_FORMAT_R16G16B16A16_USCALED:
+            return "VK_FORMAT_R16G16B16A16_USCALED";
+            break;
+        case VK_FORMAT_R16G16B16A16_SSCALED:
+            return "VK_FORMAT_R16G16B16A16_SSCALED";
+            break;
+        case VK_FORMAT_R16G16B16A16_UINT:
+            return "VK_FORMAT_R16G16B16A16_UINT";
+            break;
+        case VK_FORMAT_R16G16B16A16_SINT:
+            return "VK_FORMAT_R16G16B16A16_SINT";
+            break;
+        case VK_FORMAT_R16G16B16A16_SFLOAT:
+            return "VK_FORMAT_R16G16B16A16_SFLOAT";
+            break;
+        case VK_FORMAT_R32_UINT:
+            return "VK_FORMAT_R32_UINT";
+            break;
+        case VK_FORMAT_R32_SINT:
+            return "VK_FORMAT_R32_SINT";
+            break;
+        case VK_FORMAT_R32_SFLOAT:
+            return "VK_FORMAT_R32_SFLOAT";
+            break;
+        case VK_FORMAT_R32G32_UINT:
+            return "VK_FORMAT_R32G32_UINT";
+            break;
+        case VK_FORMAT_R32G32_SINT:
+            return "VK_FORMAT_R32G32_SINT";
+            break;
+        case VK_FORMAT_R32G32_SFLOAT:
+            return "VK_FORMAT_R32G32_SFLOAT";
+            break;
+        case VK_FORMAT_R32G32B32_UINT:
+            return "VK_FORMAT_R32G32B32_UINT";
+            break;
+        case VK_FORMAT_R32G32B32_SINT:
+            return "VK_FORMAT_R32G32B32_SINT";
+            break;
+        case VK_FORMAT_R32G32B32_SFLOAT:
+            return "VK_FORMAT_R32G32B32_SFLOAT";
+            break;
+        case VK_FORMAT_R32G32B32A32_UINT:
+            return "VK_FORMAT_R32G32B32A32_UINT";
+            break;
+        case VK_FORMAT_R32G32B32A32_SINT:
+            return "VK_FORMAT_R32G32B32A32_SINT";
+            break;
+        case VK_FORMAT_R32G32B32A32_SFLOAT:
+            return "VK_FORMAT_R32G32B32A32_SFLOAT";
+            break;
+        case VK_FORMAT_R64_UINT:
+            return "VK_FORMAT_R64_UINT";
+            break;
+        case VK_FORMAT_R64_SINT:
+            return "VK_FORMAT_R64_SINT";
+            break;
+        case VK_FORMAT_R64_SFLOAT:
+            return "VK_FORMAT_R64_SFLOAT";
+            break;
+        case VK_FORMAT_R64G64_UINT:
+            return "VK_FORMAT_R64G64_UINT";
+            break;
+        case VK_FORMAT_R64G64_SINT:
+            return "VK_FORMAT_R64G64_SINT";
+            break;
+        case VK_FORMAT_R64G64_SFLOAT:
+            return "VK_FORMAT_R64G64_SFLOAT";
+            break;
+        case VK_FORMAT_R64G64B64_UINT:
+            return "VK_FORMAT_R64G64B64_UINT";
+            break;
+        case VK_FORMAT_R64G64B64_SINT:
+            return "VK_FORMAT_R64G64B64_SINT";
+            break;
+        case VK_FORMAT_R64G64B64_SFLOAT:
+            return "VK_FORMAT_R64G64B64_SFLOAT";
+            break;
+        case VK_FORMAT_R64G64B64A64_UINT:
+            return "VK_FORMAT_R64G64B64A64_UINT";
+            break;
+        case VK_FORMAT_R64G64B64A64_SINT:
+            return "VK_FORMAT_R64G64B64A64_SINT";
+            break;
+        case VK_FORMAT_R64G64B64A64_SFLOAT:
+            return "VK_FORMAT_R64G64B64A64_SFLOAT";
+            break;
+        case VK_FORMAT_B10G11R11_UFLOAT_PACK32:
+            return "VK_FORMAT_B10G11R11_UFLOAT_PACK32";
+            break;
+        case VK_FORMAT_E5B9G9R9_UFLOAT_PACK32:
+            return "VK_FORMAT_E5B9G9R9_UFLOAT_PACK32";
+            break;
+        case VK_FORMAT_D16_UNORM:
+            return "VK_FORMAT_D16_UNORM";
+            break;
+        case VK_FORMAT_X8_D24_UNORM_PACK32:
+            return "VK_FORMAT_X8_D24_UNORM_PACK32";
+            break;
+        case VK_FORMAT_D32_SFLOAT:
+            return "VK_FORMAT_D32_SFLOAT";
+            break;
+        case VK_FORMAT_S8_UINT:
+            return "VK_FORMAT_S8_UINT";
+            break;
+        case VK_FORMAT_D16_UNORM_S8_UINT:
+            return "VK_FORMAT_D16_UNORM_S8_UINT";
+            break;
+        case VK_FORMAT_D24_UNORM_S8_UINT:
+            return "VK_FORMAT_D24_UNORM_S8_UINT";
+            break;
+        case VK_FORMAT_D32_SFLOAT_S8_UINT:
+            return "VK_FORMAT_D32_SFLOAT_S8_UINT";
+            break;
+        case VK_FORMAT_BC1_RGB_UNORM_BLOCK:
+            return "VK_FORMAT_BC1_RGB_UNORM_BLOCK";
+            break;
+        case VK_FORMAT_BC1_RGB_SRGB_BLOCK:
+            return "VK_FORMAT_BC1_RGB_SRGB_BLOCK";
+            break;
+        case VK_FORMAT_BC1_RGBA_UNORM_BLOCK:
+            return "VK_FORMAT_BC1_RGBA_UNORM_BLOCK";
+            break;
+        case VK_FORMAT_BC1_RGBA_SRGB_BLOCK:
+            return "VK_FORMAT_BC1_RGBA_SRGB_BLOCK";
+            break;
+        case VK_FORMAT_BC2_UNORM_BLOCK:
+            return "VK_FORMAT_BC2_UNORM_BLOCK";
+            break;
+        case VK_FORMAT_BC2_SRGB_BLOCK:
+            return "VK_FORMAT_BC2_SRGB_BLOCK";
+            break;
+        case VK_FORMAT_BC3_UNORM_BLOCK:
+            return "VK_FORMAT_BC3_UNORM_BLOCK";
+            break;
+        case VK_FORMAT_BC3_SRGB_BLOCK:
+            return "VK_FORMAT_BC3_SRGB_BLOCK";
+            break;
+        case VK_FORMAT_BC4_UNORM_BLOCK:
+            return "VK_FORMAT_BC4_UNORM_BLOCK";
+            break;
+        case VK_FORMAT_BC4_SNORM_BLOCK:
+            return "VK_FORMAT_BC4_SNORM_BLOCK";
+            break;
+        case VK_FORMAT_BC5_UNORM_BLOCK:
+            return "VK_FORMAT_BC5_UNORM_BLOCK";
+            break;
+        case VK_FORMAT_BC5_SNORM_BLOCK:
+            return "VK_FORMAT_BC5_SNORM_BLOCK";
+            break;
+        case VK_FORMAT_BC6H_UFLOAT_BLOCK:
+            return "VK_FORMAT_BC6H_UFLOAT_BLOCK";
+            break;
+        case VK_FORMAT_BC6H_SFLOAT_BLOCK:
+            return "VK_FORMAT_BC6H_SFLOAT_BLOCK";
+            break;
+        case VK_FORMAT_BC7_UNORM_BLOCK:
+            return "VK_FORMAT_BC7_UNORM_BLOCK";
+            break;
+        case VK_FORMAT_BC7_SRGB_BLOCK:
+            return "VK_FORMAT_BC7_SRGB_BLOCK";
+            break;
+        case VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK:
+            return "VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK";
+            break;
+        case VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK:
+            return "VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK";
+            break;
+        case VK_FORMAT_ETC2_R8G8B8A1_UNORM_BLOCK:
+            return "VK_FORMAT_ETC2_R8G8B8A1_UNORM_BLOCK";
+            break;
+        case VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK:
+            return "VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK";
+            break;
+        case VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK:
+            return "VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK";
+            break;
+        case VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK:
+            return "VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK";
+            break;
+        case VK_FORMAT_EAC_R11_UNORM_BLOCK:
+            return "VK_FORMAT_EAC_R11_UNORM_BLOCK";
+            break;
+        case VK_FORMAT_EAC_R11_SNORM_BLOCK:
+            return "VK_FORMAT_EAC_R11_SNORM_BLOCK";
+            break;
+        case VK_FORMAT_EAC_R11G11_UNORM_BLOCK:
+            return "VK_FORMAT_EAC_R11G11_UNORM_BLOCK";
+            break;
+        case VK_FORMAT_EAC_R11G11_SNORM_BLOCK:
+            return "VK_FORMAT_EAC_R11G11_SNORM_BLOCK";
+            break;
+        case VK_FORMAT_ASTC_4x4_UNORM_BLOCK:
+            return "VK_FORMAT_ASTC_4x4_UNORM_BLOCK";
+            break;
+        case VK_FORMAT_ASTC_4x4_SRGB_BLOCK:
+            return "VK_FORMAT_ASTC_4x4_SRGB_BLOCK";
+            break;
+        case VK_FORMAT_ASTC_5x4_UNORM_BLOCK:
+            return "VK_FORMAT_ASTC_5x4_UNORM_BLOCK";
+            break;
+        case VK_FORMAT_ASTC_5x4_SRGB_BLOCK:
+            return "VK_FORMAT_ASTC_5x4_SRGB_BLOCK";
+            break;
+        case VK_FORMAT_ASTC_5x5_UNORM_BLOCK:
+            return "VK_FORMAT_ASTC_5x5_UNORM_BLOCK";
+            break;
+        case VK_FORMAT_ASTC_5x5_SRGB_BLOCK:
+            return "VK_FORMAT_ASTC_5x5_SRGB_BLOCK";
+            break;
+        case VK_FORMAT_ASTC_6x5_UNORM_BLOCK:
+            return "VK_FORMAT_ASTC_6x5_UNORM_BLOCK";
+            break;
+        case VK_FORMAT_ASTC_6x5_SRGB_BLOCK:
+            return "VK_FORMAT_ASTC_6x5_SRGB_BLOCK";
+            break;
+        case VK_FORMAT_ASTC_6x6_UNORM_BLOCK:
+            return "VK_FORMAT_ASTC_6x6_UNORM_BLOCK";
+            break;
+        case VK_FORMAT_ASTC_6x6_SRGB_BLOCK:
+            return "VK_FORMAT_ASTC_6x6_SRGB_BLOCK";
+            break;
+        case VK_FORMAT_ASTC_8x5_UNORM_BLOCK:
+            return "VK_FORMAT_ASTC_8x5_UNORM_BLOCK";
+            break;
+        case VK_FORMAT_ASTC_8x5_SRGB_BLOCK:
+            return "VK_FORMAT_ASTC_8x5_SRGB_BLOCK";
+            break;
+        case VK_FORMAT_ASTC_8x6_UNORM_BLOCK:
+            return "VK_FORMAT_ASTC_8x6_UNORM_BLOCK";
+            break;
+        case VK_FORMAT_ASTC_8x6_SRGB_BLOCK:
+            return "VK_FORMAT_ASTC_8x6_SRGB_BLOCK";
+            break;
+        case VK_FORMAT_ASTC_8x8_UNORM_BLOCK:
+            return "VK_FORMAT_ASTC_8x8_UNORM_BLOCK";
+            break;
+        case VK_FORMAT_ASTC_8x8_SRGB_BLOCK:
+            return "VK_FORMAT_ASTC_8x8_SRGB_BLOCK";
+            break;
+        case VK_FORMAT_ASTC_10x5_UNORM_BLOCK:
+            return "VK_FORMAT_ASTC_10x5_UNORM_BLOCK";
+            break;
+        case VK_FORMAT_ASTC_10x5_SRGB_BLOCK:
+            return "VK_FORMAT_ASTC_10x5_SRGB_BLOCK";
+            break;
+        case VK_FORMAT_ASTC_10x6_UNORM_BLOCK:
+            return "VK_FORMAT_ASTC_10x6_UNORM_BLOCK";
+            break;
+        case VK_FORMAT_ASTC_10x6_SRGB_BLOCK:
+            return "VK_FORMAT_ASTC_10x6_SRGB_BLOCK";
+            break;
+        case VK_FORMAT_ASTC_10x8_UNORM_BLOCK:
+            return "VK_FORMAT_ASTC_10x8_UNORM_BLOCK";
+            break;
+        case VK_FORMAT_ASTC_10x8_SRGB_BLOCK:
+            return "VK_FORMAT_ASTC_10x8_SRGB_BLOCK";
+            break;
+        case VK_FORMAT_ASTC_10x10_UNORM_BLOCK:
+            return "VK_FORMAT_ASTC_10x10_UNORM_BLOCK";
+            break;
+        case VK_FORMAT_ASTC_10x10_SRGB_BLOCK:
+            return "VK_FORMAT_ASTC_10x10_SRGB_BLOCK";
+            break;
+        case VK_FORMAT_ASTC_12x10_UNORM_BLOCK:
+            return "VK_FORMAT_ASTC_12x10_UNORM_BLOCK";
+            break;
+        case VK_FORMAT_ASTC_12x10_SRGB_BLOCK:
+            return "VK_FORMAT_ASTC_12x10_SRGB_BLOCK";
+            break;
+        case VK_FORMAT_ASTC_12x12_UNORM_BLOCK:
+            return "VK_FORMAT_ASTC_12x12_UNORM_BLOCK";
+            break;
+        case VK_FORMAT_ASTC_12x12_SRGB_BLOCK:
+            return "VK_FORMAT_ASTC_12x12_SRGB_BLOCK";
+            break;
+        case VK_FORMAT_G8B8G8R8_422_UNORM:
+            return "VK_FORMAT_G8B8G8R8_422_UNORM";
+            break;
+        case VK_FORMAT_B8G8R8G8_422_UNORM:
+            return "VK_FORMAT_B8G8R8G8_422_UNORM";
+            break;
+        case VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM:
+            return "VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM";
+            break;
+        case VK_FORMAT_G8_B8R8_2PLANE_420_UNORM:
+            return "VK_FORMAT_G8_B8R8_2PLANE_420_UNORM";
+            break;
+        case VK_FORMAT_G8_B8_R8_3PLANE_422_UNORM:
+            return "VK_FORMAT_G8_B8_R8_3PLANE_422_UNORM";
+            break;
+        case VK_FORMAT_G8_B8R8_2PLANE_422_UNORM:
+            return "VK_FORMAT_G8_B8R8_2PLANE_422_UNORM";
+            break;
+        case VK_FORMAT_G8_B8_R8_3PLANE_444_UNORM:
+            return "VK_FORMAT_G8_B8_R8_3PLANE_444_UNORM";
+            break;
+        case VK_FORMAT_R10X6_UNORM_PACK16:
+            return "VK_FORMAT_R10X6_UNORM_PACK16";
+            break;
+        case VK_FORMAT_R10X6G10X6_UNORM_2PACK16:
+            return "VK_FORMAT_R10X6G10X6_UNORM_2PACK16";
+            break;
+        case VK_FORMAT_R10X6G10X6B10X6A10X6_UNORM_4PACK16:
+            return "VK_FORMAT_R10X6G10X6B10X6A10X6_UNORM_4PACK16";
+            break;
+        case VK_FORMAT_G10X6B10X6G10X6R10X6_422_UNORM_4PACK16:
+            return "VK_FORMAT_G10X6B10X6G10X6R10X6_422_UNORM_4PACK16";
+            break;
+        case VK_FORMAT_B10X6G10X6R10X6G10X6_422_UNORM_4PACK16:
+            return "VK_FORMAT_B10X6G10X6R10X6G10X6_422_UNORM_4PACK16";
+            break;
+        case VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_420_UNORM_3PACK16:
+            return "VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_420_UNORM_3PACK16";
+            break;
+        case VK_FORMAT_G10X6_B10X6R10X6_2PLANE_420_UNORM_3PACK16:
+            return "VK_FORMAT_G10X6_B10X6R10X6_2PLANE_420_UNORM_3PACK16";
+            break;
+        case VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_422_UNORM_3PACK16:
+            return "VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_422_UNORM_3PACK16";
+            break;
+        case VK_FORMAT_G10X6_B10X6R10X6_2PLANE_422_UNORM_3PACK16:
+            return "VK_FORMAT_G10X6_B10X6R10X6_2PLANE_422_UNORM_3PACK16";
+            break;
+        case VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_444_UNORM_3PACK16:
+            return "VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_444_UNORM_3PACK16";
+            break;
+        case VK_FORMAT_R12X4_UNORM_PACK16:
+            return "VK_FORMAT_R12X4_UNORM_PACK16";
+            break;
+        case VK_FORMAT_R12X4G12X4_UNORM_2PACK16:
+            return "VK_FORMAT_R12X4G12X4_UNORM_2PACK16";
+            break;
+        case VK_FORMAT_R12X4G12X4B12X4A12X4_UNORM_4PACK16:
+            return "VK_FORMAT_R12X4G12X4B12X4A12X4_UNORM_4PACK16";
+            break;
+        case VK_FORMAT_G12X4B12X4G12X4R12X4_422_UNORM_4PACK16:
+            return "VK_FORMAT_G12X4B12X4G12X4R12X4_422_UNORM_4PACK16";
+            break;
+        case VK_FORMAT_B12X4G12X4R12X4G12X4_422_UNORM_4PACK16:
+            return "VK_FORMAT_B12X4G12X4R12X4G12X4_422_UNORM_4PACK16";
+            break;
+        case VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_420_UNORM_3PACK16:
+            return "VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_420_UNORM_3PACK16";
+            break;
+        case VK_FORMAT_G12X4_B12X4R12X4_2PLANE_420_UNORM_3PACK16:
+            return "VK_FORMAT_G12X4_B12X4R12X4_2PLANE_420_UNORM_3PACK16";
+            break;
+        case VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_422_UNORM_3PACK16:
+            return "VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_422_UNORM_3PACK16";
+            break;
+        case VK_FORMAT_G12X4_B12X4R12X4_2PLANE_422_UNORM_3PACK16:
+            return "VK_FORMAT_G12X4_B12X4R12X4_2PLANE_422_UNORM_3PACK16";
+            break;
+        case VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_444_UNORM_3PACK16:
+            return "VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_444_UNORM_3PACK16";
+            break;
+        case VK_FORMAT_G16B16G16R16_422_UNORM:
+            return "VK_FORMAT_G16B16G16R16_422_UNORM";
+            break;
+        case VK_FORMAT_B16G16R16G16_422_UNORM:
+            return "VK_FORMAT_B16G16R16G16_422_UNORM";
+            break;
+        case VK_FORMAT_G16_B16_R16_3PLANE_420_UNORM:
+            return "VK_FORMAT_G16_B16_R16_3PLANE_420_UNORM";
+            break;
+        case VK_FORMAT_G16_B16R16_2PLANE_420_UNORM:
+            return "VK_FORMAT_G16_B16R16_2PLANE_420_UNORM";
+            break;
+        case VK_FORMAT_G16_B16_R16_3PLANE_422_UNORM:
+            return "VK_FORMAT_G16_B16_R16_3PLANE_422_UNORM";
+            break;
+        case VK_FORMAT_G16_B16R16_2PLANE_422_UNORM:
+            return "VK_FORMAT_G16_B16R16_2PLANE_422_UNORM";
+            break;
+        case VK_FORMAT_G16_B16_R16_3PLANE_444_UNORM:
+            return "VK_FORMAT_G16_B16_R16_3PLANE_444_UNORM";
+            break;
+        case VK_FORMAT_PVRTC1_2BPP_UNORM_BLOCK_IMG:
+            return "VK_FORMAT_PVRTC1_2BPP_UNORM_BLOCK_IMG";
+            break;
+        case VK_FORMAT_PVRTC1_4BPP_UNORM_BLOCK_IMG:
+            return "VK_FORMAT_PVRTC1_4BPP_UNORM_BLOCK_IMG";
+            break;
+        case VK_FORMAT_PVRTC2_2BPP_UNORM_BLOCK_IMG:
+            return "VK_FORMAT_PVRTC2_2BPP_UNORM_BLOCK_IMG";
+            break;
+        case VK_FORMAT_PVRTC2_4BPP_UNORM_BLOCK_IMG:
+            return "VK_FORMAT_PVRTC2_4BPP_UNORM_BLOCK_IMG";
+            break;
+        case VK_FORMAT_PVRTC1_2BPP_SRGB_BLOCK_IMG:
+            return "VK_FORMAT_PVRTC1_2BPP_SRGB_BLOCK_IMG";
+            break;
+        case VK_FORMAT_PVRTC1_4BPP_SRGB_BLOCK_IMG:
+            return "VK_FORMAT_PVRTC1_4BPP_SRGB_BLOCK_IMG";
+            break;
+        case VK_FORMAT_PVRTC2_2BPP_SRGB_BLOCK_IMG:
+            return "VK_FORMAT_PVRTC2_2BPP_SRGB_BLOCK_IMG";
+            break;
+        case VK_FORMAT_PVRTC2_4BPP_SRGB_BLOCK_IMG:
+            return "VK_FORMAT_PVRTC2_4BPP_SRGB_BLOCK_IMG";
+            break;
+        case VK_FORMAT_ASTC_4x4_SFLOAT_BLOCK_EXT:
+            return "VK_FORMAT_ASTC_4x4_SFLOAT_BLOCK_EXT";
+            break;
+        case VK_FORMAT_ASTC_5x4_SFLOAT_BLOCK_EXT:
+            return "VK_FORMAT_ASTC_5x4_SFLOAT_BLOCK_EXT";
+            break;
+        case VK_FORMAT_ASTC_5x5_SFLOAT_BLOCK_EXT:
+            return "VK_FORMAT_ASTC_5x5_SFLOAT_BLOCK_EXT";
+            break;
+        case VK_FORMAT_ASTC_6x5_SFLOAT_BLOCK_EXT:
+            return "VK_FORMAT_ASTC_6x5_SFLOAT_BLOCK_EXT";
+            break;
+        case VK_FORMAT_ASTC_6x6_SFLOAT_BLOCK_EXT:
+            return "VK_FORMAT_ASTC_6x6_SFLOAT_BLOCK_EXT";
+            break;
+        case VK_FORMAT_ASTC_8x5_SFLOAT_BLOCK_EXT:
+            return "VK_FORMAT_ASTC_8x5_SFLOAT_BLOCK_EXT";
+            break;
+        case VK_FORMAT_ASTC_8x6_SFLOAT_BLOCK_EXT:
+            return "VK_FORMAT_ASTC_8x6_SFLOAT_BLOCK_EXT";
+            break;
+        case VK_FORMAT_ASTC_8x8_SFLOAT_BLOCK_EXT:
+            return "VK_FORMAT_ASTC_8x8_SFLOAT_BLOCK_EXT";
+            break;
+        case VK_FORMAT_ASTC_10x5_SFLOAT_BLOCK_EXT:
+            return "VK_FORMAT_ASTC_10x5_SFLOAT_BLOCK_EXT";
+            break;
+        case VK_FORMAT_ASTC_10x6_SFLOAT_BLOCK_EXT:
+            return "VK_FORMAT_ASTC_10x6_SFLOAT_BLOCK_EXT";
+            break;
+        case VK_FORMAT_ASTC_10x8_SFLOAT_BLOCK_EXT:
+            return "VK_FORMAT_ASTC_10x8_SFLOAT_BLOCK_EXT";
+            break;
+        case VK_FORMAT_ASTC_10x10_SFLOAT_BLOCK_EXT:
+            return "VK_FORMAT_ASTC_10x10_SFLOAT_BLOCK_EXT";
+            break;
+        case VK_FORMAT_ASTC_12x10_SFLOAT_BLOCK_EXT:
+            return "VK_FORMAT_ASTC_12x10_SFLOAT_BLOCK_EXT";
+            break;
+        case VK_FORMAT_ASTC_12x12_SFLOAT_BLOCK_EXT:
+            return "VK_FORMAT_ASTC_12x12_SFLOAT_BLOCK_EXT";
+            break;
+        case VK_FORMAT_G8_B8R8_2PLANE_444_UNORM_EXT:
+            return "VK_FORMAT_G8_B8R8_2PLANE_444_UNORM_EXT";
+            break;
+        case VK_FORMAT_G10X6_B10X6R10X6_2PLANE_444_UNORM_3PACK16_EXT:
+            return "VK_FORMAT_G10X6_B10X6R10X6_2PLANE_444_UNORM_3PACK16_EXT";
+            break;
+        case VK_FORMAT_G12X4_B12X4R12X4_2PLANE_444_UNORM_3PACK16_EXT:
+            return "VK_FORMAT_G12X4_B12X4R12X4_2PLANE_444_UNORM_3PACK16_EXT";
+            break;
+        case VK_FORMAT_G16_B16R16_2PLANE_444_UNORM_EXT:
+            return "VK_FORMAT_G16_B16R16_2PLANE_444_UNORM_EXT";
+            break;
+        case VK_FORMAT_A4R4G4B4_UNORM_PACK16_EXT:
+            return "VK_FORMAT_A4R4G4B4_UNORM_PACK16_EXT";
+            break;
+        case VK_FORMAT_A4B4G4R4_UNORM_PACK16_EXT:
+            return "VK_FORMAT_A4B4G4R4_UNORM_PACK16_EXT";
+            break;
+        default:
+            return "VK_FORMAT_UNDEFINED";
+    }
+}
+
 // Get all elements from a vkEnumerate*() lambda into a std::vector.
 template <typename T>
 VkResult EnumerateAll(std::vector<T> *vect, std::function<VkResult(uint32_t *, T *)> func) {
@@ -485,6 +1286,8 @@ typedef std::vector<VkQueueFamilyProperties> ArrayOfVkQueueFamilyProperties;
 typedef std::unordered_map<uint32_t /*VkFormat*/, VkFormatProperties> ArrayOfVkFormatProperties;
 typedef std::vector<VkLayerProperties> ArrayOfVkLayerProperties;
 typedef std::vector<VkExtensionProperties> ArrayOfVkExtensionProperties;
+typedef std::vector<VkSurfaceFormatKHR> ArrayOfVkSurfaceFormats;
+typedef std::vector<VkPresentModeKHR> ArrayOfVkPresentModes;
 
 // FormatProperties utilities ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -538,7 +1341,7 @@ class PhysicalDeviceData {
     static bool HasExtension(VkPhysicalDevice pd, const char *extension_name) { return HasExtension(Find(pd), extension_name); }
 
     static bool HasExtension(PhysicalDeviceData *pdd, const char *extension_name) {
-        for (const auto &ext_prop : pdd->device_extensions) {
+        for (const auto &ext_prop : pdd->device_extensions_) {
             if (strncmp(extension_name, ext_prop.extensionName, VK_MAX_EXTENSION_NAME_SIZE) == 0) {
                 return true;
             }
@@ -551,7 +1354,7 @@ class PhysicalDeviceData {
     }
 
     static bool HasSimulatedExtension(PhysicalDeviceData *pdd, const char *extension_name) {
-        for (const auto &ext_prop : pdd->arrayof_extension_properties_) {
+        for (const auto &ext_prop : pdd->simulation_extensions_) {
             if (strncmp(extension_name, ext_prop.extensionName, VK_MAX_EXTENSION_NAME_SIZE) == 0) {
                 return true;
             }
@@ -567,17 +1370,79 @@ class PhysicalDeviceData {
         return HasSimulatedExtension(pdd, extension_name) || HasExtension(pdd, extension_name);
     }
 
+    uint32_t combineExtensionLists() {
+        switch (extension_list_combination_mode_) {
+            case ARRAY_COMBINATION_MODE_NONE:
+                simulation_extensions_ = device_extensions_;
+                break;
+            case ARRAY_COMBINATION_MODE_REPLACE:
+                simulation_extensions_ = arrayof_extension_properties_;
+                break;
+            case ARRAY_COMBINATION_MODE_WHITELIST:
+                for (VkExtensionProperties dev_props : device_extensions_) {
+                    for (VkExtensionProperties file_props : arrayof_extension_properties_) {
+                        if (strncmp(dev_props.extensionName, file_props.extensionName, VK_MAX_EXTENSION_NAME_SIZE) == 0) {
+                            simulation_extensions_.push_back(dev_props);
+                            break;
+                        }
+                    }
+                }
+                break;
+            case ARRAY_COMBINATION_MODE_BLACKLIST:
+                for (VkExtensionProperties dev_props : device_extensions_) {
+                    bool black_listed = false;
+                    for (VkExtensionProperties file_props : arrayof_extension_properties_) {
+                        if (strncmp(dev_props.extensionName, file_props.extensionName, VK_MAX_EXTENSION_NAME_SIZE) == 0) {
+                            black_listed = true;
+                            break;
+                        }
+                    }
+                    if (!black_listed) simulation_extensions_.push_back(dev_props);
+                }
+                break;
+            case ARRAY_COMBINATION_MODE_INTERSECT:
+                for (VkExtensionProperties dev_props : device_extensions_) {
+                    simulation_extensions_.push_back(dev_props);
+                }
+
+                for (VkExtensionProperties file_props : arrayof_extension_properties_) {
+                    bool intersection = false;
+                    for (VkExtensionProperties dev_props : device_extensions_) {
+                        if (strncmp(dev_props.extensionName, file_props.extensionName, VK_MAX_EXTENSION_NAME_SIZE) == 0) {
+                            intersection = true;
+                            break;
+                        }
+                    }
+                    if (!intersection) simulation_extensions_.push_back(file_props);
+                }
+                break;
+            default:
+                simulation_extensions_ = device_extensions_;
+        }
+
+        return static_cast<uint32_t>(simulation_extensions_.size());
+    }
+
     VkInstance instance() const { return instance_; }
 
-    std::vector<VkExtensionProperties> device_extensions;
+    ArrayOfVkExtensionProperties device_extensions_;
+
+    ArrayCombinationMode extension_list_combination_mode_;
+    ArrayOfVkExtensionProperties simulation_extensions_;
+
+    ArrayCombinationMode format_list_combination_mode_;
+    ArrayCombinationMode format_properties_combination_mode_;
 
     VkPhysicalDeviceProperties physical_device_properties_;
     VkPhysicalDeviceFeatures physical_device_features_;
     VkPhysicalDeviceMemoryProperties physical_device_memory_properties_;
+    VkSurfaceCapabilitiesKHR surface_capabilities_;
+    ArrayOfVkPresentModes arrayof_present_modes_;
     ArrayOfVkQueueFamilyProperties arrayof_queue_family_properties_;
     ArrayOfVkFormatProperties arrayof_format_properties_;
     ArrayOfVkLayerProperties arrayof_layer_properties_;
     ArrayOfVkExtensionProperties arrayof_extension_properties_;
+    ArrayOfVkSurfaceFormats arrayof_surface_formats_;
 
     // Vulkan 1.2 structs for summarizing core extension properties and features
     VkPhysicalDeviceVulkan11Properties physical_device_vulkan_1_1_properties_;
@@ -669,9 +1534,15 @@ class PhysicalDeviceData {
     PhysicalDeviceData() = delete;
     PhysicalDeviceData &operator=(const PhysicalDeviceData &) = delete;
     PhysicalDeviceData(VkInstance instance) : instance_(instance) {
+        extension_list_combination_mode_ = ARRAY_COMBINATION_MODE_NONE;
+
+        format_list_combination_mode_ = ARRAY_COMBINATION_MODE_NONE;
+        format_properties_combination_mode_ = ARRAY_COMBINATION_MODE_NONE;
+
         physical_device_properties_ = {};
         physical_device_features_ = {};
         physical_device_memory_properties_ = {};
+        surface_capabilities_ = {};
 
         // Vulkan 1.2 structs for summarizing core extension properties and features
         physical_device_vulkan_1_1_properties_ = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_PROPERTIES};
@@ -856,11 +1727,15 @@ class JsonLoader {
     void GetValue(const Json::Value &parent, int index, VkMemoryType *dest);
     void GetValue(const Json::Value &parent, int index, VkMemoryHeap *dest);
     void GetValue(const Json::Value &parent, const char *name, VkPhysicalDeviceMemoryProperties *dest);
+    void GetValue(const Json::Value &parent, const char *name, VkSurfaceCapabilitiesKHR *dest);
+    void GetValue(const Json::Value &parent, const char *name, VkExtent2D *dest);
     void GetValue(const Json::Value &parent, const char *name, VkExtent3D *dest);
     void GetValue(const Json::Value &parent, int index, VkQueueFamilyProperties *dest);
     void GetValue(const Json::Value &parent, int index, DevsimFormatProperties *dest);
     void GetValue(const Json::Value &parent, int index, VkLayerProperties *dest);
     void GetValue(const Json::Value &parent, int index, VkExtensionProperties *dest);
+    void GetValue(const Json::Value &parent, int index, VkSurfaceFormatKHR *dest);
+    void GetValue(const Json::Value &parent, int index, VkPresentModeKHR *dest);
 
     void GetValue(const Json::Value &parent, const char *name, VkPhysicalDeviceVulkan12Properties *dest);
     void GetValue(const Json::Value &parent, const char *name, VkPhysicalDeviceVulkan12Features *dest);
@@ -1098,6 +1973,38 @@ class JsonLoader {
         return static_cast<int>(dest->size());
     }
 
+    int GetArray(const Json::Value &parent, const char *name, ArrayOfVkSurfaceFormats *dest) {
+        const Json::Value value = parent[name];
+        if (value.type() != Json::arrayValue) {
+            return -1;
+        }
+        DebugPrintf("\t\tJsonLoader::GetArray(ArrayOfVkSurfaceFormats)\n");
+        dest->clear();
+        const int count = static_cast<int>(value.size());
+        for (int i = 0; i < count; ++i) {
+            VkSurfaceFormatKHR surface_format = {};
+            GetValue(value, i, &surface_format);
+            dest->push_back(surface_format);
+        }
+        return static_cast<int>(dest->size());
+    }
+
+    int GetArray(const Json::Value &parent, const char *name, ArrayOfVkPresentModes *dest) {
+        const Json::Value value = parent[name];
+        if (value.type() != Json::arrayValue) {
+            return -1;
+        }
+        DebugPrintf("\t\tJsonLoader::GetArray(ArrayOfVkPresentModes)\n");
+        dest->clear();
+        const int count = static_cast<int>(value.size());
+        for (int i = 0; i < count; ++i) {
+            VkPresentModeKHR present_mode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+            GetValue(value, i, &present_mode);
+            dest->push_back(present_mode);
+        }
+        return static_cast<int>(dest->size());
+    }
+
     void WarnDeprecated(const Json::Value &parent, const char *name) {
         const Json::Value value = parent[name];
         if (value.type() != Json::nullValue) {
@@ -1170,38 +2077,7 @@ bool JsonLoader::LoadFile(const char *filename) {
     const SchemaId schema_id = IdentifySchema(schema_value);
     switch (schema_id) {
         case SchemaId::kDevsim100:
-            GetValue(root, "VkPhysicalDeviceProperties", &pdd_.physical_device_properties_);
-            GetValue(root, "VkPhysicalDeviceFeatures", &pdd_.physical_device_features_);
-            GetValue(root, "VkPhysicalDeviceMemoryProperties", &pdd_.physical_device_memory_properties_);
-            GetArray(root, "ArrayOfVkQueueFamilyProperties", &pdd_.arrayof_queue_family_properties_);
-            GetArray(root, "ArrayOfVkFormatProperties", &pdd_.arrayof_format_properties_);
-            GetArray(root, "ArrayOfVkLayerProperties", &pdd_.arrayof_layer_properties_);
-            GetArray(root, "ArrayOfVkExtensionProperties", &pdd_.arrayof_extension_properties_);
-            result = true;
-            break;
-
         case SchemaId::kDevsim110:
-            GetValue(root, "VkPhysicalDeviceProperties", &pdd_.physical_device_properties_);
-            GetValue(root, "VkPhysicalDeviceMaintenance3Properties", &pdd_.physical_device_maintenance_3_properties_);
-            GetValue(root, "VkPhysicalDeviceMultiviewProperties", &pdd_.physical_device_multiview_properties_);
-            GetValue(root, "VkPhysicalDevicePointClippingProperties", &pdd_.physical_device_point_clipping_properties_);
-            GetValue(root, "VkPhysicalDeviceProtectedMemoryProperties", &pdd_.physical_device_protected_memory_properties_);
-            GetValue(root, "VkPhysicalDeviceFeatures", &pdd_.physical_device_features_);
-            GetValue(root, "VkPhysicalDevice16BitStorageFeatures", &pdd_.physical_device_16bit_storage_features_);
-            GetValue(root, "VkPhysicalDeviceMultiviewFeatures", &pdd_.physical_device_multiview_features_);
-            GetValue(root, "VkPhysicalDeviceProtectedMemoryFeatures", &pdd_.physical_device_protected_memory_features_);
-            GetValue(root, "VkPhysicalDeviceSamplerYcbcrConversionFeatures",
-                &pdd_.physical_device_sampler_ycbcr_conversion_features_);
-            GetValue(root, "VkPhysicalDeviceShaderDrawParametersFeatures", &pdd_.physical_device_shader_draw_parameters_features_);
-            GetValue(root, "VkPhysicalDeviceVariablePointersFeatures", &pdd_.physical_device_variable_pointers_features_);
-            GetValue(root, "VkPhysicalDeviceMemoryProperties", &pdd_.physical_device_memory_properties_);
-            GetArray(root, "ArrayOfVkQueueFamilyProperties", &pdd_.arrayof_queue_family_properties_);
-            GetArray(root, "ArrayOfVkFormatProperties", &pdd_.arrayof_format_properties_);
-            GetArray(root, "ArrayOfVkLayerProperties", &pdd_.arrayof_layer_properties_);
-            GetArray(root, "ArrayOfVkExtensionProperties", &pdd_.arrayof_extension_properties_);
-            result = true;
-            break;
-
         case SchemaId::kDevsim120:
             GetValue(root, "VkPhysicalDeviceProperties", &pdd_.physical_device_properties_);
             GetValue(root, "VkPhysicalDeviceDepthStencilResolveProperties",
@@ -1240,13 +2116,20 @@ bool JsonLoader::LoadFile(const char *filename) {
             GetValue(root, "VkPhysicalDeviceVariablePointersFeatures", &pdd_.physical_device_variable_pointers_features_);
             GetValue(root, "VkPhysicalDeviceVulkanMemoryModelFeatures", &pdd_.physical_device_vulkan_memory_model_features_);
             GetValue(root, "VkPhysicalDeviceMemoryProperties", &pdd_.physical_device_memory_properties_);
+            GetValue(root, "VkSurfaceCapabilitiesKHR", &pdd_.surface_capabilities_);
             GetArray(root, "ArrayOfVkQueueFamilyProperties", &pdd_.arrayof_queue_family_properties_);
             GetArray(root, "ArrayOfVkFormatProperties", &pdd_.arrayof_format_properties_);
             GetArray(root, "ArrayOfVkLayerProperties", &pdd_.arrayof_layer_properties_);
             GetArray(root, "ArrayOfVkExtensionProperties", &pdd_.arrayof_extension_properties_);
+            GetArray(root, "ArrayOfVkSurfaceFormats", &pdd_.arrayof_surface_formats_);
+            GetArray(root, "ArrayOfVkPresentModes", &pdd_.arrayof_present_modes_);
 
             GetValue(root, "Vulkan12Features", &pdd_.physical_device_vulkan_1_2_features_);
             GetValue(root, "Vulkan12Properties", &pdd_.physical_device_vulkan_1_2_properties_);
+
+            GetValue(root, "VkPhysicalDevicePortabilitySubsetPropertiesKHR", &pdd_.physical_device_portability_subset_properties_);
+            GetValue(root, "VkPhysicalDevicePortabilitySubsetFeaturesKHR", &pdd_.physical_device_portability_subset_features_);
+
             result = true;
             break;
 
@@ -2167,6 +3050,15 @@ void JsonLoader::GetValue(const Json::Value &parent, const char *name, VkPhysica
     GET_VALUE_WARN(vulkanMemoryModelAvailabilityVisibilityChains, WarnIfGreater);
 }
 
+void JsonLoader::GetValue(const Json::Value &parent, const char *name, VkExtent2D *dest) {
+    const Json::Value value = parent[name];
+    if (value.type() != Json::objectValue) {
+        return;
+    }
+    GET_VALUE(width);
+    GET_VALUE(height);
+}
+
 void JsonLoader::GetValue(const Json::Value &parent, const char *name, VkExtent3D *dest) {
     const Json::Value value = parent[name];
     if (value.type() != Json::objectValue) {
@@ -2228,6 +3120,21 @@ void JsonLoader::GetValue(const Json::Value &parent, const char *name, VkPhysica
     }
 }
 
+void JsonLoader::GetValue(const Json::Value &parent, const char *name, VkSurfaceCapabilitiesKHR *dest) {
+    const Json::Value value = parent[name];
+    if (value.type() != Json::objectValue) {
+        return;
+    }
+    GET_VALUE_WARN(minImageCount, WarnIfLesser);
+    GET_VALUE_WARN(maxImageCount, WarnIfGreater);
+    GET_VALUE(minImageExtent);
+    GET_VALUE(maxImageExtent);
+    GET_VALUE_WARN(maxImageArrayLayers, WarnIfGreater);
+    GET_VALUE(supportedTransforms);
+    GET_VALUE(supportedCompositeAlpha);
+    GET_VALUE(supportedUsageFlags);
+}
+
 void JsonLoader::GetValue(const Json::Value &parent, int index, DevsimFormatProperties *dest) {
     const Json::Value value = parent[index];
     if (value.type() != Json::objectValue) {
@@ -2257,6 +3164,23 @@ void JsonLoader::GetValue(const Json::Value &parent, int index, VkExtensionPrope
     }
     GET_ARRAY(extensionName);  // size < VK_MAX_EXTENSION_NAME_SIZE
     GET_VALUE(specVersion);
+}
+
+void JsonLoader::GetValue(const Json::Value &parent, int index, VkSurfaceFormatKHR *dest) {
+    const Json::Value value = parent[index];
+    if (value.type() != Json::objectValue) {
+        return;
+    }
+    GET_VALUE(format);
+    GET_VALUE(colorSpace);
+}
+
+void JsonLoader::GetValue(const Json::Value &parent, int index, VkPresentModeKHR *dest) {
+    const Json::Value value = parent[index];
+    if (!value.isInt()) {
+        return;
+    }
+    *dest = static_cast<VkPresentModeKHR>(value.asInt());
 }
 
 void JsonLoader::GetValue(const Json::Value &parent, const char *name, VkPhysicalDeviceVulkan12Properties *dest) {
@@ -2316,6 +3240,25 @@ static int GetBooleanValue(const std::string &value) {
 #endif
 }
 
+static ArrayCombinationMode GetArrayCombinationModeValue(const std::string &value) {
+    std::string temp = value;
+    std::transform(temp.begin(), temp.end(), temp.begin(), ::tolower);
+
+    if (value.empty())
+        return ARRAY_COMBINATION_MODE_NONE;
+    else if (temp == "none" || temp == "0")
+        return ARRAY_COMBINATION_MODE_NONE;
+    else if (temp == "replace" || temp == "1")
+        return ARRAY_COMBINATION_MODE_REPLACE;
+    else if (temp == "whitelist" || temp == "2")
+        return ARRAY_COMBINATION_MODE_WHITELIST;
+    else if (temp == "blacklist" || temp == "3")
+        return ARRAY_COMBINATION_MODE_BLACKLIST;
+    else if (temp == "intersect" || temp == "4")
+        return ARRAY_COMBINATION_MODE_INTERSECT;
+    else
+        return ARRAY_COMBINATION_MODE_NONE;
+}
 // Fill the debugLevel variable with a value from either vk_layer_settings.txt or environment variables.
 // Environment variables get priority.
 static void GetDevSimDebugLevel() {
@@ -2365,7 +3308,7 @@ static void GetDevSimModifyExtensionList() {
         modify_extension_list = env_var;
         modifyExtensionList.fromEnvVar = true;
     }
-    modifyExtensionList.num = GetBooleanValue(modify_extension_list);
+    modifyExtensionList.mode = GetArrayCombinationModeValue(modify_extension_list);
 }
 
 // Fill the modifyMemoryFlags variable with a value from either vk_layer_settings.txt or environment variables.
@@ -2381,6 +3324,58 @@ static void GetDevSimModifyMemoryFlags() {
     modifyMemoryFlags.num = GetBooleanValue(modify_memory_flags);
 }
 
+// Fill the modifyFormatList variable with a value from either vk_layer_settings.txt or environment variables.
+// Environment variables get priority.
+static void GetDevSimModifyFormatList() {
+    std::string modify_format_list = getLayerOption(kLayerSettingsDevsimModifyFormatList);
+    modifyFormatList.fromEnvVar = false;
+    std::string env_var = GetEnvarValue(kEnvarDevsimModifyFormatList);
+    if (!env_var.empty()) {
+        modify_format_list = env_var;
+        modifyFormatList.fromEnvVar = true;
+    }
+    modifyFormatList.mode = GetArrayCombinationModeValue(modify_format_list);
+}
+
+// Fill the modifyFormatProperties variable with a value from either vk_layer_settings.txt or environment variables.
+// Environment variables get priority.
+static void GetDevSimModifyFormatProperties() {
+    std::string modify_format_properties = getLayerOption(kLayerSettingsDevsimModifyFormatProperties);
+    modifyFormatProperties.fromEnvVar = false;
+    std::string env_var = GetEnvarValue(kEnvarDevsimModifyFormatProperties);
+    if (!env_var.empty()) {
+        modify_format_properties = env_var;
+        modifyFormatProperties.fromEnvVar = true;
+    }
+    modifyFormatProperties.mode = GetArrayCombinationModeValue(modify_format_properties);
+}
+
+// Fill the modifySurfaceFormats variable with a value from either vk_layer_settings.txt or environment variables.
+// Environment variables get priority.
+static void GetDevSimModifySurfaceFormats() {
+    std::string modify_surface_formats = getLayerOption(kLayerSettingsDevsimModifySurfaceFormats);
+    modifySurfaceFormats.fromEnvVar = false;
+    std::string env_var = GetEnvarValue(kEnvarDevsimModifySurfaceFormats);
+    if (!env_var.empty()) {
+        modify_surface_formats = env_var;
+        modifySurfaceFormats.fromEnvVar = true;
+    }
+    modifySurfaceFormats.mode = GetArrayCombinationModeValue(modify_surface_formats);
+}
+
+// Fill the modifyPresentModes variable with a value from either vk_layer_settings.txt or environment variables.
+// Environment variables get priority.
+static void GetDevSimModifyPresentModes() {
+    std::string modify_present_modes = getLayerOption(kLayerSettingsDevsimModifyPresentModes);
+    modifyPresentModes.fromEnvVar = false;
+    std::string env_var = GetEnvarValue(kEnvarDevsimModifyPresentModes);
+    if (!env_var.empty()) {
+        modify_present_modes = env_var;
+        modifyPresentModes.fromEnvVar = true;
+    }
+    modifyPresentModes.mode = GetArrayCombinationModeValue(modify_present_modes);
+}
+
 // Generic layer dispatch table setup, see [LALI].
 static VkResult LayerSetupCreateInstance(const VkInstanceCreateInfo *pCreateInfo, const VkAllocationCallbacks *pAllocator,
                                          VkInstance *pInstance) {
@@ -2390,6 +3385,10 @@ static VkResult LayerSetupCreateInstance(const VkInstanceCreateInfo *pCreateInfo
     GetDevSimErrorLevel();
     GetDevSimModifyExtensionList();
     GetDevSimModifyMemoryFlags();
+    GetDevSimModifyFormatList();
+    GetDevSimModifyFormatProperties();
+    GetDevSimModifySurfaceFormats();
+    GetDevSimModifyPresentModes();
 
     VkLayerInstanceCreateInfo *chain_info = get_chain_info(pCreateInfo, VK_LAYER_LINK_INFO);
     assert(chain_info->u.pLayerInfo);
@@ -2778,13 +3777,16 @@ VKAPI_ATTR VkResult VKAPI_CALL EnumerateDeviceExtensionProperties(VkPhysicalDevi
     const auto dt = instance_dispatch_table(physicalDevice);
 
     PhysicalDeviceData *pdd = PhysicalDeviceData::Find(physicalDevice);
-    const uint32_t src_count = (pdd) ? static_cast<uint32_t>(pdd->arrayof_extension_properties_.size()) : 0;
-    if (pLayerName && !strcmp(pLayerName, kOurLayerName)) {
-        result = EnumerateProperties(kDeviceExtensionPropertiesCount, kDeviceExtensionProperties.data(), pCount, pProperties);
-    } else if (src_count == 0 || modifyExtensionList.num == 0) {
+    const uint32_t src_count = (pdd) ? static_cast<uint32_t>(pdd->simulation_extensions_.size()) : 0;
+    if (pLayerName) {
+        if (strcmp(pLayerName, kOurLayerName) == 0)
+            result = EnumerateProperties(kDeviceExtensionPropertiesCount, kDeviceExtensionProperties.data(), pCount, pProperties);
+        else
+            result = dt->EnumerateDeviceExtensionProperties(physicalDevice, pLayerName, pCount, pProperties);
+    } else if (src_count == 0 || pdd->extension_list_combination_mode_ == ARRAY_COMBINATION_MODE_NONE) {
         result = dt->EnumerateDeviceExtensionProperties(physicalDevice, pLayerName, pCount, pProperties);
     } else {
-        result = EnumerateProperties(src_count, pdd->arrayof_extension_properties_.data(), pCount, pProperties);
+        result = EnumerateProperties(src_count, pdd->simulation_extensions_.data(), pCount, pProperties);
     }
 
     if (result == VK_SUCCESS && !pLayerName && emulatePortability.num > 0 &&
@@ -2907,8 +3909,73 @@ VKAPI_ATTR void VKAPI_CALL GetPhysicalDeviceFormatProperties(VkPhysicalDevice ph
     if (src_count == 0) {
         dt->GetPhysicalDeviceFormatProperties(physicalDevice, format, pFormatProperties);
     } else {
+        VkFormatProperties device_format = {};
+        dt->GetPhysicalDeviceFormatProperties(physicalDevice, format, &device_format);
         const auto iter = pdd->arrayof_format_properties_.find(format);
-        *pFormatProperties = (iter != pdd->arrayof_format_properties_.end()) ? iter->second : VkFormatProperties{};
+
+        switch (pdd->format_list_combination_mode_) {
+            case ARRAY_COMBINATION_MODE_NONE:
+                *pFormatProperties = device_format;
+                break;
+            case ARRAY_COMBINATION_MODE_REPLACE:
+                *pFormatProperties = (iter != pdd->arrayof_format_properties_.end()) ? iter->second : VkFormatProperties{};
+                break;
+            case ARRAY_COMBINATION_MODE_WHITELIST:
+                *pFormatProperties = (iter != pdd->arrayof_format_properties_.end()) ? device_format : VkFormatProperties{};
+                break;
+            case ARRAY_COMBINATION_MODE_BLACKLIST:
+                *pFormatProperties = (iter != pdd->arrayof_format_properties_.end()) ? VkFormatProperties{} : device_format;
+                break;
+            case ARRAY_COMBINATION_MODE_INTERSECT:
+                *pFormatProperties = IsFormatSupported(device_format)
+                                         ? device_format
+                                         : (iter != pdd->arrayof_format_properties_.end()) ? iter->second : VkFormatProperties{};
+                break;
+            default:
+                *pFormatProperties = device_format;
+        }
+
+        if (IsFormatSupported(*pFormatProperties) && iter != pdd->arrayof_format_properties_.end()) {
+            switch (pdd->format_properties_combination_mode_) {
+                case ARRAY_COMBINATION_MODE_NONE:
+                    *pFormatProperties = device_format;
+                    break;
+                case ARRAY_COMBINATION_MODE_REPLACE:
+                    *pFormatProperties = iter->second;
+                    break;
+                case ARRAY_COMBINATION_MODE_WHITELIST:
+                    (*pFormatProperties).optimalTilingFeatures =
+                        device_format.optimalTilingFeatures & iter->second.optimalTilingFeatures;
+                    (*pFormatProperties).linearTilingFeatures =
+                        device_format.linearTilingFeatures & iter->second.linearTilingFeatures;
+                    (*pFormatProperties).bufferFeatures = device_format.bufferFeatures & iter->second.bufferFeatures;
+                    break;
+                case ARRAY_COMBINATION_MODE_BLACKLIST:
+                    (*pFormatProperties).optimalTilingFeatures =
+                        device_format.optimalTilingFeatures ^ iter->second.optimalTilingFeatures;
+                    (*pFormatProperties).linearTilingFeatures =
+                        device_format.linearTilingFeatures ^ iter->second.linearTilingFeatures;
+                    (*pFormatProperties).bufferFeatures = device_format.bufferFeatures ^ iter->second.bufferFeatures;
+
+                    (*pFormatProperties).optimalTilingFeatures &= device_format.optimalTilingFeatures;
+                    (*pFormatProperties).linearTilingFeatures &= device_format.linearTilingFeatures;
+                    (*pFormatProperties).bufferFeatures &= device_format.bufferFeatures;
+                    break;
+                case ARRAY_COMBINATION_MODE_INTERSECT:
+                    (*pFormatProperties).optimalTilingFeatures =
+                        device_format.optimalTilingFeatures | iter->second.optimalTilingFeatures;
+                    (*pFormatProperties).linearTilingFeatures =
+                        device_format.linearTilingFeatures | iter->second.linearTilingFeatures;
+                    (*pFormatProperties).bufferFeatures = device_format.bufferFeatures | iter->second.bufferFeatures;
+                    break;
+                default:
+                    *pFormatProperties = device_format;
+            }
+            if ((*pFormatProperties).linearTilingFeatures > device_format.linearTilingFeatures ||
+                (*pFormatProperties).optimalTilingFeatures > device_format.optimalTilingFeatures ||
+                (*pFormatProperties).bufferFeatures > device_format.bufferFeatures)
+                DebugPrintf("WARN format %s may be simulating unsupported features!\n", vkFormatToString(format).c_str());
+        }
     }
 }
 
@@ -2925,6 +3992,310 @@ VKAPI_ATTR void VKAPI_CALL GetPhysicalDeviceFormatProperties2(VkPhysicalDevice p
 VKAPI_ATTR void VKAPI_CALL GetPhysicalDeviceFormatProperties2KHR(VkPhysicalDevice physicalDevice, VkFormat format,
                                                                  VkFormatProperties2KHR *pFormatProperties) {
     GetPhysicalDeviceFormatProperties2(physicalDevice, format, pFormatProperties);
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL GetPhysicalDeviceSurfaceCapabilitiesKHR(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface,
+                                                                       VkSurfaceCapabilitiesKHR *pSurfaceCapabilities) {
+    VkResult result = VK_SUCCESS;
+    std::lock_guard<std::mutex> lock(global_lock);
+    const auto dt = instance_dispatch_table(physicalDevice);
+
+    result = dt->GetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, pSurfaceCapabilities);
+    if (result != VK_SUCCESS) return result;
+
+    PhysicalDeviceData *pdd = PhysicalDeviceData::Find(physicalDevice);
+    if (pdd) {
+        VkSurfaceCapabilitiesKHR surf_caps = pdd->surface_capabilities_;
+        surf_caps.currentExtent = pSurfaceCapabilities->currentExtent;
+        surf_caps.currentTransform = pSurfaceCapabilities->currentTransform;
+        *pSurfaceCapabilities = surf_caps;
+    }
+
+    return result;
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL GetPhysicalDeviceSurfaceCapabilities2KHR(VkPhysicalDevice physicalDevice,
+                                                                        VkPhysicalDeviceSurfaceInfo2KHR *pSurfaceInfo,
+                                                                        VkSurfaceCapabilities2KHR *pSurfaceCapabilities) {
+    {
+        std::lock_guard<std::mutex> lock(global_lock);
+        const auto dt = instance_dispatch_table(physicalDevice);
+        dt->GetPhysicalDeviceSurfaceCapabilities2KHR(physicalDevice, pSurfaceInfo, pSurfaceCapabilities);
+    }
+    return GetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, pSurfaceInfo->surface,
+                                                   &pSurfaceCapabilities->surfaceCapabilities);
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL GetPhysicalDeviceSurfaceFormatsKHR(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface,
+                                                                  uint32_t *pSurfaceFormatCount,
+                                                                  VkSurfaceFormatKHR *pSurfaceFormats) {
+    VkResult result = VK_SUCCESS;
+    std::lock_guard<std::mutex> lock(global_lock);
+    const auto dt = instance_dispatch_table(physicalDevice);
+
+    PhysicalDeviceData *pdd = PhysicalDeviceData::Find(physicalDevice);
+    uint32_t src_count = (pdd) ? static_cast<uint32_t>(pdd->arrayof_surface_formats_.size()) : 0;
+    if (src_count == 0) {
+        result = dt->GetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, pSurfaceFormatCount, pSurfaceFormats);
+    } else {
+        uint32_t sf_count = 0;
+        dt->GetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &sf_count, nullptr);
+        std::vector<VkSurfaceFormatKHR> device_surface_formats(sf_count);
+        dt->GetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &sf_count, device_surface_formats.data());
+
+        std::vector<VkSurfaceFormatKHR> simulation_surface_formats;
+
+        switch (modifySurfaceFormats.mode) {
+            case ARRAY_COMBINATION_MODE_NONE:
+                return dt->GetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, pSurfaceFormatCount, pSurfaceFormats);
+                break;
+            case ARRAY_COMBINATION_MODE_REPLACE:
+                return EnumerateProperties(src_count, pdd->arrayof_surface_formats_.data(), pSurfaceFormatCount, pSurfaceFormats);
+                break;
+            case ARRAY_COMBINATION_MODE_WHITELIST:
+                for (VkSurfaceFormatKHR &dev_surf_form : device_surface_formats) {
+                    for (VkSurfaceFormatKHR &file_surf_form : pdd->arrayof_surface_formats_) {
+                        if (dev_surf_form.format == file_surf_form.format &&
+                            dev_surf_form.colorSpace == file_surf_form.colorSpace) {
+                            simulation_surface_formats.push_back(dev_surf_form);
+                            break;
+                        }
+                    }
+                }
+                break;
+            case ARRAY_COMBINATION_MODE_BLACKLIST:
+                for (VkSurfaceFormatKHR &dev_surf_form : device_surface_formats) {
+                    bool blacklisted = false;
+                    for (VkSurfaceFormatKHR &file_surf_form : pdd->arrayof_surface_formats_) {
+                        if (dev_surf_form.format == file_surf_form.format &&
+                            dev_surf_form.colorSpace == file_surf_form.colorSpace) {
+                            blacklisted = true;
+                            break;
+                        }
+                    }
+                    if (!blacklisted) {
+                        simulation_surface_formats.push_back(dev_surf_form);
+                    }
+                }
+                break;
+            case ARRAY_COMBINATION_MODE_INTERSECT:
+                for (VkSurfaceFormatKHR &dev_surf_form : device_surface_formats) {
+                    simulation_surface_formats.push_back(dev_surf_form);
+                }
+                for (VkSurfaceFormatKHR &file_surf_form : pdd->arrayof_surface_formats_) {
+                    bool blacklisted = false;
+                    for (VkSurfaceFormatKHR &sim_surf_form : simulation_surface_formats) {
+                        if (sim_surf_form.format == file_surf_form.format &&
+                            sim_surf_form.colorSpace == file_surf_form.colorSpace) {
+                            blacklisted = true;
+                            break;
+                        }
+                    }
+                    if (!blacklisted) {
+                        simulation_surface_formats.push_back(file_surf_form);
+                    }
+                }
+                break;
+            default:
+                return dt->GetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, pSurfaceFormatCount, pSurfaceFormats);
+        }
+
+        result = EnumerateProperties(static_cast<uint32_t>(simulation_surface_formats.size()), simulation_surface_formats.data(),
+                                     pSurfaceFormatCount, pSurfaceFormats);
+    }
+
+    return result;
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL GetPhysicalDeviceSurfaceFormats2KHR(VkPhysicalDevice physicalDevice,
+                                                                   const VkPhysicalDeviceSurfaceInfo2KHR *pSurfaceInfo,
+                                                                   uint32_t *pSurfaceFormatCount,
+                                                                   VkSurfaceFormat2KHR *pSurfaceFormats) {
+    VkResult result = VK_SUCCESS;
+    std::lock_guard<std::mutex> lock(global_lock);
+    const auto dt = instance_dispatch_table(physicalDevice);
+
+    // Are there JSON overrides, or should we call down to return the original values?
+    PhysicalDeviceData *pdd = PhysicalDeviceData::Find(physicalDevice);
+    uint32_t src_count = (pdd) ? static_cast<uint32_t>(pdd->arrayof_surface_formats_.size()) : 0;
+    if (src_count == 0) {
+        result = dt->GetPhysicalDeviceSurfaceFormats2KHR(physicalDevice, pSurfaceInfo, pSurfaceFormatCount, pSurfaceFormats);
+        return result;
+    }
+
+    uint32_t sf_count = 0;
+    dt->GetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, pSurfaceInfo->surface, &sf_count, nullptr);
+    std::vector<VkSurfaceFormatKHR> device_surface_formats(sf_count);
+    dt->GetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, pSurfaceInfo->surface, &sf_count, device_surface_formats.data());
+
+    std::vector<VkSurfaceFormatKHR> simulation_surface_formats;
+
+    switch (modifySurfaceFormats.mode) {
+        case ARRAY_COMBINATION_MODE_NONE:
+            result = dt->GetPhysicalDeviceSurfaceFormats2KHR(physicalDevice, pSurfaceInfo, pSurfaceFormatCount, pSurfaceFormats);
+            return result;
+            break;
+        case ARRAY_COMBINATION_MODE_REPLACE:
+            if (!pSurfaceFormats) {
+                *pSurfaceFormatCount = src_count;
+                return result;
+            }
+
+            // You can't directly initialize a variable in a switch case because of scope issues, so we explicitly add a scope here.
+            {
+                if (*pSurfaceFormatCount < src_count) result = VK_INCOMPLETE;
+                const uint32_t copy_count = (*pSurfaceFormatCount < src_count) ? *pSurfaceFormatCount : src_count;
+                const VkSurfaceFormatKHR *src_props = pdd->arrayof_surface_formats_.data();
+                for (uint32_t i = 0; i < copy_count; ++i) {
+                    pSurfaceFormats[i].surfaceFormat = src_props[i];
+                }
+                *pSurfaceFormatCount = copy_count;
+            }
+
+            return result;
+            break;
+        case ARRAY_COMBINATION_MODE_WHITELIST:
+            for (VkSurfaceFormatKHR &dev_surf_form : device_surface_formats) {
+                for (VkSurfaceFormatKHR &file_surf_form : pdd->arrayof_surface_formats_) {
+                    if (dev_surf_form.format == file_surf_form.format && dev_surf_form.colorSpace == file_surf_form.colorSpace) {
+                        simulation_surface_formats.push_back(dev_surf_form);
+                        break;
+                    }
+                }
+            }
+            break;
+        case ARRAY_COMBINATION_MODE_BLACKLIST:
+            for (VkSurfaceFormatKHR &dev_surf_form : device_surface_formats) {
+                bool blacklisted = false;
+                for (VkSurfaceFormatKHR &file_surf_form : pdd->arrayof_surface_formats_) {
+                    if (dev_surf_form.format == file_surf_form.format && dev_surf_form.colorSpace == file_surf_form.colorSpace) {
+                        blacklisted = true;
+                        break;
+                    }
+                }
+                if (!blacklisted) {
+                    simulation_surface_formats.push_back(dev_surf_form);
+                }
+            }
+            break;
+        case ARRAY_COMBINATION_MODE_INTERSECT:
+            for (VkSurfaceFormatKHR &dev_surf_form : device_surface_formats) {
+                simulation_surface_formats.push_back(dev_surf_form);
+            }
+            for (VkSurfaceFormatKHR &file_surf_form : pdd->arrayof_surface_formats_) {
+                bool blacklisted = false;
+                for (VkSurfaceFormatKHR &sim_surf_form : simulation_surface_formats) {
+                    if (sim_surf_form.format == file_surf_form.format && sim_surf_form.colorSpace == file_surf_form.colorSpace) {
+                        blacklisted = true;
+                        break;
+                    }
+                }
+                if (!blacklisted) {
+                    simulation_surface_formats.push_back(file_surf_form);
+                }
+            }
+            break;
+        default:
+            result = dt->GetPhysicalDeviceSurfaceFormats2KHR(physicalDevice, pSurfaceInfo, pSurfaceFormatCount, pSurfaceFormats);
+            return result;
+    }
+
+    src_count = static_cast<uint32_t>(simulation_surface_formats.size());
+
+    if (!pSurfaceFormats) {
+        *pSurfaceFormatCount = src_count;
+        return result;
+    }
+
+    // Careful: cannot use EnumerateProperties() here! (because src and dst structs are not the same type)
+    if (*pSurfaceFormatCount < src_count) result = VK_INCOMPLETE;
+    const uint32_t copy_count = (*pSurfaceFormatCount < src_count) ? *pSurfaceFormatCount : src_count;
+    const VkSurfaceFormatKHR *src_props = simulation_surface_formats.data();
+    for (uint32_t i = 0; i < copy_count; ++i) {
+        pSurfaceFormats[i].surfaceFormat = src_props[i];
+    }
+    *pSurfaceFormatCount = copy_count;
+
+    return result;
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL GetPhysicalDeviceSurfacePresentModesKHR(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface,
+                                                                       uint32_t *pPresentModeCount,
+                                                                       VkPresentModeKHR *pPresentModes) {
+    VkResult result = VK_SUCCESS;
+    std::lock_guard<std::mutex> lock(global_lock);
+    const auto dt = instance_dispatch_table(physicalDevice);
+
+    PhysicalDeviceData *pdd = PhysicalDeviceData::Find(physicalDevice);
+    const uint32_t src_count = (pdd) ? static_cast<uint32_t>(pdd->arrayof_present_modes_.size()) : 0;
+    if (src_count == 0) {
+        return dt->GetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, pPresentModeCount, pPresentModes);
+    }
+
+    uint32_t present_mode_count = 0;
+    dt->GetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &present_mode_count, nullptr);
+    std::vector<VkPresentModeKHR> device_present_modes(present_mode_count);
+    dt->GetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &present_mode_count, device_present_modes.data());
+
+    std::vector<VkPresentModeKHR> simulation_present_modes;
+
+    switch (modifyPresentModes.mode) {
+        case ARRAY_COMBINATION_MODE_NONE:
+            result = dt->GetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, pPresentModeCount, pPresentModes);
+            return result;
+            break;
+        case ARRAY_COMBINATION_MODE_REPLACE:
+            result = EnumerateProperties(src_count, pdd->arrayof_present_modes_.data(), pPresentModeCount, pPresentModes);
+            return result;
+            break;
+        case ARRAY_COMBINATION_MODE_WHITELIST:
+            for (VkPresentModeKHR &dev_present_mode : device_present_modes) {
+                for (VkPresentModeKHR &file_present_mode : pdd->arrayof_present_modes_) {
+                    if (dev_present_mode == file_present_mode) {
+                        simulation_present_modes.push_back(dev_present_mode);
+                        break;
+                    }
+                }
+            }
+            break;
+        case ARRAY_COMBINATION_MODE_BLACKLIST:
+            for (VkPresentModeKHR &dev_present_mode : device_present_modes) {
+                bool blacklist = false;
+                for (VkPresentModeKHR &file_present_mode : pdd->arrayof_present_modes_) {
+                    if (dev_present_mode == file_present_mode) {
+                        blacklist = true;
+                        break;
+                    }
+                }
+                if (!blacklist) {
+                    simulation_present_modes.push_back(dev_present_mode);
+                }
+            }
+            break;
+        case ARRAY_COMBINATION_MODE_INTERSECT:
+            for (VkPresentModeKHR &dev_present_mode : device_present_modes) {
+                simulation_present_modes.push_back(dev_present_mode);
+            }
+            for (VkPresentModeKHR &file_present_mode : pdd->arrayof_present_modes_) {
+                bool blacklist = false;
+                for (VkPresentModeKHR &sim_present_mode : simulation_present_modes) {
+                    if (sim_present_mode == file_present_mode) {
+                        blacklist = true;
+                        break;
+                    }
+                }
+                if (!blacklist) {
+                    simulation_present_modes.push_back(file_present_mode);
+                }
+            }
+            break;
+        default:
+            result = dt->GetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, pPresentModeCount, pPresentModes);
+            return result;
+    }
+
+    return EnumerateProperties(static_cast<uint32_t>(simulation_present_modes.size()), simulation_present_modes.data(),
+                               pPresentModeCount, pPresentModes);
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL GetPhysicalDeviceToolPropertiesEXT(VkPhysicalDevice physicalDevice, uint32_t *pToolCount,
@@ -3189,7 +4560,11 @@ VKAPI_ATTR VkResult VKAPI_CALL EnumeratePhysicalDevices(VkInstance instance, uin
 
             PhysicalDeviceData &pdd = PhysicalDeviceData::Create(physical_device, instance);
 
-            EnumerateAll<VkExtensionProperties>(&(pdd.device_extensions), [&](uint32_t *count, VkExtensionProperties *results) {
+            pdd.extension_list_combination_mode_ = modifyExtensionList.mode;
+            pdd.format_list_combination_mode_ = modifyFormatList.mode;
+            pdd.format_properties_combination_mode_ = modifyFormatProperties.mode;
+
+            EnumerateAll<VkExtensionProperties>(&(pdd.device_extensions_), [&](uint32_t *count, VkExtensionProperties *results) {
                 return dt->EnumerateDeviceExtensionProperties(physical_device, nullptr, count, results);
             });
 
@@ -3423,6 +4798,8 @@ VKAPI_ATTR VkResult VKAPI_CALL EnumeratePhysicalDevices(VkInstance instance, uin
             JsonLoader json_loader(pdd);
             json_loader.LoadFiles();
 
+            pdd.combineExtensionLists();
+
             // VK_VULKAN_1_1
             TransferValue(&(pdd.physical_device_vulkan_1_1_properties_), &(pdd.physical_device_point_clipping_properties_));
             TransferValue(&(pdd.physical_device_vulkan_1_1_properties_), &(pdd.physical_device_multiview_properties_));
@@ -3490,6 +4867,11 @@ VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL GetInstanceProcAddr(VkInstance instance
     GET_PROC_ADDR(GetPhysicalDeviceFormatProperties);
     GET_PROC_ADDR(GetPhysicalDeviceFormatProperties2);
     GET_PROC_ADDR(GetPhysicalDeviceFormatProperties2KHR);
+    GET_PROC_ADDR(GetPhysicalDeviceSurfaceCapabilitiesKHR);
+    GET_PROC_ADDR(GetPhysicalDeviceSurfaceCapabilities2KHR);
+    GET_PROC_ADDR(GetPhysicalDeviceSurfaceFormatsKHR);
+    GET_PROC_ADDR(GetPhysicalDeviceSurfaceFormats2KHR);
+    GET_PROC_ADDR(GetPhysicalDeviceSurfacePresentModesKHR);
     GET_PROC_ADDR(GetPhysicalDeviceToolPropertiesEXT);
 #undef GET_PROC_ADDR
 

@@ -18,10 +18,16 @@
  * - Christophe Riccio <christophe@lunarg.com>
  */
 
+#include "../layer.h"
 #include "../layer_preset.h"
+#include "../setting_string.h"
 #include "../util.h"
 
 #include <gtest/gtest.h>
+
+inline SettingMetaString* InstantiateString(Layer& layer, const std::string& key) {
+    return static_cast<SettingMetaString*>(layer.Instantiate(key, SETTING_STRING));
+}
 
 TEST(test_layer_preset, get_preset) {
     LayerPreset layer_preset_a;
@@ -39,20 +45,34 @@ TEST(test_layer_preset, get_preset) {
 }
 
 TEST(test_layer_preset, has_preset) {
+    Layer layer;
+
     SettingDataSet preset_settings;
     SettingDataSet layer_settings;
 
+    SettingMetaString* metaA = InstantiateString(layer, "KeyA");
+    SettingMetaString* metaB = InstantiateString(layer, "KeyB");
+    SettingMetaString* metaC = InstantiateString(layer, "KeyC");
+
     EXPECT_EQ(false, HasPreset(layer_settings, preset_settings));
 
-    static_cast<SettingDataString&>(preset_settings.Create("KeyA", SETTING_STRING)).value = "ValueA";
+    SettingDataString* presetA = Instantiate<SettingDataString>(metaA);
+    presetA->value = "ValueA";
+    preset_settings.push_back(presetA);
     EXPECT_EQ(false, HasPreset(layer_settings, preset_settings));
 
-    static_cast<SettingDataString&>(layer_settings.Create("KeyA", SETTING_STRING)).value = "ValueA";
+    SettingDataString* layerA = Instantiate<SettingDataString>(metaA);
+    layerA->value = "ValueA";
+    layer_settings.push_back(layerA);
     EXPECT_EQ(true, HasPreset(layer_settings, preset_settings));
 
-    static_cast<SettingDataString&>(layer_settings.Create("KeyB", SETTING_STRING)).value = "ValueB";
+    SettingDataString* layerB = Instantiate<SettingDataString>(metaB);
+    layerB->value = "ValueB";
+    layer_settings.push_back(layerB);
     EXPECT_EQ(true, HasPreset(layer_settings, preset_settings));
 
-    static_cast<SettingDataString&>(preset_settings.Create("KeyC", SETTING_STRING)).value = "ValueC";
+    SettingDataString* presetC = Instantiate<SettingDataString>(metaC);
+    presetA->value = "ValueC";
+    preset_settings.push_back(presetC);
     EXPECT_EQ(false, HasPreset(layer_settings, preset_settings));
 }

@@ -75,7 +75,7 @@ static int RunLayersSurrender(const CommandLine& command_line) {
     Environment environment(paths);
     environment.Reset(Environment::DEFAULT);
 
-    const bool has_overridden_layers = HasOverride(environment);
+    const bool has_overridden_layers = HasOverride();
     const bool surrender_result = SurrenderConfiguration(environment);
 
     environment.Reset(Environment::SYSTEM);  // Don't change the system settings on exit
@@ -130,8 +130,8 @@ static int RunLayersVerbose(const CommandLine& command_line) {
         printf("\n%s (%s) %s-%s\n", layer.key.c_str(), GetLayerTypeLabel(layer.type), layer.api_version.str().c_str(),
                layer.implementation_version.c_str());
         printf("- %s\n", layer.description.c_str());
-        printf("- %s\n", layer.path.c_str());
-        printf("- %s\n", layer.library_path.c_str());
+        printf("- %s\n", layer.manifest_path.c_str());
+        printf("- %s\n", layer.binary_path.c_str());
     }
 
     return 0;

@@ -7,6 +7,9 @@
         "api_version": "1.2.170",
         "implementation_version": "2",
         "description": "LunarG API dump layer",
+        "introduction": "The API Dump utility layer prints API calls, parameters, and values to the identified output stream.",
+        "url": "https://vulkan.lunarg.com/doc/sdk/latest/windows/api_dump_layer.html",
+        "platforms": [ "WINDOWS", "LINUX", "MACOS", "ANDROID" ],
         "device_extensions": [
             {
                 "name": "VK_EXT_tooling_info",
@@ -50,7 +53,7 @@
                         },
                         {
                             "key": "log_filename",
-                            "value": "${LOCAL}/vk_apidump.txt"
+                            "value": "${VK_LOCAL}/vk_apidump.txt"
                         },
                         {
                             "key": "file",
@@ -70,7 +73,7 @@
                         },
                         {
                             "key": "log_filename",
-                            "value": "${LOCAL}/vk_apidump.html"
+                            "value": "${VK_LOCAL}/vk_apidump.html"
                         },
                         {
                             "key": "file",
@@ -90,7 +93,7 @@
                         },
                         {
                             "key": "log_filename",
-                            "value": "${LOCAL}/vk_apidump.json"
+                            "value": "${VK_LOCAL}/vk_apidump.json"
                         },
                         {
                             "key": "file",
@@ -139,6 +142,7 @@
                     "description": "Setting this to true indicates that output should be written to file instead of stdout",
                     "type": "BOOL",
                     "default": false,
+                    "platforms": [ "WINDOWS", "LINUX", "MACOS" ],
                     "settings": [
                         {
                             "key": "log_filename",

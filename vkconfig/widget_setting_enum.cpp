@@ -28,13 +28,8 @@ static const int MIN_FIELD_WIDTH = 80;
 
 WidgetSettingEnum::WidgetSettingEnum(QTreeWidget* tree, QTreeWidgetItem* item, const SettingMetaEnum& meta,
                                      SettingDataSet& data_set)
-    : WidgetSettingBase(tree, item),
-      meta(meta),
-      data(*data_set.Get<SettingDataEnum>(meta.key.c_str())),
-      data_set(data_set),
-      field(new QComboBox(this)) {
+    : WidgetSettingBase(tree, item), meta(meta), data_set(data_set), field(new QComboBox(this)) {
     assert(&meta);
-    assert(&data);
 
     this->field->show();
 
@@ -42,6 +37,7 @@ WidgetSettingEnum::WidgetSettingEnum(QTreeWidget* tree, QTreeWidgetItem* item, c
     this->item->setFont(0, this->tree->font());
     this->item->setToolTip(0, this->meta.description.c_str());
     this->item->setSizeHint(0, QSize(0, ITEM_HEIGHT));
+    this->item->setExpanded(this->meta.expanded);
     this->tree->setItemWidget(this->item, 0, this);
 
     this->Refresh(REFRESH_ENABLE_AND_STATE);
@@ -57,16 +53,21 @@ void WidgetSettingEnum::Refresh(RefreshAreas refresh_areas) {
     this->setEnabled(enabled);
 
     if (refresh_areas == REFRESH_ENABLE_AND_STATE) {
+        if (::CheckSettingOverridden(this->meta)) {
+            this->DisplayOverride(this->field, this->meta);
+        }
+
         this->field->blockSignals(true);
         this->field->clear();
         this->enum_indexes.clear();
 
         int selection = 0;
+        const std::string value = data().value;
         for (std::size_t i = 0, n = this->meta.enum_values.size(); i < n; ++i) {
             if (!IsSupported(&this->meta.enum_values[i])) continue;
 
             this->field->addItem(this->meta.enum_values[i].label.c_str());
-            if (this->meta.enum_values[i].key == data.value) {
+            if (this->meta.enum_values[i].key == value) {
                 selection = static_cast<int>(this->enum_indexes.size());
             }
             this->enum_indexes.push_back(i);
@@ -92,6 +93,12 @@ void WidgetSettingEnum::resizeEvent(QResizeEvent* event) {
 void WidgetSettingEnum::OnIndexChanged(int index) {
     assert(index >= 0 && index < static_cast<int>(this->meta.enum_values.size()));
 
-    this->data.value = this->meta.enum_values[enum_indexes[static_cast<std::size_t>(index)]].key;
+    this->data().value = this->meta.enum_values[enum_indexes[static_cast<std::size_t>(index)]].key;
     emit itemChanged();
+}
+
+SettingDataEnum& WidgetSettingEnum::data() {
+    SettingDataEnum* data = FindSetting<SettingDataEnum>(this->data_set, this->meta.key.c_str());
+    assert(data != nullptr);
+    return *data;
 }

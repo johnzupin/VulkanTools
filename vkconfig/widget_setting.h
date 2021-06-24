@@ -20,8 +20,7 @@
 
 #pragma once
 
-#include "../vkconfig_core/setting_data.h"
-#include "../vkconfig_core/setting_meta.h"
+#include "../vkconfig_core/setting.h"
 
 #include <QTreeWidgetItem>
 #include <QWidget>
@@ -48,6 +47,8 @@ class WidgetSettingBase : public QWidget {
     WidgetSettingBase& operator=(const WidgetSettingBase&) = delete;
 
    protected:
+    void DisplayOverride(QWidget* widget, const SettingMeta& meta) const;
+
     QTreeWidget* tree;
     QTreeWidgetItem* item;
 };

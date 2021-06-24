@@ -96,11 +96,18 @@ if (USE_CCACHE)
     endif(CCACHE_FOUND)
 endif()
 
+option(BUILD_WERROR "Treat compiler warnings as errors" ON)
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux" OR CMAKE_SYSTEM_NAME MATCHES "BSD")
     set(FALLBACK_CONFIG_DIRS "/etc/xdg" CACHE STRING
         "Search path to use when XDG_CONFIG_DIRS is unset or empty or the current process is SUID/SGID. Default is freedesktop compliant.")
     set(FALLBACK_DATA_DIRS "/usr/local/share:/usr/share" CACHE STRING
         "Search path to use when XDG_DATA_DIRS is unset or empty or the current process is SUID/SGID. Default is freedesktop compliant.")
+
+    if(BUILD_WERROR)
+        if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID MATCHES "Clang")
+            add_compile_options(-Werror)
+        endif()
+    endif()
 
     include(FindPkgConfig)
     option(BUILD_WSI_XCB_SUPPORT "Build XCB WSI support" ON)
@@ -204,7 +211,7 @@ macro(run_vulkantools_vk_xml_generate dependency output)
     add_custom_command(OUTPUT ${output}
     COMMAND ${PYTHON_CMD} -B ${VULKANTOOLS_SCRIPTS_DIR}/vt_genvk.py -registry ${VulkanRegistry_DIR}/vk.xml -scripts ${VulkanRegistry_DIR} ${output}
         -removeExtensions VK_KHR_video_queue -removeExtensions VK_KHR_video_decode_queue -removeExtensions VK_KHR_video_encode_queue -removeExtensions VK_EXT_video_decode_h264
-        -removeExtensions VK_EXT_video_decode_h265 -removeExtensions VK_EXT_video_encode_h264
+        -removeExtensions VK_EXT_video_decode_h265 -removeExtensions VK_EXT_video_encode_h264 -removeExtensions VK_HUAWEI_subpass_shading
     DEPENDS ${VulkanRegistry_DIR}/vk.xml ${VulkanRegistry_DIR}/generator.py ${VULKANTOOLS_SCRIPTS_DIR}/${dependency} ${VULKANTOOLS_SCRIPTS_DIR}/vt_genvk.py ${VulkanRegistry_DIR}/reg.py
     )
 endmacro()

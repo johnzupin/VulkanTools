@@ -22,6 +22,8 @@
 
 #include "widget_setting.h"
 
+#include "../vkconfig_core/setting_float.h"
+
 #include <QString>
 #include <QLineEdit>
 #include <QResizeEvent>
@@ -50,10 +52,10 @@ class WidgetSettingFloat : public WidgetSettingBase {
    private:
     void Resize();
     SettingInputError ProcessInputValue();
+    SettingDataFloat& data();
 
-    const SettingDataSet& data_set;
-    SettingDataFloat& data;
     const SettingMetaFloat& meta;
+    SettingDataSet& data_set;
 
     std::string value_buffer;
     QLineEdit* field;

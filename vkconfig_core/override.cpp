@@ -61,8 +61,8 @@ bool WriteLayersOverride(const Environment& environment, const std::vector<Layer
         }
 
         // Extract just the path
-        assert(!layer->path.empty());
-        const QFileInfo file(layer->path.c_str());
+        assert(!layer->manifest_path.empty());
+        const QFileInfo file(layer->manifest_path.c_str());
         const std::string absolute_path(ConvertNativeSeparators(file.absolutePath().toStdString()).c_str());
 
         // Make sure the path is not already in the list
@@ -141,6 +141,8 @@ bool WriteLayersOverride(const Environment& environment, const std::vector<Layer
 // Create and write vk_layer_settings.txt file
 bool WriteSettingsOverride(const Environment& environment, const std::vector<Layer>& available_layers,
                            const Configuration& configuration, const std::string& settings_path) {
+    (void)environment;
+
     assert(!settings_path.empty());
     assert(QFileInfo(settings_path.c_str()).absoluteDir().exists());
 
@@ -169,108 +171,24 @@ bool WriteSettingsOverride(const Environment& environment, const std::vector<Lay
         stream << "\n";
         stream << "# " << layer->key.c_str() << "\n";
 
-        QString short_layer_name(layer->key.c_str());
-        short_layer_name.remove("VK_LAYER_");
-        QString lc_layer_name = short_layer_name.toLower();
+        std::string lc_layer_name = GetLayerSettingPrefix(layer->key);
 
-        for (std::size_t i = 0, m = parameter.settings.Size(); i < m; ++i) {
-            const SettingData& setting_data = parameter.settings[i];
+        for (std::size_t i = 0, m = parameter.settings.size(); i < m; ++i) {
+            const SettingData* setting_data = parameter.settings[i];
 
             // Skip missing settings
-            if (FindSettingMeta<SettingMetaInt>(layer->settings, setting_data.key.c_str()) == nullptr) continue;
-
-            stream << lc_layer_name << "." << setting_data.key.c_str() << " = ";
-            switch (setting_data.type) {
-                case SETTING_GROUP: {
-                    break;
-                }
-                case SETTING_LOAD_FILE:
-                case SETTING_SAVE_FILE:
-                case SETTING_SAVE_FOLDER: {
-                    stream << ReplaceBuiltInVariable(static_cast<const SettingDataString&>(setting_data).value.c_str()).c_str();
-                    break;
-                }
-                case SETTING_FRAMES: {
-                    const SettingDataFrames& data = static_cast<const SettingDataFrames&>(setting_data);
-                    const SettingMetaFrames* meta = FindSettingMeta<SettingMetaFrames>(layer->settings, data.key.c_str());
-                    if (meta->IsValid(data)) {
-                        stream << data.value.c_str();
-                    } else {
-                        stream << meta->default_value.c_str();
-                    }
-                    break;
-                }
-                case SETTING_ENUM:
-                case SETTING_STRING: {
-                    stream << static_cast<const SettingDataString&>(setting_data).value.c_str();
-                    break;
-                }
-                case SETTING_INT: {
-                    const SettingDataInt& data = static_cast<const SettingDataInt&>(setting_data);
-                    const SettingMetaInt* meta = FindSettingMeta<SettingMetaInt>(layer->settings, data.key.c_str());
-
-                    if (meta->IsValid(data)) {
-                        stream << data.value;
-                    } else {
-                        stream << meta->default_value;
-                    }
-
-                    break;
-                }
-                case SETTING_FLOAT: {
-                    const SettingDataFloat& data = static_cast<const SettingDataFloat&>(setting_data);
-                    const SettingMetaFloat* meta = FindSettingMeta<SettingMetaFloat>(layer->settings, data.key.c_str());
-
-                    const std::string float_format = meta->GetFloatFormat();
-
-                    if (meta->IsValid(data)) {
-                        stream << format(float_format.c_str(), data.value).c_str();
-                    } else {
-                        stream << format(float_format.c_str(), meta->default_value).c_str();
-                    }
-
-                    break;
-                }
-                case SETTING_BOOL_NUMERIC_DEPRECATED: {
-                    stream << (static_cast<const SettingDataBool&>(setting_data).value ? "1" : "0");
-                    break;
-                }
-                case SETTING_BOOL: {
-                    stream << (static_cast<const SettingDataBool&>(setting_data).value ? "TRUE" : "FALSE");
-                    break;
-                }
-                case SETTING_LIST: {
-                    const SettingDataList& setting_object = static_cast<const SettingDataList&>(setting_data);
-
-                    for (std::size_t i = 0, n = setting_object.value.size(); i < n; ++i) {
-                        if (!setting_object.value[i].enabled) continue;
-
-                        if (i != 0) stream << ",";
-                        if (setting_object.value[i].key.empty()) {
-                            stream << setting_object.value[i].number;
-                        } else {
-                            stream << setting_object.value[i].key.c_str();
-                        }
-                    }
-
-                    break;
-                }
-                case SETTING_FLAGS: {
-                    const SettingDataFlags& setting_object = static_cast<const SettingDataFlags&>(setting_data);
-
-                    for (std::size_t i = 0, n = setting_object.value.size(); i < n; ++i) {
-                        stream << setting_object.value[i].c_str();
-                        if (i < n - 1) stream << ",";
-                    }
-
-                    break;
-                }
-                default: {
-                    assert(0);
-                    break;
-                }
+            const SettingMeta* meta = FindSetting(layer->settings, setting_data->key.c_str());
+            if (meta == nullptr) {
+                continue;
             }
 
+            // Skip overriden settings
+            if (::CheckSettingOverridden(*meta)) {
+                continue;
+            }
+
+            stream << lc_layer_name.c_str() << setting_data->key.c_str() << " = ";
+            stream << setting_data->Export(EXPORT_MODE_OVERRIDE).c_str();
             stream << "\n";
         }
     }
@@ -281,8 +199,8 @@ bool WriteSettingsOverride(const Environment& environment, const std::vector<Lay
 
 bool OverrideConfiguration(const Environment& environment, const std::vector<Layer>& available_layers,
                            const Configuration& configuration) {
-    const std::string layers_path = environment.paths.GetFullPath(PATH_OVERRIDE_LAYERS);
-    const std::string settings_path = environment.paths.GetFullPath(PATH_OVERRIDE_SETTINGS);
+    const std::string layers_path = GetPath(BUILTIN_PATH_OVERRIDE_LAYERS);
+    const std::string settings_path = GetPath(BUILTIN_PATH_OVERRIDE_SETTINGS);
 
     // Clean up
     SurrenderConfiguration(environment);
@@ -295,7 +213,7 @@ bool OverrideConfiguration(const Environment& environment, const std::vector<Lay
 
     // On Windows only, we need to write these values to the registry
 #if VKC_PLATFORM == VKC_PLATFORM_WINDOWS
-    AppendRegistryEntriesForLayers(environment.running_as_administrator, layers_path.c_str(), settings_path.c_str());
+    AppendRegistryEntriesForLayers(layers_path.c_str(), settings_path.c_str());
 #endif
 
     return result_settings && result_layers;
@@ -306,22 +224,22 @@ bool EraseLayersOverride(const std::string& layers_path) { return std::remove(la
 bool EraseSettingsOverride(const std::string& settings_path) { return std::remove(settings_path.c_str()) == 0; }
 
 bool SurrenderConfiguration(const Environment& environment) {
-    const std::string layers_path = environment.paths.GetFullPath(PATH_OVERRIDE_LAYERS);
-    const std::string settings_path = environment.paths.GetFullPath(PATH_OVERRIDE_SETTINGS);
+    const std::string layers_path = GetPath(BUILTIN_PATH_OVERRIDE_LAYERS);
+    const std::string settings_path = GetPath(BUILTIN_PATH_OVERRIDE_SETTINGS);
 
     const bool result_layers = EraseLayersOverride(layers_path);
     const bool result_settings = EraseSettingsOverride(settings_path);
 
 #if VKC_PLATFORM == VKC_PLATFORM_WINDOWS
-    RemoveRegistryEntriesForLayers(environment.running_as_administrator, layers_path.c_str(), settings_path.c_str());
+    RemoveRegistryEntriesForLayers(layers_path.c_str(), settings_path.c_str());
 #endif
 
     return result_layers && result_settings;
 }
 
-bool HasOverride(const Environment& environment) {
-    const std::string settings_path = environment.paths.GetFullPath(PATH_OVERRIDE_SETTINGS);
-    const std::string layers_path = environment.paths.GetFullPath(PATH_OVERRIDE_LAYERS);
+bool HasOverride() {
+    const std::string layers_path = GetPath(BUILTIN_PATH_OVERRIDE_LAYERS);
+    const std::string settings_path = GetPath(BUILTIN_PATH_OVERRIDE_SETTINGS);
 
     const QFileInfo override_settings_file_info(layers_path.c_str());
     const QFileInfo override_layers_file_info(settings_path.c_str());

@@ -20,10 +20,10 @@
  */
 
 #include "dialog_applications.h"
-
 #include "configurator.h"
 
-#include <QMessageBox>
+#include "../vkconfig_core/alert.h"
+
 #include <QFileDialog>
 #include <QTextStream>
 #include <QCloseEvent>
@@ -40,7 +40,7 @@ ApplicationsDialog::ApplicationsDialog(QWidget *parent)
 
     // The header is hidden by default and stays hidden when no checkboxes are used.
     if (!configurator.environment.UseApplicationListOverrideMode())
-        setWindowTitle("Applications Launcher Shortcuts");
+        setWindowTitle("Vulkan Applications Launcher Shortcuts");
     else {
         ui->treeWidget->setHeaderHidden(false);
         ui->treeWidget->setHeaderLabel("Check to override Vulkan layers");
@@ -98,12 +98,7 @@ void ApplicationsDialog::closeEvent(QCloseEvent *event) {
     if (environment.GetApplications().empty() || !environment.HasOverriddenApplications()) {
         environment.SetMode(OVERRIDE_MODE_LIST, false);
 
-        QMessageBox alert;
-        alert.setIcon(QMessageBox::Warning);
-        alert.setWindowTitle("Vulkan Layers overriding will apply globally.");
-        alert.setText("The application list to override is empty. Restricting layers overriding to the selected list is disabled.");
-        alert.setInformativeText("As a result, Vulkan Layers overriding will apply globally, to all Vulkan applications.");
-        alert.exec();
+        Alert::ApplicationListEmpty();
     }
 }
 

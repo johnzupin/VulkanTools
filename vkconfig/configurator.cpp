@@ -28,6 +28,7 @@
 #include "../vkconfig_core/util.h"
 #include "../vkconfig_core/path.h"
 #include "../vkconfig_core/override.h"
+#include "../vkconfig_core/alert.h"
 
 #include <QDir>
 #include <QSettings>
@@ -65,28 +66,14 @@ bool Configurator::Init() {
 
     // If no layers are found, give the user another chance to add some custom paths
     if (!has_layers) {
-        QMessageBox alert;
-        alert.setWindowTitle("No Vulkan Layers found");
-        alert.setText(
-            "No Vulkan Layers were found in standard paths or in the SDK path. Vulkan Layers are required in order to use Vulkan "
-            "Configurator.");
-        alert.setInformativeText("Please select the path where you have your layers located.");
-        alert.setIcon(QMessageBox::Warning);
-        alert.exec();
+        Alert::LayerInitFailed();
 
-        CustomPathsDialog dlg;
+        UserDefinedPathsDialog dlg;
         dlg.exec();
-
-        // Give it one more chance... If there are still no layers, bail
-        layers.LoadAllInstalledLayers();
     }
 
     if (!has_layers) {
-        QMessageBox alert;
-        alert.setWindowTitle(VKCONFIG_NAME);
-        alert.setText("Could not initialize Vulkan Configurator.");
-        alert.setIcon(QMessageBox::Critical);
-        alert.exec();
+        Alert::ConfiguratorInitFailed();
 
         return false;
     }
@@ -95,14 +82,7 @@ bool Configurator::Init() {
     if (settings.value("crashed", QVariant(false)).toBool()) {
         settings.setValue("crashed", false);
 
-        QMessageBox alert;
-        alert.setWindowTitle("Vulkan Configurator crashed during last run...");
-        alert.setText("Do you want to reset to default resolve the issue?");
-        alert.setInformativeText("All layers configurations will be lost...");
-        alert.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
-        alert.setDefaultButton(QMessageBox::No);
-        alert.setIcon(QMessageBox::Critical);
-        if (alert.exec() == QMessageBox::No) {
+        if (Alert::ConfiguratorCrashed() == QMessageBox::No) {
             configurations.LoadAllConfigurations(layers.available_layers);
         }
     } else {
@@ -122,18 +102,16 @@ bool Configurator::Init() {
         if (HasMissingLayer(active_configuration->parameters, layers.available_layers)) {
             if (settings.value("VKCONFIG_WARN_MISSING_LAYERS_IGNORE").toBool() == false) {
                 QMessageBox alert;
-                alert.setWindowTitle("Vulkan Configurator couldn't find some Vulkan layers...");
+                alert.QDialog::setWindowTitle(format("%s couldn't find some Vulkan layers...", VKCONFIG_NAME).c_str());
                 alert.setText(format("%s is missing layers", active_configuration->key.c_str()).c_str());
-                alert.setInformativeText("Do you want to add a custom path to find the layers?");
+                alert.setInformativeText("Do you want to add a path to find the layers?");
                 alert.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
                 alert.setDefaultButton(QMessageBox::Yes);
                 alert.setIcon(QMessageBox::Warning);
                 alert.setCheckBox(new QCheckBox("Do not show again."));
                 if (alert.exec() == QMessageBox::Yes) {
-                    CustomPathsDialog dlg;
+                    UserDefinedPathsDialog dlg;
                     dlg.exec();
-
-                    layers.LoadAllInstalledLayers();
                 }
                 if (alert.checkBox()->isChecked()) {
                     settings.setValue("VKCONFIG_WARN_MISSING_LAYERS_IGNORE", true);
@@ -141,6 +119,20 @@ bool Configurator::Init() {
             }
         }
     }
+
+    /*
+    qputenv("VK_REF_ENUM", "value2");
+    qputenv("VK_REF_FLAGS", "flag0,flag2");
+    qputenv("VK_REF_STRING", "Hello world");
+    qputenv("VK_REF_BOOL", "true");
+    qputenv("VK_REF_LOAD_FILE", "Pouet.txt");
+    qputenv("VK_REF_SAVE_FILE", "Pouet.txt");
+    qputenv("VK_REF_SAVE_FOLDER", "~/VulkanSDK/Pouet");
+    qputenv("VK_REF_INT", "76");
+    qputenv("VK_REF_FLOAT", "0.9999");
+    qputenv("VK_REF_FRAMES", "75-76,82");
+    qputenv("VK_REF_LIST", "76,stringB");
+    */
 
     return true;
 }

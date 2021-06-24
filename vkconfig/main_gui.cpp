@@ -22,12 +22,12 @@
 
 #include "mainwindow.h"
 
+#include "../vkconfig_core/alert.h"
 #include "../vkconfig_core/version.h"
 #include "../vkconfig_core/application_singleton.h"
 
 #include <QApplication>
 #include <QCheckBox>
-#include <QMessageBox>
 
 int run_gui(int argc, char* argv[]) {
     QCoreApplication::setOrganizationName("LunarG");
@@ -59,11 +59,7 @@ int run_gui(int argc, char* argv[]) {
     // order to use a QMessageBox and avoid some QThread warnings.
     const ApplicationSingleton singleton("vkconfig_single_instance");
     if (!singleton.IsFirstInstance()) {
-        QMessageBox alert(nullptr);
-        alert.setWindowTitle("Cannot start another instance of vkconfig");
-        alert.setIcon(QMessageBox::Critical);
-        alert.setText("Another copy of vkconfig is currently running. Please close the other instance and try again.");
-        alert.exec();
+        Alert::ConfiguratorSingleton();
         return -1;
     }
 

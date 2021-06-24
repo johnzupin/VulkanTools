@@ -18,10 +18,16 @@
  * - Christophe Riccio <christophe@lunarg.com>
  */
 
+#include "../layer.h"
 #include "../parameter.h"
 #include "../util.h"
+#include "../setting_string.h"
 
 #include <gtest/gtest.h>
+
+inline SettingMetaString* InstantiateString(Layer& layer, const std::string& key) {
+    return static_cast<SettingMetaString*>(layer.Instantiate(key, SETTING_STRING));
+}
 
 static std::vector<Layer> GenerateTestLayers() {
     std::vector<Layer> layers;
@@ -31,9 +37,9 @@ static std::vector<Layer> GenerateTestLayers() {
     layers.push_back(Layer("Layer I0", LAYER_TYPE_IMPLICIT, Version(1, 0, 0), Version(1, 2, 148), "1", "layer.json", "GLOBAL"));
     layers.push_back(Layer("Layer I1", LAYER_TYPE_IMPLICIT, Version(1, 0, 0), Version(1, 2, 148), "1", "layer.json", "GLOBAL"));
     layers.push_back(Layer("Layer I2", LAYER_TYPE_IMPLICIT, Version(1, 0, 0), Version(1, 2, 148), "1", "layer.json", "GLOBAL"));
-    layers.push_back(Layer("Layer C0", LAYER_TYPE_CUSTOM, Version(1, 0, 0), Version(1, 2, 148), "1", "layer.json", "GLOBAL"));
-    layers.push_back(Layer("Layer C1", LAYER_TYPE_CUSTOM, Version(1, 0, 0), Version(1, 2, 148), "1", "layer.json", "GLOBAL"));
-    layers.push_back(Layer("Layer C2", LAYER_TYPE_CUSTOM, Version(1, 0, 0), Version(1, 2, 148), "1", "layer.json", "GLOBAL"));
+    layers.push_back(Layer("Layer C0", LAYER_TYPE_USER_DEFINED, Version(1, 0, 0), Version(1, 2, 148), "1", "layer.json", "GLOBAL"));
+    layers.push_back(Layer("Layer C1", LAYER_TYPE_USER_DEFINED, Version(1, 0, 0), Version(1, 2, 148), "1", "layer.json", "GLOBAL"));
+    layers.push_back(Layer("Layer C2", LAYER_TYPE_USER_DEFINED, Version(1, 0, 0), Version(1, 2, 148), "1", "layer.json", "GLOBAL"));
     return layers;
 }
 
@@ -227,27 +233,37 @@ TEST(test_parameter, order_manual) {
 }
 
 TEST(test_parameter, apply_settings) {
+    Layer layer;
+
+    SettingMetaString* metaA = InstantiateString(layer, "A");
+    SettingMetaString* metaB = InstantiateString(layer, "B");
+
+    SettingDataString* preset_setting = Instantiate<SettingDataString>(metaA);
+    preset_setting->value = "preset value";
+
     LayerPreset preset;
-    SettingDataString& preset_setting = static_cast<SettingDataString&>(preset.settings.Create("A", SETTING_STRING));
-    preset_setting.value = "preset value";
+    preset.settings.push_back(preset_setting);
+
+    SettingDataString* layer_setting_a = Instantiate<SettingDataString>(metaA);
+    layer_setting_a->value = "setting value";
+
+    SettingDataString* layer_setting_b = Instantiate<SettingDataString>(metaB);
+    layer_setting_b->value = "setting value";
 
     Parameter parameter;
-    SettingDataString& layer_setting_a = static_cast<SettingDataString&>(parameter.settings.Create("A", SETTING_STRING));
-    layer_setting_a.value = "setting value";
+    parameter.settings.push_back(layer_setting_a);
+    parameter.settings.push_back(layer_setting_b);
 
-    SettingDataString& layer_setting_b = static_cast<SettingDataString&>(parameter.settings.Create("B", SETTING_STRING));
-    layer_setting_b.value = "setting value";
-
-    EXPECT_EQ(1, preset.settings.Size());
-    EXPECT_EQ(2, parameter.settings.Size());
+    EXPECT_EQ(1, preset.settings.size());
+    EXPECT_EQ(2, parameter.settings.size());
 
     parameter.ApplyPresetSettings(preset);
 
-    EXPECT_EQ(1, preset.settings.Size());
-    EXPECT_EQ(2, parameter.settings.Size());
+    EXPECT_EQ(1, preset.settings.size());
+    EXPECT_EQ(2, parameter.settings.size());
 
-    EXPECT_STREQ("preset value", parameter.settings.Get<SettingDataString>("A")->value.c_str());
-    EXPECT_STREQ("setting value", parameter.settings.Get<SettingDataString>("B")->value.c_str());
+    EXPECT_STREQ("preset value", static_cast<SettingDataString*>(FindSetting(parameter.settings, "A"))->value.c_str());
+    EXPECT_STREQ("setting value", static_cast<SettingDataString*>(FindSetting(parameter.settings, "B"))->value.c_str());
 }
 
 TEST(test_parameter, gather_parameters_exist) {

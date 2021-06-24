@@ -48,12 +48,14 @@ class LayersDialog : public QDialog {
     void LoadSortedLayersUI();
 
    public Q_SLOTS:
-    virtual void accept() override;  // Save the configuration
+    void accept() override;
 
     void currentLayerChanged(QTreeWidgetItem *current, QTreeWidgetItem *previous);
 
-    void on_pushButtonResetLayers_clicked();
-    void on_pushButtonCustomLayers_clicked();
+    void on_button_properties_clicked();
+    void on_button_doc_clicked();
+    void on_button_website_clicked();
+    void on_button_reset_clicked();
     void on_pushButtonUp_clicked();
     void on_pushButtonDown_clicked();
 
@@ -69,6 +71,8 @@ class LayersDialog : public QDialog {
     virtual void showEvent(QShowEvent *) override;
 
     void UpdateUI();
+
+    void UpdateButtons();
 
     void AddLayerItem(const Parameter &parameter);
     void BuildParameters();

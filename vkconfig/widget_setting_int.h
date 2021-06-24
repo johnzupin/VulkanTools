@@ -20,8 +20,7 @@
 
 #pragma once
 
-#include "../vkconfig_core/setting_data.h"
-#include "../vkconfig_core/setting_meta.h"
+#include "../vkconfig_core/setting_int.h"
 
 #include "widget_setting.h"
 
@@ -52,10 +51,10 @@ class WidgetSettingInt : public WidgetSettingBase {
    private:
     void Resize();
     SettingInputError ProcessInputValue();
+    SettingDataInt& data();
 
-    const SettingDataSet& data_set;
-    SettingDataInt& data;
     const SettingMetaInt& meta;
+    SettingDataSet& data_set;
 
     std::string value_buffer;
     QLineEdit* field;

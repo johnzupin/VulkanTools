@@ -20,8 +20,7 @@
 
 #pragma once
 
-#include "../vkconfig_core/setting_data.h"
-#include "../vkconfig_core/setting_meta.h"
+#include "../vkconfig_core/setting_frames.h"
 
 #include "widget_setting.h"
 
@@ -54,10 +53,10 @@ class WidgetSettingFrames : public WidgetSettingBase {
    private:
     void Resize();
     SettingInputError ProcessInputValue();
+    SettingDataFrames& data();
 
-    const SettingDataSet& data_set;
-    SettingDataFrames& data;
     const SettingMetaFrames& meta;
+    SettingDataSet& data_set;
 
     std::string value_buffer;
     QLineEdit* field;

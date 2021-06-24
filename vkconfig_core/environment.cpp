@@ -22,10 +22,6 @@
 #include "platform.h"
 #include "util.h"
 
-#if VKC_PLATFORM == VKC_PLATFORM_WINDOWS
-#include <shlobj.h>
-#endif
-
 #include <QSettings>
 #include <QMessageBox>
 #include <QCheckBox>
@@ -46,6 +42,18 @@
 
 #define VKCONFIG_KEY_VKCONFIG_VERSION "vkConfigVersion"
 #define VKCONFIG_KEY_CUSTOM_PATHS "customPaths"
+
+static const char* GetApplicationSuffix() {
+    static const char* TABLE[] = {
+        ".exe",  // PLATFORM_WINDOWS
+        "",      // PLATFORM_LINUX
+        ".app",  // PLATFORM_MACOS
+        "N/A"    // PLATFORM_ANDROID
+    };
+    static_assert(countof(TABLE) == PLATFORM_COUNT, "The tranlation table size doesn't match the enum number of elements");
+
+    return TABLE[VKC_PLATFORM];
+}
 
 static const char* GetActiveToken(Active active) {
     assert(active >= ACTIVE_FIRST && active <= ACTIVE_LAST);
@@ -117,15 +125,8 @@ std::string GetLoaderDebugToken(LoaderMessageLevel level) {
 Environment::Environment(PathManager& paths, const Version& api_version)
     : api_version(api_version),
       loader_message_level(GetLoaderDebug(qgetenv("VK_LOADER_DEBUG").toStdString())),
-// Hack for GitHub C.I.
-#if VKC_PLATFORM == VKC_PLATFORM_WINDOWS && (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
-      running_as_administrator(IsUserAnAdmin()),
-#else
-      running_as_administrator(false),
-#endif
       paths_manager(paths),
       paths(paths_manager) {
-
     const bool result = Load();
     assert(result);
 }
@@ -248,7 +249,7 @@ bool Environment::Load() {
     // Load default configuration already init
     this->default_configuration_filenames = ConvertString(settings.value("default_configuration_files").toStringList());
 
-    // Load custom paths
+    // Load user-defined paths
     user_defined_layers_paths[USER_DEFINED_LAYERS_PATHS_GUI] =
         ConvertString(settings.value(VKCONFIG_KEY_CUSTOM_PATHS).toStringList());
 
@@ -256,8 +257,14 @@ bool Environment::Load() {
     // assemble a list of paths that take precidence for layer discovery.
     const QString VK_LAYER_PATH(qgetenv("VK_LAYER_PATH"));
     if (!VK_LAYER_PATH.isEmpty()) {
+        static const char* TABLE[] = {
+            ";",  // ENVIRONMENT_WIN32
+            ":"   // ENVIRONMENT_UNIX
+        };
+        static_assert(countof(TABLE) == ENVIRONMENT_COUNT, "The tranlation table size doesn't match the enum number of elements");
+
         user_defined_layers_paths[USER_DEFINED_LAYERS_PATHS_ENV] =
-            ConvertString(QString(qgetenv("VK_LAYER_PATH")).split(GetPlatformString(PLATFORM_STRING_SEPARATOR)));
+            ConvertString(QString(qgetenv("VK_LAYER_PATH")).split(TABLE[VKC_ENV]));
     } else {
         user_defined_layers_paths[USER_DEFINED_LAYERS_PATHS_ENV].clear();
     }
@@ -270,7 +277,7 @@ bool Environment::Load() {
 }
 
 bool Environment::LoadApplications() {
-    const std::string& application_list_json = paths.GetFullPath(FILENAME_APPLIST);
+    const std::string& application_list_json = GetPath(BUILTIN_PATH_APPLIST);
     QFile file(application_list_json.c_str());
     if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {  // if applist.json exist, load saved applications
         QString data = file.readAll();
@@ -338,7 +345,7 @@ bool Environment::Save() const {
         settings.setValue(GetLayoutStateToken(static_cast<LayoutState>(i)), layout_states[i]);
     }
 
-    // Save custom paths
+    // Save user-defined paths
     settings.setValue(VKCONFIG_KEY_CUSTOM_PATHS, ConvertString(user_defined_layers_paths[USER_DEFINED_LAYERS_PATHS_GUI]));
 
     // Save default configuration initizalized
@@ -369,7 +376,7 @@ bool Environment::SaveApplications() const {
         root.insert(QFileInfo(applications[i].executable_path.c_str()).fileName(), application_object);
     }
 
-    const std::string& app_list_json = paths.GetFullPath(FILENAME_APPLIST);
+    const std::string& app_list_json = GetPath(BUILTIN_PATH_APPLIST);
     assert(QFileInfo(app_list_json.c_str()).absoluteDir().exists());
 
     QFile file(app_list_json.c_str());
@@ -612,8 +619,13 @@ static std::string GetDefaultExecutablePath(const std::string& executable_name) 
     // Using VULKAN_SDK environement variable
     const QString env(qgetenv("VULKAN_SDK"));
     if (!env.isEmpty()) {
-        const std::string search_path =
-            env.toStdString() + GetPlatformString(PLATFORM_STRING_SDK_BIN_DIR) + DEFAULT_PATH + executable_name.c_str();
+        static const char* TABLE[] = {
+            "/Bin",  // ENVIRONMENT_WIN32
+            "/bin",  // ENVIRONMENT_UNIX
+        };
+        static_assert(countof(TABLE) == ENVIRONMENT_COUNT, "The tranlation table size doesn't match the enum number of elements");
+
+        const std::string search_path = env.toStdString() + TABLE[VKC_ENV] + DEFAULT_PATH + executable_name.c_str();
         const QFileInfo file_info(search_path.c_str());
         if (file_info.exists()) {
             return file_info.absoluteFilePath().toStdString();
@@ -662,8 +674,7 @@ static const DefaultApplication defaults_applications[] = {{ConvertNativeSeparat
                                                            {ConvertNativeSeparators("/vkcubepp"), "--suppress_popups"}};
 
 static Application CreateDefaultApplication(const DefaultApplication& default_application) {
-    const std::string executable_path =
-        GetDefaultExecutablePath((default_application.key + GetPlatformString(PLATFORM_STRING_APP_SUFFIX)).c_str());
+    const std::string executable_path = GetDefaultExecutablePath((default_application.key + GetApplicationSuffix()).c_str());
     if (executable_path.empty()) Application();  // application could not be found..
 
     Application application(executable_path, "--suppress_popups");
@@ -673,7 +684,7 @@ static Application CreateDefaultApplication(const DefaultApplication& default_ap
     // initially will be set to the users home folder across all OS's. This is highly visible
     // in the application launcher and should not present a usability issue. The developer can
     // easily change this later to anywhere they like.
-    application.log_file = std::string("${LOCAL}") + default_application.key + ".txt";
+    application.log_file = std::string("${VK_LOCAL}") + default_application.key + ".txt";
 
     return application;
 }
@@ -714,7 +725,7 @@ std::vector<Application> UpdateDefaultApplications(const std::vector<Application
 
     for (std::size_t default_index = 0, default_count = countof(defaults_applications); default_index < default_count;
          ++default_index) {
-        std::string const defaults_name = defaults_applications[default_index].key + GetPlatformString(PLATFORM_STRING_APP_SUFFIX);
+        const std::string defaults_name = defaults_applications[default_index].key + GetApplicationSuffix();
 
         std::swap(updated_applications, search_applications);
         updated_applications.clear();

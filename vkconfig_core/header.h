@@ -21,12 +21,26 @@
 #pragma once
 
 #include "platform.h"
-#include "setting_type.h"
+#include "json.h"
 
 #include <string>
 
+enum SettingView {
+    SETTING_VIEW_STANDARD = 0,
+    SETTING_VIEW_ADVANCED,
+    SETTING_VIEW_HIDDEN,
+
+    SETTING_VIEW_FIRST = SETTING_VIEW_STANDARD,
+    SETTING_VIEW_LAST = SETTING_VIEW_HIDDEN
+};
+
+enum { SETTING_VIEW_COUNT = SETTING_VIEW_LAST - SETTING_VIEW_FIRST + 1 };
+
+SettingView GetSettingView(const char* token);
+const char* GetToken(SettingView state);
+
 struct Header {
-    Header() : status(STATUS_STABLE), view(SETTING_VIEW_STANDARD), platform_flags(PLATFORM_ALL_BIT) {}
+    Header() : status(STATUS_STABLE), view(SETTING_VIEW_STANDARD), platform_flags(PLATFORM_DESKTOP_BIT), expanded(true) {}
 
     std::string label;
     std::string description;
@@ -34,4 +48,7 @@ struct Header {
     StatusType status;
     SettingView view;
     int platform_flags;
+    bool expanded;
 };
+
+void LoadMetaHeader(Header& header, const QJsonObject& json_object);

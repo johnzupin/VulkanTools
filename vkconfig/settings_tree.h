@@ -46,9 +46,13 @@ class SettingsTreeManager : QObject {
     void GetTreeState(QByteArray &byte_array, QTreeWidgetItem *top_item);
     int SetTreeState(QByteArray &byte_array, int index, QTreeWidgetItem *top_item);
 
+    void Refresh(RefreshAreas refresh_areas);
+
    public Q_SLOTS:
     void OnSettingChanged();
     void OnPresetChanged();
+    void OnExpandedChanged(const QModelIndex &index);
+    void OnCollapsedChanged(const QModelIndex &index);
 
    private:
     SettingsTreeManager(const SettingsTreeManager &) = delete;
@@ -56,9 +60,8 @@ class SettingsTreeManager : QObject {
 
     void BuildValidationTree(QTreeWidgetItem *parent, Parameter &parameter);
     void BuildGenericTree(QTreeWidgetItem *parent, Parameter &parameter);
-    void BuildTreeItem(QTreeWidgetItem *parent, const SettingMetaSet &meta_set, SettingDataSet &data_set, const SettingMeta &meta);
+    void BuildTreeItem(QTreeWidgetItem *parent, SettingDataSet &data_set, const SettingMeta &meta);
 
-    void Refresh(RefreshAreas refresh_areas);
     void RefreshItem(RefreshAreas refresh_areas, QTreeWidgetItem *parent);
 
     QTreeWidget *tree;

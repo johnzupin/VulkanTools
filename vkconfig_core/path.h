@@ -26,12 +26,20 @@
 
 enum BuiltinPath {
     BUILTIN_PATH_HOME = 0,
+    BUILTIN_PATH_LOCAL_LEGACY,
     BUILTIN_PATH_LOCAL,
+    BUILTIN_PATH_APPDATA,
+    BUILTIN_PATH_CONFIG_REF,
+    BUILTIN_PATH_CONFIG_LAST,
+    BUILTIN_PATH_APPLIST,
+    BUILTIN_PATH_OVERRIDE_LAYERS,
+    BUILTIN_PATH_OVERRIDE_SETTINGS,
+    BUILTIN_PATH_EXPLICIT_LAYERS,
     BUILTIN_PATH_VULKAN_SDK,
-    BUILTIN_PATH_VULKAN_LAYER_CONFIG,
+    BUILTIN_PATH_VULKAN_CONTENT,
 
     BUILTIN_PATH_FIRST = BUILTIN_PATH_HOME,
-    BUILTIN_PATH_LAST = BUILTIN_PATH_VULKAN_LAYER_CONFIG,
+    BUILTIN_PATH_LAST = BUILTIN_PATH_VULKAN_CONTENT,
 };
 
 enum { BUILTIN_PATH_COUNT = BUILTIN_PATH_LAST - BUILTIN_PATH_FIRST + 1 };
@@ -56,7 +64,7 @@ std::string ConvertNativeSeparators(const std::string& path);
 const char* GetNativeSeparator();
 
 // Create a directory if it doesn't exist
-void CheckPathsExist(const std::string& path);
+void CheckPathsExist(const std::string& path, bool is_full_path = false);
 
 std::string GetPath(BuiltinPath path);
 
@@ -66,3 +74,5 @@ std::string ReplaceBuiltInVariable(const std::string& path);
 bool IsPortableFilename(const std::string& path);
 
 QFileInfoList GetJSONFiles(const char* directory);
+
+std::string ExtractAbsoluteDir(const std::string& path);

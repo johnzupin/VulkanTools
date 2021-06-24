@@ -25,13 +25,8 @@
 
 WidgetSettingBool::WidgetSettingBool(QTreeWidget* tree, QTreeWidgetItem* item, const SettingMetaBool& meta,
                                      SettingDataSet& data_set)
-    : WidgetSettingBase(tree, item),
-      meta(meta),
-      data(*data_set.Get<SettingDataBool>(meta.key.c_str())),
-      data_set(data_set),
-      field(new QCheckBox(this)) {
+    : WidgetSettingBase(tree, item), meta(meta), data_set(data_set), field(new QCheckBox(this)) {
     assert(&this->meta);
-    assert(&this->data);
 
     this->field->setText(this->meta.label.c_str());
     this->field->setFont(this->tree->font());
@@ -39,8 +34,9 @@ WidgetSettingBool::WidgetSettingBool(QTreeWidget* tree, QTreeWidgetItem* item, c
     this->field->show();
     this->connect(this->field, SIGNAL(clicked()), this, SLOT(OnClicked()));
 
-    this->tree->setItemWidget(this->item, 0, this);
     this->item->setSizeHint(0, QSize(0, ITEM_HEIGHT));
+    this->item->setExpanded(this->meta.expanded);
+    this->tree->setItemWidget(this->item, 0, this);
 
     this->Refresh(REFRESH_ENABLE_AND_STATE);
 }
@@ -53,14 +49,24 @@ void WidgetSettingBool::Refresh(RefreshAreas refresh_areas) {
     this->setEnabled(enabled);
 
     if (refresh_areas == REFRESH_ENABLE_AND_STATE) {
+        if (::CheckSettingOverridden(this->meta)) {
+            this->DisplayOverride(this->field, this->meta);
+        }
+
         this->field->blockSignals(true);
-        this->field->setChecked(this->data.value);
+        this->field->setChecked(this->data().value);
         this->field->blockSignals(false);
     }
 }
 
 void WidgetSettingBool::OnClicked() {
-    this->data.value = this->field->isChecked();
+    this->data().value = this->field->isChecked();
 
     emit itemChanged();
+}
+
+SettingDataBool& WidgetSettingBool::data() {
+    SettingDataBool* data = FindSetting<SettingDataBool>(this->data_set, this->meta.key.c_str());
+    assert(data != nullptr);
+    return *data;
 }

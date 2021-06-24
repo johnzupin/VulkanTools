@@ -36,7 +36,8 @@ class ConfigurationManager {
 
     void SaveAllConfigurations(const std::vector<Layer>& available_layers);
 
-    Configuration& CreateConfiguration(const std::vector<Layer>& available_layers, const std::string& configuration_name);
+    Configuration& CreateConfiguration(const std::vector<Layer>& available_layers, const std::string& configuration_name,
+                                       bool duplicate = false);
 
     void RemoveConfiguration(const std::vector<Layer>& available_layers, const std::string& configuration_name);
 
@@ -61,12 +62,15 @@ class ConfigurationManager {
 
     bool Empty() const { return available_configurations.empty(); }
 
+    bool HasFile(const Configuration& configuration) const;
+
     std::vector<Configuration> available_configurations;
 
    private:
     void RemoveConfigurationFiles();
+    void RemoveConfigurationFile(const std::string& key);
 
-    void LoadConfigurationsPath(const std::vector<Layer>& available_layers, PathType path_type);
+    void LoadConfigurationsPath(const std::vector<Layer>& available_layers, const char* path);
     void LoadDefaultConfigurations(const std::vector<Layer>& available_layers);
 
     Configuration* active_configuration;

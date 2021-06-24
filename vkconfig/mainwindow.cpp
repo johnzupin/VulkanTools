@@ -21,8 +21,6 @@
 
 #include "mainwindow.h"
 
-#include "alert.h"
-
 #include "dialog_about.h"
 #include "dialog_vulkan_analysis.h"
 #include "dialog_vulkan_info.h"
@@ -33,22 +31,22 @@
 #include "configurator.h"
 #include "vulkan.h"
 
+#include "../vkconfig_core/alert.h"
 #include "../vkconfig_core/util.h"
 #include "../vkconfig_core/version.h"
 #include "../vkconfig_core/platform.h"
 #include "../vkconfig_core/help.h"
+#include "../vkconfig_core/doc.h"
 
 #include <QProcess>
-#include <QDir>
 #include <QMessageBox>
-#include <QFile>
 #include <QFrame>
 #include <QComboBox>
 #include <QVariant>
 #include <QContextMenuEvent>
-#include <QFileDialog>
 #include <QLineEdit>
 #include <QSettings>
+#include <QDesktopServices>
 
 #if VKC_PLATFORM == VKC_PLATFORM_LINUX || VKC_PLATFORM == VKC_PLATFORM_MACOS
 #include <unistd.h>
@@ -81,16 +79,18 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
     ui->launcher_tree->installEventFilter(this);
     ui->configuration_tree->installEventFilter(this);
+    ui->settings_tree->installEventFilter(this);
 
     SetupLauncherTree();
 
-    connect(ui->actionAbout, SIGNAL(triggered(bool)), this, SLOT(aboutVkConfig(bool)));
+    connect(ui->action_find_more_layers, SIGNAL(triggered(bool)), this, SLOT(OnHelpFindLayers(bool)));
+    connect(ui->actionAbout, SIGNAL(triggered(bool)), this, SLOT(OnHelpAbout(bool)));
     connect(ui->actionVulkan_Info, SIGNAL(triggered(bool)), this, SLOT(toolsVulkanInfo(bool)));
-    connect(ui->action_readme, SIGNAL(triggered(bool)), this, SLOT(helpShowReadme(bool)));
-    connect(ui->action_changelog, SIGNAL(triggered(bool)), this, SLOT(helpShowChangelog(bool)));
-    connect(ui->actionVulkan_specification, SIGNAL(triggered(bool)), this, SLOT(helpShowVulkanSpec(bool)));
-    connect(ui->actionVulkan_Layer_Specification, SIGNAL(triggered(bool)), this, SLOT(helpShowLayerSpec(bool)));
-    connect(ui->actionGPU_Info_Reports, SIGNAL(triggered(bool)), this, SLOT(helpShowGPUInfo(bool)));
+    connect(ui->action_readme, SIGNAL(triggered(bool)), this, SLOT(OnHelpReadme(bool)));
+    connect(ui->action_changelog, SIGNAL(triggered(bool)), this, SLOT(OnHelpChangelog(bool)));
+    connect(ui->actionVulkan_specification, SIGNAL(triggered(bool)), this, SLOT(OnHelpVulkanSpec(bool)));
+    connect(ui->actionVulkan_Layer_Specification, SIGNAL(triggered(bool)), this, SLOT(OnHelpLayerSpec(bool)));
+    connect(ui->actionGPU_Info_Reports, SIGNAL(triggered(bool)), this, SLOT(OnHelpGPUInfo(bool)));
 
     connect(ui->actionCustom_Layer_Paths, SIGNAL(triggered(bool)), this, SLOT(toolsSetCustomPaths(bool)));
 
@@ -175,11 +175,12 @@ void MainWindow::UpdateUI() {
 
         if (!HasMissingLayer(configuration->parameters, configurator.layers.available_layers)) {
             item->setText(1, item->configuration_name.c_str());
+            item->setToolTip(1, configuration->description.c_str());
             item->radio_button->setToolTip(configuration->description.c_str());
         } else {
             item->setText(1, (item->configuration_name + " (Invalid)").c_str());
             item->radio_button->setToolTip(
-                "Missing Vulkan Layer to use this configuration, try to add Custom Path to locate the layers");
+                "Missing Vulkan Layer to use this configuration, try to add User-Defined Layers Path to locate the layers");
         }
 
         if (item->configuration_name == active_contiguration_name) {
@@ -189,7 +190,8 @@ void MainWindow::UpdateUI() {
     }
 
     // Update settings
-    ui->push_button_select_configuration->setEnabled(environment.UseOverride() && !active_contiguration_name.empty());
+    ui->push_button_select_layers->setEnabled(environment.UseOverride() && !active_contiguration_name.empty());
+    ui->push_button_find_layers->setEnabled(environment.UseOverride() && !active_contiguration_name.empty());
     ui->settings_tree->setEnabled(environment.UseOverride() && has_active_configuration);
     ui->group_box_settings->setTitle(active_contiguration_name.empty() ? "Configuration Settings"
                                                                        : (active_contiguration_name + " Settings").c_str());
@@ -272,7 +274,7 @@ void MainWindow::UpdateUI() {
 
 void MainWindow::UpdateConfiguration() {}
 
-// Load or refresh the list of configuration. Any profile that uses a layer that
+// Load or refresh the list of configuration. Any configuration that uses a layer that
 // is not detected on the system is disabled.
 void MainWindow::LoadConfigurationList() {
     // There are lots of ways into this, and in none of them
@@ -359,15 +361,7 @@ void MainWindow::on_check_box_apply_list_clicked() {
             format("The detected Vulkan loader version is %s but version 1.2.141 or newer is required", version.c_str());
         ui->check_box_apply_list->setToolTip(message.c_str());
 
-        QMessageBox alert(nullptr);
-        alert.setWindowTitle("Layers override of a selected list of Vulkan Applications is not available");
-        alert.setTextFormat(Qt::RichText);
-        alert.setText(message.c_str());
-        alert.setInformativeText(
-            "In order to apply layers override to only a selected list of Vulkan applications, get the latest Vulkan Runtime from "
-            "<a href='https://vulkan.lunarg.com/sdk/home'>HERE.</a> to use this feature or update your Vulkan drivers");
-        alert.setIcon(QMessageBox::Warning);
-        alert.exec();
+        Alert::ApplicationListUnsupported(message.c_str());
 
         ui->check_box_apply_list->setEnabled(false);
         ui->check_box_apply_list->setChecked(false);
@@ -403,17 +397,7 @@ void MainWindow::on_check_box_clear_on_launch_clicked() {
 void MainWindow::toolsResetToDefault(bool checked) {
     (void)checked;
 
-    // Let make sure...
-    QMessageBox alert;
-    alert.setIcon(QMessageBox::Warning);
-    alert.setWindowTitle("Restoring and Resetting all Layers Configurations to default");
-    alert.setText(
-        "You are about to delete all the user-defined configurations and resetting all default configurations to their default "
-        "state.");
-    alert.setInformativeText("Are you sure you want to continue?");
-    alert.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
-    alert.setDefaultButton(QMessageBox::Yes);
-    if (alert.exec() == QMessageBox::No) return;
+    if (Alert::ConfiguratorResetAll() == QMessageBox::No) return;
 
     _settings_tree_manager.CleanupGUI();
 
@@ -479,7 +463,7 @@ void MainWindow::OnConfigurationItemChanged(QTreeWidgetItem *item, int column) {
 
         // We are renaming the file. Things can go wrong here...
         // This is the name of the configuratin we are changing
-        const std::string full_path(configurator.path.GetFullPath(PATH_LAST_CONFIGURATION, configuration_item->configuration_name));
+        const std::string full_path = GetPath(BUILTIN_PATH_CONFIG_LAST) + configuration_item->configuration_name + ".json";
 
         // This is the new name we want to use for the configuration
         const std::string &new_name = configuration_item->text(1).toStdString();
@@ -512,7 +496,7 @@ void MainWindow::OnConfigurationItemChanged(QTreeWidgetItem *item, int column) {
             this->SetActiveConfiguration(old_name);
         } else {
             // Rename configuration ; Remove old configuration file ; change the name of the configuration
-            remove(full_path.c_str());
+            std::remove(full_path.c_str());
             configuration->key = configuration_item->configuration_name = new_name;
 
             this->SetActiveConfiguration(new_name);
@@ -554,7 +538,7 @@ void MainWindow::OnConfigurationTreeChanged(QTreeWidgetItem *current, QTreeWidge
 }
 
 // Unused flag, just display the about Qt dialog
-void MainWindow::aboutVkConfig(bool checked) {
+void MainWindow::OnHelpAbout(bool checked) {
     (void)checked;
 
     AboutDialog dlg(this);
@@ -598,31 +582,37 @@ void MainWindow::toolsVulkanInstallation(bool checked) {
     this->StartTool(TOOL_VULKAN_INSTALL);
 }
 
-void MainWindow::helpShowReadme(bool checked) {
+void MainWindow::OnHelpFindLayers(bool checked) {
+    (void)checked;
+
+    ShowDoc(DOC_FIND_LAYERS);
+}
+
+void MainWindow::OnHelpReadme(bool checked) {
     (void)checked;
 
     ShowDoc(DOC_VKCONFIG_README);
 }
 
-void MainWindow::helpShowChangelog(bool checked) {
+void MainWindow::OnHelpChangelog(bool checked) {
     (void)checked;
 
     ShowDoc(DOC_VKCONFIG_CHANGELOG);
 }
 
-void MainWindow::helpShowVulkanSpec(bool checked) {
+void MainWindow::OnHelpVulkanSpec(bool checked) {
     (void)checked;
 
     ShowDoc(DOC_VULKAN_SPEC);
 }
 
-void MainWindow::helpShowLayerSpec(bool checked) {
+void MainWindow::OnHelpLayerSpec(bool checked) {
     (void)checked;
 
     ShowDoc(DOC_VULKAN_LAYERS);
 }
 
-void MainWindow::helpShowGPUInfo(bool checked) {
+void MainWindow::OnHelpGPUInfo(bool checked) {
     (void)checked;
 
     ShowDoc(DOC_GPU_INFO);
@@ -710,7 +700,7 @@ void MainWindow::on_push_button_applications_clicked() {
     UpdateUI();
 }
 
-void MainWindow::on_push_button_select_configuration_clicked() {
+void MainWindow::on_push_button_select_layers_clicked() {
     ConfigurationListItem *item = SaveLastItem();
     if (item == nullptr) return;
 
@@ -724,12 +714,12 @@ void MainWindow::on_push_button_select_configuration_clicked() {
     LayersDialog dlg(this, *configuration);
     dlg.exec();
 
-    configurator.configurations.SetActiveConfiguration(configurator.layers.available_layers, configuration->key);
     LoadConfigurationList();
 
-    RestoreLastItem();
     _settings_tree_manager.CreateGUI(ui->settings_tree);
 }
+
+void MainWindow::on_push_button_find_layers_clicked() { this->FindLayerPaths(); }
 
 // When changes are made to the layer list, it forces a reload
 // of the configuration list. This wipes everything out, so we
@@ -767,7 +757,7 @@ bool MainWindow::RestoreLastItem(const char *configuration_override) {
 
 /// Allow addition or removal of custom layer paths. Afterwards reset the list
 /// of loaded layers, but only if something was changed.
-void MainWindow::addCustomPaths() {
+void MainWindow::FindLayerPaths() {
     // SaveLastItem();
     // Get the tree state and clear it.
     // This looks better aesthetically after the dialog
@@ -775,11 +765,12 @@ void MainWindow::addCustomPaths() {
     // configs and it will cause a crash.
     _settings_tree_manager.CleanupGUI();
 
-    CustomPathsDialog dlg(this);
+    UserDefinedPathsDialog dlg(this);
     dlg.exec();
 
     LoadConfigurationList();  // Force a reload
-    RestoreLastItem();
+
+    _settings_tree_manager.CreateGUI(ui->settings_tree);
 }
 
 // Edit the layers for the given configuration.
@@ -872,7 +863,7 @@ void MainWindow::ResetClicked(ConfigurationListItem *item) {
             format("The configuration layers and settings will be restored to default built-in *%s* configuration.",
                    configuration->key.c_str())
                 .c_str());
-    else if (configuration->HasSavedFile(configurator.path))
+    else if (configurator.configurations.HasFile(*configuration))
         alert.setInformativeText(
             format("The configuration layers and settings will be reloaded using the *%s* saved file from previous %s run.",
                    configuration->key.c_str(), VKCONFIG_NAME)
@@ -908,7 +899,7 @@ void MainWindow::DuplicateClicked(ConfigurationListItem *item) {
 
     Configurator &configurator = Configurator::Get();
     const Configuration &duplicated_configuration =
-        configurator.configurations.CreateConfiguration(configurator.layers.available_layers, item->configuration_name);
+        configurator.configurations.CreateConfiguration(configurator.layers.available_layers, item->configuration_name, true);
 
     item->configuration_name = duplicated_configuration.key;
 
@@ -961,15 +952,7 @@ void MainWindow::ExportClicked(ConfigurationListItem *item) {
 void MainWindow::ReloadDefaultClicked(ConfigurationListItem *item) {
     (void)item;
 
-    QMessageBox alert;
-    alert.setWindowTitle("Reloading Missing Default Configurations...");
-    alert.setText("Are you sure you want to reload the default configurations?");
-    alert.setInformativeText("Add missing default configurations. Existing configurations are preserved.");
-    alert.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
-    alert.setDefaultButton(QMessageBox::No);
-    alert.setIcon(QMessageBox::Warning);
-
-    if (alert.exec() == QMessageBox::Yes) {
+    if (Alert::ConfiguratorReloadDefault() == QMessageBox::Yes) {
         _settings_tree_manager.CleanupGUI();
 
         Configurator &configurator = Configurator::Get();
@@ -982,12 +965,12 @@ void MainWindow::ReloadDefaultClicked(ConfigurationListItem *item) {
 
 void MainWindow::EditCustomPathsClicked(ConfigurationListItem *item) {
     (void)item;
-    addCustomPaths();
+    FindLayerPaths();
 }
 
 void MainWindow::toolsSetCustomPaths(bool checked) {
     (void)checked;
-    addCustomPaths();
+    FindLayerPaths();
 }
 
 void MainWindow::editorExpanded(QTreeWidgetItem *item) {
@@ -1204,6 +1187,23 @@ void MainWindow::on_push_button_clear_log_clicked() {
     ui->push_button_clear_log->setEnabled(false);
 }
 
+const Layer *GetLayer(QTreeWidget *tree, QTreeWidgetItem *item) {
+    if (item == tree->invisibleRootItem()) return nullptr;
+    if (item == nullptr) return nullptr;
+
+    const std::string &text = item->text(0).toStdString().c_str();
+    if (!text.empty()) {
+        Configurator &configurator = Configurator::Get();
+
+        for (std::size_t i = 0, n = configurator.layers.available_layers.size(); i < n; ++i) {
+            const Layer &layer = configurator.layers.available_layers[i];
+            if (text.find(layer.key) != std::string::npos) return &layer;
+        }
+    }
+
+    return GetLayer(tree, item->parent());
+}
+
 bool MainWindow::eventFilter(QObject *target, QEvent *event) {
     // Launch tree does some fancy resizing and since it's down in
     // layouts and splitters, we can't just rely on the resize method
@@ -1217,15 +1217,101 @@ bool MainWindow::eventFilter(QObject *target, QEvent *event) {
         return false;
     }
 
+    Configurator &configurator = Configurator::Get();
+
     // Context menus for layer configuration files
-    if (target == ui->configuration_tree) {
+    if (target == ui->settings_tree) {
+        QContextMenuEvent *right_click = dynamic_cast<QContextMenuEvent *>(event);
+        if (right_click) {
+            QTreeWidgetItem *setting_item = ui->settings_tree->itemAt(right_click->pos());
+
+            const Layer *layer = GetLayer(ui->settings_tree, setting_item);
+            if (layer == nullptr) {
+                return false;  // Unhandled action
+            }
+
+            // Create context menu here
+            QMenu menu(ui->settings_tree);
+            QFont subtitle_font = menu.font();
+            subtitle_font.setBold(true);
+
+            QAction *title_action = new QAction(layer->key.c_str(), nullptr);
+            title_action->setFont(subtitle_font);
+            menu.addAction(title_action);
+
+            QAction *visit_layer_website_action = new QAction("Visit Layer Website...", nullptr);
+            visit_layer_website_action->setEnabled(!layer->url.empty());
+            menu.addAction(visit_layer_website_action);
+
+            QAction *export_html_action = new QAction("Open Layer HTML Documentation...", nullptr);
+            menu.addAction(export_html_action);
+
+            static const char *table[] = {
+                "N/A",            // LAYER_STATE_APPLICATION_CONTROLLED
+                "Exclude Layer",  // LAYER_STATE_OVERRIDDEN
+                "Override Layer"  // LAYER_STATE_EXCLUDED
+            };
+            static_assert(countof(table) == LAYER_STATE_COUNT,
+                          "The tranlation table size doesn't match the enum number of elements");
+
+            Configuration *configuration = configurator.configurations.GetActiveConfiguration();
+            Parameter *parameter = FindByKey(configuration->parameters, layer->key.c_str());
+
+            QAction *layer_state_action = new QAction(table[parameter->state], nullptr);
+            menu.addAction(layer_state_action);
+
+            menu.addSeparator();
+
+            QAction *show_advanced_setting_action = new QAction("View Advanced Settings", nullptr);
+            show_advanced_setting_action->setEnabled(true);
+            show_advanced_setting_action->setCheckable(true);
+            show_advanced_setting_action->setChecked(configuration->view_advanced_settings);
+            menu.addAction(show_advanced_setting_action);
+
+            QPoint point(right_click->globalX(), right_click->globalY());
+            QAction *action = menu.exec(point);
+
+            if (action == title_action) {
+                Alert::LayerProperties(layer);
+            } else if (action == visit_layer_website_action) {
+                QDesktopServices::openUrl(QUrl(layer->url.c_str()));
+            } else if (action == layer_state_action) {
+                switch (parameter->state) {
+                    case LAYER_STATE_OVERRIDDEN:
+                        parameter->state = LAYER_STATE_EXCLUDED;
+                        break;
+                    case LAYER_STATE_EXCLUDED:
+                        parameter->state = LAYER_STATE_OVERRIDDEN;
+                        break;
+                    default:
+                        assert(0);
+                        break;
+                }
+                configuration->setting_tree_state.clear();
+                _settings_tree_manager.CreateGUI(ui->settings_tree);
+            } else if (action == show_advanced_setting_action) {
+                configuration->view_advanced_settings = action->isChecked();
+                configuration->setting_tree_state.clear();
+                _settings_tree_manager.CreateGUI(ui->settings_tree);
+            } else if (action == export_html_action) {
+                const std::string path = format("%s/%s.html", GetPath(BUILTIN_PATH_APPDATA).c_str(), layer->key.c_str());
+                ExportHtmlDoc(*layer, path);
+                QDesktopServices::openUrl(QUrl(("file:///" + path).c_str()));
+            } else {
+                return false;  // Unknown action
+            }
+
+            // Do not pass on
+            return true;
+        }
+    } else if (target == ui->configuration_tree) {
         QContextMenuEvent *right_click = dynamic_cast<QContextMenuEvent *>(event);
         if (right_click) {  // && event->type() == QEvent::ContextMenu) {
             // Which item were we over?
             QTreeWidgetItem *configuration_item = ui->configuration_tree->itemAt(right_click->pos());
             ConfigurationListItem *item = dynamic_cast<ConfigurationListItem *>(configuration_item);
 
-            const Environment &environment = Configurator::Get().environment;
+            const Environment &environment = configurator.environment;
             const std::string &active_contiguration_name = environment.Get(ACTIVE_CONFIGURATION);
 
             const bool active = environment.UseOverride() && !active_contiguration_name.empty();
@@ -1233,7 +1319,7 @@ bool MainWindow::eventFilter(QObject *target, QEvent *event) {
             // Create context menu here
             QMenu menu(ui->configuration_tree);
 
-            QAction *edit_action = new QAction("Select Layers...", nullptr);
+            QAction *edit_action = new QAction("Edit Layers...", nullptr);
             edit_action->setEnabled(active && item != nullptr);
             menu.addAction(edit_action);
 
@@ -1279,7 +1365,7 @@ bool MainWindow::eventFilter(QObject *target, QEvent *event) {
 
             menu.addSeparator();
 
-            QAction *custom_path_action = new QAction("Edit Layers Custom Path...", nullptr);
+            QAction *custom_path_action = new QAction("Edit User-Defined Layers Paths...", nullptr);
             custom_path_action->setEnabled(true);
             menu.addAction(custom_path_action);
 
@@ -1415,10 +1501,7 @@ void MainWindow::on_push_button_launcher_clicked() {
             if (!ui->check_box_clear_on_launch->isChecked()) mode |= QIODevice::Append;
 
             if (!_log_file.open(mode)) {
-                QMessageBox err;
-                err.setText("Cannot open log file");
-                err.setIcon(QMessageBox::Warning);
-                err.exec();
+                Alert::LogFileFailed();
             }
         }
     }

@@ -21,8 +21,7 @@
 
 #pragma once
 
-#include "../vkconfig_core/setting_meta.h"
-#include "../vkconfig_core/setting_data.h"
+#include "../vkconfig_core/setting_bool.h"
 
 #include "widget_setting.h"
 
@@ -43,9 +42,10 @@ class WidgetSettingBool : public WidgetSettingBase {
     void itemChanged();
 
    private:
-    const SettingDataSet& data_set;
-    SettingDataBool& data;
+    SettingDataBool& data();
+
     const SettingMetaBool& meta;
+    SettingDataSet& data_set;
 
     QCheckBox* field;
 };

@@ -28,11 +28,13 @@ Release: DEFINES += QT_NO_DEBUG_OUTPUT QT_NO_WARNING_OUTPUT
 linux: QMAKE_CXXFLAGS += -Wunused-variable
 
 SOURCES += \
+    ../vkconfig_core/alert.cpp \
     ../vkconfig_core/application.cpp \
     ../vkconfig_core/application_singleton.cpp \
     ../vkconfig_core/command_line.cpp \
     ../vkconfig_core/configuration.cpp \
     ../vkconfig_core/configuration_manager.cpp \
+    ../vkconfig_core/doc.cpp \
     ../vkconfig_core/environment.cpp \
     ../vkconfig_core/header.cpp \
     ../vkconfig_core/help.cpp \
@@ -49,14 +51,19 @@ SOURCES += \
     ../vkconfig_core/path_manager.cpp \
     ../vkconfig_core/platform.cpp \
     ../vkconfig_core/registry.cpp \
-    ../vkconfig_core/setting_data.cpp \
-    ../vkconfig_core/setting_meta.cpp \
-    ../vkconfig_core/setting_set.cpp \
-    ../vkconfig_core/setting_type.cpp \
+    ../vkconfig_core/setting.cpp \
+    ../vkconfig_core/setting_bool.cpp \
+    ../vkconfig_core/setting_filesystem.cpp \
+    ../vkconfig_core/setting_flags.cpp \
+    ../vkconfig_core/setting_float.cpp \
+    ../vkconfig_core/setting_frames.cpp \
+    ../vkconfig_core/setting_group.cpp \
+    ../vkconfig_core/setting_int.cpp \
+    ../vkconfig_core/setting_list.cpp \
+    ../vkconfig_core/setting_string.cpp \
     ../vkconfig_core/util.cpp \
     ../vkconfig_core/version.cpp \
     vulkan.cpp \
-    alert.cpp \
     widget_preset.cpp \
     widget_setting.cpp \
     widget_setting_bool.cpp \
@@ -87,11 +94,13 @@ SOURCES += \
     configurator.cpp
 
 HEADERS += \
+    ../vkconfig_core/alert.h \
     ../vkconfig_core/application.h \
     ../vkconfig_core/application_singleton.h \
     ../vkconfig_core/command_line.h \
     ../vkconfig_core/configuration.h \
     ../vkconfig_core/configuration_manager.h \
+    ../vkconfig_core/doc.h \
     ../vkconfig_core/environment.h \
     ../vkconfig_core/header.h \
     ../vkconfig_core/help.h \
@@ -108,14 +117,19 @@ HEADERS += \
     ../vkconfig_core/path_manager.h \
     ../vkconfig_core/platform.h \
     ../vkconfig_core/registry.h \
-    ../vkconfig_core/setting_data.h \
-    ../vkconfig_core/setting_meta.h \
-    ../vkconfig_core/setting_set.h \
-    ../vkconfig_core/setting_type.h \
+    ../vkconfig_core/setting.h \
+    ../vkconfig_core/setting_bool.h \
+    ../vkconfig_core/setting_filesystem.h \
+    ../vkconfig_core/setting_flags.h \
+    ../vkconfig_core/setting_float.h \
+    ../vkconfig_core/setting_frames.h \
+    ../vkconfig_core/setting_group.h \
+    ../vkconfig_core/setting_int.h \
+    ../vkconfig_core/setting_list.h \
+    ../vkconfig_core/setting_string.h \
     ../vkconfig_core/util.h \
     ../vkconfig_core/version.h \
     vulkan.h \
-    alert.h \
     widget_preset.h \
     widget_setting.h \
     widget_setting_bool.h \

@@ -24,6 +24,7 @@
 #include "../vkconfig_core/layer.h"
 
 #include "widget_setting_int.h"
+#include "widget_setting_flags.h"
 
 #include "widget_setting.h"
 #include <QRadioButton>
@@ -65,6 +66,9 @@ class WidgetSettingValidation : public WidgetSettingBase {
     QTreeWidgetItem *item_core_push;
     QCheckBox *widget_core_push;
 
+    QTreeWidgetItem *item_core_caching;
+    QCheckBox *widget_core_caching;
+
     QTreeWidgetItem *item_misc_thread;
     QCheckBox *widget_misc_thread;
 
@@ -88,6 +92,9 @@ class WidgetSettingValidation : public WidgetSettingBase {
 
     QTreeWidgetItem *item_shader_gpu_oob;
     QCheckBox *widget_shader_gpu_oob;
+
+    QTreeWidgetItem *item_shader_gpu_indirect;
+    QCheckBox *widget_shader_gpu_indirect;
 
     QTreeWidgetItem *item_shader_printf;
     QRadioButton *widget_shader_printf;
@@ -122,6 +129,7 @@ class WidgetSettingValidation : public WidgetSettingBase {
     void OnCoreDescChecked(bool checked);
     void OnCoreShaderChecked(bool checked);
     void OnCorePushChecked(bool checked);
+    void OnCoreCachingChecked(bool checked);
 
     void OnMiscThreadChecked(bool checked);
     void OnMiscUniqueChecked(bool checked);
@@ -133,6 +141,7 @@ class WidgetSettingValidation : public WidgetSettingBase {
     void OnShaderGPUChecked(bool checked);
     void OnShaderGPUReserveChecked(bool checked);
     void OnShaderGPUOOBChecked(bool checked);
+    void OnShaderGPUIndirectChecked(bool checked);
 
     void OnShaderPrintfChecked(bool checked);
     void OnShaderPrintfStdoutChecked(bool checked);

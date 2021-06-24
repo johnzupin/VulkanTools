@@ -20,8 +20,7 @@
 
 #pragma once
 
-#include "../vkconfig_core/setting_data.h"
-#include "../vkconfig_core/setting_meta.h"
+#include "../vkconfig_core/setting_list.h"
 
 #include "widget_setting.h"
 
@@ -49,9 +48,10 @@ class WidgetSettingListElement : public WidgetSettingBase {
     void resizeEvent(QResizeEvent* event) override;
 
    private:
-    const SettingDataSet& data_set;
-    SettingDataList& data;
+    SettingDataList& data();
+
     const SettingMetaList& meta;
+    SettingDataSet& data_set;
 
     EnabledNumberOrString& element;
     QPushButton* button;

@@ -29,7 +29,7 @@
             "type": "array",
             "items": {
                 "type": "string",
-                "enum": [ "WINDOWS", "LINUX", "MACOS" ]
+                "enum": [ "WINDOWS", "LINUX", "MACOS", "ANDROID" ]
             }
         },
         "dependence": {
@@ -161,6 +161,10 @@
                     },
                     "view": {
                         "$ref": "#/definitions/view"
+                    },
+                    "expanded": {
+                        "description": "Whether the children are expanded/visible by default in the UI, true by default",
+                        "type": "boolean"
                     },
                     "settings": {
                         "$ref": "#/definitions/settings_meta"
@@ -313,6 +317,10 @@
                             "view": {
                                 "$ref": "#/definitions/view"
                             },
+                            "expanded": {
+                                "description": "Whether the children are expanded/visible by default in the UI, true by default",
+                                "type": "boolean"
+                            },
                             "dependence": {
                                 "$ref": "#/definitions/dependence"
                             },
@@ -368,6 +376,10 @@
                             },
                             "view": {
                                 "$ref": "#/definitions/view"
+                            },
+                            "expanded": {
+                                "description": "Whether the children are expanded/visible by default in the UI, true by default",
+                                "type": "boolean"
                             },
                             "dependence": {
                                 "$ref": "#/definitions/dependence"
@@ -428,6 +440,10 @@
                             "view": {
                                 "$ref": "#/definitions/view"
                             },
+                            "expanded": {
+                                "description": "Whether the children are expanded/visible by default in the UI, true by default",
+                                "type": "boolean"
+                            },
                             "dependence": {
                                 "$ref": "#/definitions/dependence"
                             },
@@ -485,6 +501,10 @@
                             "view": {
                                 "$ref": "#/definitions/view"
                             },
+                            "expanded": {
+                                "description": "Whether the children are expanded/visible by default in the UI, true by default",
+                                "type": "boolean"
+                            },
                             "dependence": {
                                 "$ref": "#/definitions/dependence"
                             },
@@ -540,6 +560,10 @@
                             },
                             "view": {
                                 "$ref": "#/definitions/view"
+                            },
+                            "expanded": {
+                                "description": "Whether the children are expanded/visible by default in the UI, true by default",
+                                "type": "boolean"
                             },
                             "dependence": {
                                 "$ref": "#/definitions/dependence"
@@ -604,6 +628,10 @@
                             "default": {
                                 "type": "number"
                             },
+                            "expanded": {
+                                "description": "Whether the children are expanded/visible by default in the UI, true by default",
+                                "type": "boolean"
+                            },
                             "dependence": {
                                 "$ref": "#/definitions/dependence"
                             },
@@ -656,6 +684,10 @@
                             },
                             "view": {
                                 "$ref": "#/definitions/view"
+                            },
+                            "expanded": {
+                                "description": "Whether the children are expanded/visible by default in the UI, true by default",
+                                "type": "boolean"
                             },
                             "range": {
                                 "$ref": "#/definitions/int_range"
@@ -721,6 +753,10 @@
                             "view": {
                                 "$ref": "#/definitions/view"
                             },
+                            "expanded": {
+                                "description": "Whether the children are expanded/visible by default in the UI, true by default",
+                                "type": "boolean"
+                            },
                             "flags": {
                                 "$ref": "#/definitions/flags"
                             },
@@ -780,6 +816,10 @@
                             },
                             "view": {
                                 "$ref": "#/definitions/view"
+                            },
+                            "expanded": {
+                                "description": "Whether the children are expanded/visible by default in the UI, true by default",
+                                "type": "boolean"
                             },
                             "flags": {
                                 "$ref": "#/definitions/flags"
@@ -852,6 +892,10 @@
                             "view": {
                                 "$ref": "#/definitions/view"
                             },
+                            "expanded": {
+                                "description": "Whether the children are expanded/visible by default in the UI, true by default",
+                                "type": "boolean"
+                            },
                             "list": {
                                 "description": "Default value of the setting",
                                 "type": "array",
@@ -905,11 +949,15 @@
                 "description": {
                     "type": "string"
                 },
-                "status": {
-                    "$ref": "#/definitions/status"
-                },
                 "url": {
                     "type": "string"
+                },
+
+                "platforms": {
+                    "$ref": "#/definitions/platforms"
+                },
+                "status": {
+                    "$ref": "#/definitions/status"
                 },
                 "features": {
                     "type": "object",

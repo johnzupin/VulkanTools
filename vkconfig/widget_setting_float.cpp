@@ -33,13 +33,11 @@ WidgetSettingFloat::WidgetSettingFloat(QTreeWidget* tree, QTreeWidgetItem* item,
                                        SettingDataSet& data_set)
     : WidgetSettingBase(tree, item),
       meta(meta),
-      data(*data_set.Get<SettingDataFloat>(meta.key.c_str())),
       data_set(data_set),
       field(new QLineEdit(this)),
       timer_error(new QTimer(this)),
       timer_valid(new QTimer(this)) {
     assert(&meta);
-    assert(&data);
 
     const std::string unit = meta.unit.empty() ? "" : format(" (%s)", meta.unit.c_str());
 
@@ -53,10 +51,11 @@ WidgetSettingFloat::WidgetSettingFloat(QTreeWidget* tree, QTreeWidgetItem* item,
     this->connect(this->timer_error, &QTimer::timeout, this, &WidgetSettingFloat::OnErrorValue);
     this->connect(this->timer_valid, &QTimer::timeout, this, &WidgetSettingFloat::OnValidValue);
 
-    this->item->setText(0, (meta.label + unit).c_str());
+    this->item->setText(0, (this->meta.label + unit).c_str());
     this->item->setFont(0, this->tree->font());
     this->item->setToolTip(0, meta.description.c_str());
     this->item->setSizeHint(0, QSize(0, ITEM_HEIGHT));
+    this->item->setExpanded(this->meta.expanded);
     this->tree->setItemWidget(this->item, 0, this);
 
     this->Refresh(REFRESH_ENABLE_AND_STATE);
@@ -75,10 +74,14 @@ void WidgetSettingFloat::Refresh(RefreshAreas refresh_areas) {
     this->field->setEnabled(enabled);
 
     if (refresh_areas == REFRESH_ENABLE_AND_STATE) {
+        if (::CheckSettingOverridden(this->meta)) {
+            this->DisplayOverride(this->field, this->meta);
+        }
+
         const std::string float_format = meta.GetFloatFormat();
 
         this->field->blockSignals(true);
-        this->field->setText(format(float_format.c_str(), data.value).c_str());
+        this->field->setText(format(float_format.c_str(), this->data().value).c_str());
         this->field->blockSignals(false);
     }
 }
@@ -136,7 +139,7 @@ void WidgetSettingFloat::OnErrorValue() {
         if (alert.exec() == QMessageBox::Yes) {
             const std::string field_value = format(this->meta.GetFloatFormat().c_str(), this->meta.default_value);
 
-            this->data.value = this->meta.default_value;
+            this->data().value = this->meta.default_value;
             this->field->setText(field_value.c_str());
             this->field->setPalette(default_palette);
             this->Resize();
@@ -163,7 +166,7 @@ void WidgetSettingFloat::Resize() {
     this->field->setGeometry(button_rect);
 }
 
-SettingInputError WidgetSettingFloat::ProcessInputValue() { return ProcessInput(this->value_buffer, this->meta, this->data); }
+SettingInputError WidgetSettingFloat::ProcessInputValue() { return this->data().ProcessInput(this->value_buffer); }
 
 void WidgetSettingFloat::OnTextEdited(const QString& new_value) {
     this->timer_error->stop();
@@ -180,4 +183,10 @@ void WidgetSettingFloat::OnTextEdited(const QString& new_value) {
     }
 
     emit itemChanged();
+}
+
+SettingDataFloat& WidgetSettingFloat::data() {
+    SettingDataFloat* data = FindSetting<SettingDataFloat>(this->data_set, this->meta.key.c_str());
+    assert(data != nullptr);
+    return *data;
 }

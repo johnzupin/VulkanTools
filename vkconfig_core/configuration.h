@@ -34,7 +34,7 @@ class Configuration {
     Configuration();
 
     bool Load(const std::vector<Layer>& available_layers, const std::string& full_path);
-    bool Save(const std::vector<Layer>& available_layers, const std::string& full_path) const;
+    bool Save(const std::vector<Layer>& available_layers, const std::string& full_path, bool exporter = false) const;
     bool HasOverride() const;
 
     void Reset(const std::vector<Layer>& available_layers, const PathManager& path_manager);
@@ -45,11 +45,11 @@ class Configuration {
     int platform_flags;
     std::string description;        // A friendly description of what this profile does
     QByteArray setting_tree_state;  // Recall editor tree state
+    bool view_advanced_settings;
 
     std::vector<Parameter> parameters;
 
     bool IsBuiltIn() const;
-    bool HasSavedFile(const PathManager& path_manager) const;
 
    private:
     bool Load2_0(const std::vector<Layer>& available_layers, const QJsonObject& json_root_object, const std::string& full_path);

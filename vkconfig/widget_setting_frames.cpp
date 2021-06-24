@@ -36,13 +36,11 @@ WidgetSettingFrames::WidgetSettingFrames(QTreeWidget* tree, QTreeWidgetItem* ite
                                          SettingDataSet& data_set)
     : WidgetSettingBase(tree, item),
       meta(meta),
-      data(*data_set.Get<SettingDataFrames>(meta.key.c_str())),
       data_set(data_set),
       field(new QLineEdit(this)),
       timer_error(new QTimer(this)),
       timer_valid(new QTimer(this)) {
     assert(&meta);
-    assert(&data);
 
     this->field->setFont(tree->font());
     this->field->setToolTip("Use list of comma separated integer ranges. Example: '0-2,16'.");
@@ -58,6 +56,7 @@ WidgetSettingFrames::WidgetSettingFrames(QTreeWidget* tree, QTreeWidgetItem* ite
     this->item->setFont(0, this->tree->font());
     this->item->setToolTip(0, meta.description.c_str());
     this->item->setSizeHint(0, QSize(0, ITEM_HEIGHT));
+    this->item->setExpanded(this->meta.expanded);
     this->tree->setItemWidget(this->item, 0, this);
 
     this->Refresh(REFRESH_ENABLE_AND_STATE);
@@ -76,8 +75,12 @@ void WidgetSettingFrames::Refresh(RefreshAreas refresh_areas) {
     this->field->setEnabled(enabled);
 
     if (refresh_areas == REFRESH_ENABLE_AND_STATE) {
+        if (::CheckSettingOverridden(this->meta)) {
+            this->DisplayOverride(this->field, this->meta);
+        }
+
         this->field->blockSignals(true);
-        this->field->setText(this->data.value.c_str());
+        this->field->setText(this->data().value.c_str());
         this->field->blockSignals(false);
     }
 }
@@ -96,7 +99,7 @@ void WidgetSettingFrames::OnErrorValue() {
     if (settings.value("VKCONFIG_WIDGET_SETTING_FRAMES").toBool() == false) {
         const std::string text =
             format("The setting input '%s' is invalid. Use list of comma separated integer ranges. Example: '0-2,16'.",
-                   this->data.value.c_str());
+                   this->data().value.c_str());
         const std::string info =
             format("Do you want to reset to the setting default value? '%s'", this->meta.default_value.c_str());
 
@@ -109,8 +112,8 @@ void WidgetSettingFrames::OnErrorValue() {
         alert.setIcon(QMessageBox::Critical);
         alert.setCheckBox(new QCheckBox("Do not show again."));
         if (alert.exec() == QMessageBox::Yes) {
-            this->data.value = this->meta.default_value;
-            this->field->setText(data.value.c_str());
+            this->data().value = this->meta.default_value;
+            this->field->setText(this->meta.default_value.c_str());
             this->field->setPalette(default_palette);
             this->Resize();
         }
@@ -136,7 +139,7 @@ void WidgetSettingFrames::Resize() {
     this->field->setGeometry(button_rect);
 }
 
-SettingInputError WidgetSettingFrames::ProcessInputValue() { return ProcessInput(this->value_buffer, this->meta, this->data); }
+SettingInputError WidgetSettingFrames::ProcessInputValue() { return this->data().ProcessInput(this->value_buffer); }
 
 void WidgetSettingFrames::OnTextEdited(const QString& new_value) {
     this->timer_error->stop();
@@ -153,4 +156,10 @@ void WidgetSettingFrames::OnTextEdited(const QString& new_value) {
     }
 
     emit itemChanged();
+}
+
+SettingDataFrames& WidgetSettingFrames::data() {
+    SettingDataFrames* data = FindSetting<SettingDataFrames>(this->data_set, this->meta.key.c_str());
+    assert(data != nullptr);
+    return *data;
 }

@@ -21,8 +21,7 @@
 
 #pragma once
 
-#include "../vkconfig_core/setting_data.h"
-#include "../vkconfig_core/setting_meta.h"
+#include "../vkconfig_core/setting_list.h"
 
 #include "widget_setting.h"
 
@@ -61,9 +60,10 @@ class WidgetSettingList : public WidgetSettingBase {
     void AddElement(EnabledNumberOrString &element);
     void ResetCompleter();
 
-    SettingDataSet &data_set;
-    SettingDataList &data;
+    SettingDataList &data();
+
     const SettingMetaList &meta;
+    SettingDataSet &data_set;
 
     QCompleter *search;
     QLineEdit *field;
@@ -71,5 +71,5 @@ class WidgetSettingList : public WidgetSettingBase {
     QSize size;
 
     std::vector<NumberOrString> list;
-    SettingDataList data_cached;
+    std::vector<EnabledNumberOrString> value_cached;
 };

@@ -21,8 +21,7 @@
 
 #pragma once
 
-#include "../vkconfig_core/setting_data.h"
-#include "../vkconfig_core/setting_meta.h"
+#include "../vkconfig_core/setting_filesystem.h"
 
 #include "widget_setting.h"
 
@@ -50,11 +49,12 @@ class WidgetSettingFilesystem : public WidgetSettingBase {
     void resizeEvent(QResizeEvent *event) override;
 
    private:
-    QTreeWidgetItem *item_child;
-    const SettingDataSet &data_set;
-    SettingDataString &data;
-    const SettingMetaFilesystem &meta;
+    SettingDataString &data();
 
+    const SettingMetaFilesystem &meta;
+    SettingDataSet &data_set;
+
+    QTreeWidgetItem *item_child;
     QLineEdit *field;
     QPushButton *button;
 };

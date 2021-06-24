@@ -21,8 +21,7 @@
 
 #pragma once
 
-#include "../vkconfig_core/setting_data.h"
-#include "../vkconfig_core/setting_meta.h"
+#include "../vkconfig_core/setting_flags.h"
 
 #include "widget_setting.h"
 
@@ -44,9 +43,10 @@ class WidgetSettingFlag : public WidgetSettingBase {
     void itemChanged();
 
    private:
-    const SettingDataSet& data_set;
-    SettingDataFlags& data;
+    SettingDataFlags& data();
+
     const SettingMetaFlags& meta;
+    SettingDataSet& data_set;
 
     std::string flag;
     QCheckBox* field;

@@ -7,7 +7,6 @@
             "LINUX"
         ],
         "description": "Capture a range of frames",
-        "editor_state": "0111111111111111111111111110111",
         "layers": [
             {
                 "name": "VK_LAYER_LUNARG_gfxreconstruct",
@@ -26,7 +25,7 @@
                     {
                         "key": "capture_file",
                         "type": "SAVE_FILE",
-                        "value": "${LOCAL}/gfxrecon_capture.gfxr"
+                        "value": "${VK_LOCAL}/gfxrecon_capture.gfxr"
                     },
                     {
                         "key": "capture_file_timestamp",

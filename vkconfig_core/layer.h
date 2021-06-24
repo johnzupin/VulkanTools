@@ -21,7 +21,7 @@
 
 #pragma once
 
-#include "setting_meta.h"
+#include "setting.h"
 #include "layer_preset.h"
 #include "layer_type.h"
 #include "version.h"
@@ -46,27 +46,35 @@ class Layer {
 
     std::string FindPresetLabel(const SettingDataSet& settings) const;
 
+    SettingMeta* Instantiate(const std::string& key, const SettingType type);
+
+    void AddSettingData(SettingDataSet& data_set, const QJsonValue& json_setting_value);
+
+    void AddSettingsSet(SettingMetaSet& meta_set, const QJsonValue& json_settings_value);
+
    public:
     std::string key;
     Version file_format_version;
-    std::string library_path;  // This is a relative path, straight out of the json
+    std::string binary_path;
     Version api_version;
     std::string implementation_version;
     StatusType status;
     std::string description;
+    std::string introduction;
     std::string url;
-    std::string path;  // Actual path to the folder that contains the layer (this is important!)
+    int platforms;
+    std::string manifest_path;
     LayerType type;
 
-    SettingMetaSet settings;
+    std::vector<SettingMeta*> settings;
     std::vector<LayerPreset> presets;
 
-    // File based layers
     bool Load(const std::vector<Layer>& available_layers, const std::string& full_path_to_file, LayerType layer_type);
 
-    void AddSettingsSet(SettingMetaSet& settings, const QJsonValue& json_settings_value);
-    void AddSettingData(SettingDataSet& settings, const QJsonValue& json_setting_value);
+   private:
+    Layer& operator=(const Layer&) = delete;
+
+    std::vector<std::shared_ptr<SettingMeta> > memory;  // Settings are deleted when all layers instances are deleted.
 };
 
-void InitSettingDefaultValue(SettingData& setting_data, const SettingMeta& setting_meta);
 void CollectDefaultSettingData(const SettingMetaSet& meta_set, SettingDataSet& data_set);

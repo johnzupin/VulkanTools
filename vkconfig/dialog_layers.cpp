@@ -23,10 +23,11 @@
 #include "dialog_custom_paths.h"
 
 #include "configurator.h"
-#include "alert.h"
 
+#include "../vkconfig_core/alert.h"
 #include "../vkconfig_core/platform.h"
 #include "../vkconfig_core/util.h"
+#include "../vkconfig_core/doc.h"
 
 #if VKC_PLATFORM == VKC_PLATFORM_WINDOWS
 #include <windows.h>
@@ -36,6 +37,9 @@
 #include <QComboBox>
 #include <QStyle>
 #include <QFileDialog>
+#include <QMenu>
+#include <QContextMenuEvent>
+#include <QDesktopServices>
 
 #include <cassert>
 
@@ -115,6 +119,7 @@ LayersDialog::LayersDialog(QWidget *parent, const Configuration &configuration)
     assert(&configuration);
 
     ui->setupUi(this);
+
     setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
 
     ui->lineEditName->setText(configuration.key.c_str());
@@ -156,6 +161,8 @@ LayersDialog::~LayersDialog() {
 }
 
 void LayersDialog::UpdateUI() {
+    this->UpdateButtons();
+
     if (!selected_available_layer_name.empty()) {
         for (int i = 0, n = ui->layerTree->topLevelItemCount(); i < n; ++i) {
             TreeWidgetItemParameter *layer_item = dynamic_cast<TreeWidgetItemParameter *>(ui->layerTree->topLevelItem(i));
@@ -196,7 +203,7 @@ void LayersDialog::OnLayerTreeSortedClicked(QTreeWidgetItem *item, int column) {
     TreeWidgetItemParameter *selected_sorted_item = dynamic_cast<TreeWidgetItemParameter *>(item);
     assert(selected_sorted_item);
 
-    selected_available_layer_name = selected_sorted_layer_name = selected_sorted_item->layer_name;
+    this->selected_available_layer_name = this->selected_sorted_layer_name = selected_sorted_item->layer_name;
 
     UpdateUI();
 }
@@ -212,19 +219,32 @@ void LayersDialog::AddLayerItem(const Parameter &parameter) {
 
     bool is_implicit_layer = false;
     if (layer != nullptr) {
-        if (IsDLL32Bit(layer->path)) decorated_name += " (32-bit)";
+        if (layer->status != STATUS_STABLE) {
+            decorated_name += format(" (%s)", GetToken(layer->status));
+        }
+
+        decorated_name += format(" - %s", layer->api_version.str().c_str());
+
+        if (IsDLL32Bit(layer->manifest_path)) {
+            decorated_name += " (32-bit)";
+        }
 
         if (layer->type == LAYER_TYPE_IMPLICIT) {
             is_implicit_layer = true;
-            decorated_name += std::string(" (") + GetLayerTypeLabel(layer->type) + ")";
+            decorated_name += format(" - %s layer", GetLayerTypeLabel(layer->type));
         }
     } else {
+        // A layers configuration may have excluded layer that are misssing because they are not available on this platform
+        // We simply hide these layers to avoid confusing the Vulkan developers
+        if (parameter.state == LAYER_STATE_EXCLUDED) return;
+
         decorated_name += " (Missing)";
     }
 
     TreeWidgetItemParameter *item = new TreeWidgetItemParameter(parameter.key.c_str());
 
     item->setText(0, decorated_name.c_str());
+    if (layer != nullptr) item->setToolTip(0, layer->manifest_path.c_str());
     item->setFlags(item->flags() | Qt::ItemIsSelectable);
     item->setDisabled(layer == nullptr);
 
@@ -290,16 +310,39 @@ void LayersDialog::resizeEvent(QResizeEvent *event) {
     ui->layerTree->setColumnWidth(0, width);
 }
 
-void LayersDialog::on_pushButtonResetLayers_clicked() {
+void LayersDialog::on_button_properties_clicked() {
+    const std::vector<Layer> &available_layers = Configurator::Get().layers.available_layers;
+    const Layer *layer = FindByKey(available_layers, this->selected_available_layer_name.c_str());
+
+    Alert::LayerProperties(layer);
+}
+
+void LayersDialog::on_button_doc_clicked() {
+    const std::vector<Layer> &available_layers = Configurator::Get().layers.available_layers;
+    const Layer *layer = FindByKey(available_layers, this->selected_available_layer_name.c_str());
+    const std::string path = format("%s/%s.html", GetPath(BUILTIN_PATH_APPDATA).c_str(), layer->key.c_str());
+    ExportHtmlDoc(*layer, path);
+    QDesktopServices::openUrl(QUrl(("file:///" + path).c_str()));
+}
+
+void LayersDialog::on_button_website_clicked() {
+    const std::vector<Layer> &available_layers = Configurator::Get().layers.available_layers;
+    const Layer *layer = FindByKey(available_layers, this->selected_available_layer_name.c_str());
+    QDesktopServices::openUrl(QUrl(layer->url.c_str()));
+}
+
+void LayersDialog::on_button_reset_clicked() {
+    Configurator &configurator = Configurator::Get();
+
     QMessageBox alert;
-    alert.setWindowTitle(format("Resetting *%s* configuration...", this->configuration.key.c_str()).c_str());
+    alert.QDialog::setWindowTitle(format("Resetting *%s* configuration...", this->configuration.key.c_str()).c_str());
     alert.setText(format("Are you sure you want to reset the *%s* configuration?", this->configuration.key.c_str()).c_str());
     if (this->configuration.IsBuiltIn())
         alert.setInformativeText(
             format("The configuration layers and settings will be restored to default built-in *%s* configuration.",
                    configuration.key.c_str())
                 .c_str());
-    else if (this->configuration.HasSavedFile(Configurator::Get().path))
+    else if (configurator.configurations.HasFile(this->configuration))
         alert.setInformativeText(
             format("The configuration layers and settings will be reloaded using the *%s* saved file from previous %s run.",
                    configuration.key.c_str(), VKCONFIG_NAME)
@@ -314,7 +357,6 @@ void LayersDialog::on_pushButtonResetLayers_clicked() {
     selected_available_layer_name.clear();
     selected_sorted_layer_name.clear();
 
-    Configurator &configurator = Configurator::Get();
     configuration.Reset(configurator.layers.available_layers, configurator.path);
 
     BuildParameters();
@@ -322,17 +364,7 @@ void LayersDialog::on_pushButtonResetLayers_clicked() {
     LoadSortedLayersUI();
     UpdateUI();
 
-    ui->pushButtonResetLayers->setEnabled(false);
-}
-
-void LayersDialog::on_pushButtonCustomLayers_clicked() {
-    CustomPathsDialog dlg(this);
-    dlg.exec();
-
-    BuildParameters();
-    LoadAvailableLayersUI();
-    LoadSortedLayersUI();
-    UpdateUI();
+    ui->button_reset->setEnabled(false);
 }
 
 void LayersDialog::OverrideOrder(const std::string layer_name, const TreeWidgetItemParameter *below,
@@ -345,14 +377,13 @@ void LayersDialog::OverrideOrder(const std::string layer_name, const TreeWidgetI
     Parameter *above_parameter = FindByKey(configuration.parameters, above->layer_name.c_str());
     assert(above_parameter != nullptr);
 
-    selected_sorted_layer_name = selected_available_layer_name = layer_name;
+    this->selected_sorted_layer_name = this->selected_available_layer_name = layer_name;
 
     std::swap(below_parameter->overridden_rank, above_parameter->overridden_rank);
 
     OrderParameter(configuration.parameters, Configurator::Get().layers.available_layers);
     LoadAvailableLayersUI();
     LoadSortedLayersUI();
-
     UpdateUI();
 }
 
@@ -364,7 +395,8 @@ void LayersDialog::on_pushButtonUp_clicked() {
 
     OverrideOrder(selected_item->layer_name, selected_item, above_item);
 
-    ui->pushButtonResetLayers->setEnabled(true);
+    ui->button_reset->setEnabled(true);
+    this->UpdateButtons();
 }
 
 void LayersDialog::on_pushButtonDown_clicked() {
@@ -375,47 +407,47 @@ void LayersDialog::on_pushButtonDown_clicked() {
 
     OverrideOrder(selected_item->layer_name, below_item, selected_item);
 
-    ui->pushButtonResetLayers->setEnabled(true);
+    ui->button_reset->setEnabled(true);
+    this->UpdateButtons();
 }
 
 void LayersDialog::currentLayerChanged(QTreeWidgetItem *current, QTreeWidgetItem *previous) {
     (void)previous;
 
-    // New settings
     TreeWidgetItemParameter *layer_item = dynamic_cast<TreeWidgetItemParameter *>(current);
+
     if (layer_item == nullptr) {
-        ui->labelLayerDetails->setText("");
+        this->selected_available_layer_name.clear();
         return;
     }
 
-    std::vector<Layer> &available_layers = Configurator::Get().layers.available_layers;
-
-    // Populate the side label
     assert(!layer_item->layer_name.empty());
 
-    selected_available_layer_name = layer_item->layer_name.c_str();
+    this->selected_available_layer_name = layer_item->layer_name.c_str();
 
-    const Layer *layer = FindByKey(available_layers, layer_item->layer_name.c_str());
-    if (layer != nullptr) {
-        std::string description = layer->description + "\n";
-        description += std::string("(") + GetLayerTypeLabel(layer->type) + ")\n";
-        description += layer->library_path + "\n\n";
-        description += "API Version: " + layer->api_version.str() + "\n";
-        description += "Implementation Version: " + layer->implementation_version + "\n";
-        description += std::string("Status: ") + GetToken(layer->status) + "\n\n";
-        description += layer->path + "\n";
-        description += "File format: " + layer->file_format_version.str();
+    ui->button_reset->setEnabled(true);
+    this->UpdateButtons();
+}
 
-        ui->labelLayerDetails->setText(description.c_str());
-    } else {
-        ui->labelLayerDetails->setText("Missing layer");
+void LayersDialog::UpdateButtons() {
+    const bool enabled = !selected_available_layer_name.empty();
+
+    bool enabled_url = false;
+
+    if (enabled) {
+        std::vector<Layer> &available_layers = Configurator::Get().layers.available_layers;
+        const Layer *layer = FindByKey(available_layers, selected_available_layer_name.c_str());
+        assert(layer != nullptr);
+        if (!layer->url.empty()) enabled_url = true;
     }
 
-    ui->pushButtonResetLayers->setEnabled(true);
+    ui->button_properties->setEnabled(enabled);
+    ui->button_doc->setEnabled(enabled);
+    ui->button_website->setEnabled(enabled && enabled_url);
 }
 
 void LayersDialog::OverrideAllExplicitLayers() {
-    for (auto it = configuration.parameters.begin(); it != configuration.parameters.end(); ++it) {
+    for (auto it = this->configuration.parameters.begin(); it != this->configuration.parameters.end(); ++it) {
         if (it->state != LAYER_STATE_APPLICATION_CONTROLLED) continue;
 
         Configurator &configurator = Configurator::Get();
@@ -448,15 +480,7 @@ void LayersDialog::layerUseChanged(QTreeWidgetItem *item, int selection) {
     LayerState layer_state = static_cast<LayerState>(selection);
 
     if (layer_state == LAYER_STATE_OVERRIDDEN && current_parameter->key == "VK_LAYER_LUNARG_device_simulation") {
-        QMessageBox alert;
-        alert.setWindowTitle("Overridding or excluding ALL explicit layers is recommanded");
-        alert.setText(
-            "VK_LAYER_LUNARG_device_simulation requires being executed close to the Vulkan drivers. However, "
-            "application-controlled layers are executed after Vulkan Configurator overridden layers.");
-        alert.setInformativeText("Do you want to override ALL explicit layers too?");
-        alert.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
-        alert.setIcon(QMessageBox::Warning);
-        if (alert.exec() == QMessageBox::Yes) {
+        if (Alert::LayerDevSim() == QMessageBox::Yes) {
             OverrideAllExplicitLayers();
         }
     } else if (layer_state == LAYER_STATE_EXCLUDED) {
@@ -465,16 +489,7 @@ void LayersDialog::layerUseChanged(QTreeWidgetItem *item, int selection) {
 
         if (layer != nullptr) {
             if (layer->type == LAYER_TYPE_IMPLICIT) {
-                QMessageBox alert;
-                alert.setWindowTitle("Implicit layer excluded...");
-                alert.setText(
-                    format("%s was excluded but it is an implicit layer. This may cause undefined behavior, including crashes. ",
-                           tree_layer_item->layer_name.c_str())
-                        .c_str());
-                alert.setInformativeText("Do you want to continue?");
-                alert.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
-                alert.setIcon(QMessageBox::Warning);
-                if (alert.exec() == QMessageBox::No) {
+                if (Alert::LayerImplicitExcluded(tree_layer_item->layer_name.c_str()) == QMessageBox::No) {
                     current_parameter->state = LAYER_STATE_APPLICATION_CONTROLLED;
                 }
             }
@@ -484,9 +499,9 @@ void LayersDialog::layerUseChanged(QTreeWidgetItem *item, int selection) {
     current_parameter->state = layer_state;
     current_parameter->overridden_rank = Parameter::NO_RANK;
 
-    OrderParameter(configuration.parameters, Configurator::Get().layers.available_layers);
+    OrderParameter(this->configuration.parameters, Configurator::Get().layers.available_layers);
 
-    ui->pushButtonResetLayers->setEnabled(true);
+    ui->button_reset->setEnabled(true);
 
     LoadAvailableLayersUI();
     LoadSortedLayersUI();
@@ -505,20 +520,24 @@ void LayersDialog::accept() {
     }
 
     Configurator &configurator = Configurator::Get();
-    if (configuration.key != ui->lineEditName->text().toStdString() &&
+    if (this->configuration.key != ui->lineEditName->text().toStdString() &&
         IsFound(configurator.configurations.available_configurations, ui->lineEditName->text().toStdString().c_str())) {
         Alert::ConfigurationRenamingFailed();
         return;
     }
 
-    Configuration *saved_configuration = FindByKey(configurator.configurations.available_configurations, configuration.key.c_str());
+    Configuration *saved_configuration =
+        FindByKey(configurator.configurations.available_configurations, this->configuration.key.c_str());
     assert(saved_configuration != nullptr);
 
-    FilterParameters(configuration.parameters, LAYER_STATE_APPLICATION_CONTROLLED);
+    FilterParameters(this->configuration.parameters, LAYER_STATE_APPLICATION_CONTROLLED);
 
     saved_configuration->key = ui->lineEditName->text().toStdString();
     saved_configuration->description = ui->lineEditDescription->text().toStdString();
-    saved_configuration->parameters = configuration.parameters;
+    saved_configuration->parameters = this->configuration.parameters;
+    saved_configuration->setting_tree_state.clear();
+
+    configurator.configurations.SetActiveConfiguration(configurator.layers.available_layers, saved_configuration);
 
     QDialog::accept();
 }

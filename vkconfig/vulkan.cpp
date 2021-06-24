@@ -21,6 +21,7 @@
 #include "vulkan.h"
 #include "configurator.h"
 
+#include "../vkconfig_core/alert.h"
 #include "../vkconfig_core/util.h"
 #include "../vkconfig_core/platform.h"
 
@@ -28,10 +29,20 @@
 
 #include <QLibrary>
 #include <QtGlobal>
-#include <QFileInfo>
-#include <QMessageBox>
 
 #include <cassert>
+
+static const char *GetVulkanLibrary() {
+    static const char *TABLE[] = {
+        "vulkan-1.dll",              // PLATFORM_WINDOWS
+        "libvulkan",                 // PLATFORM_LINUX
+        "/usr/local/lib/libvulkan",  // PLATFORM_MACOS
+        "N/A",                       // PLATFORM_ANDROID
+    };
+    static_assert(countof(TABLE) == PLATFORM_COUNT, "The tranlation table size doesn't match the enum number of elements");
+
+    return TABLE[VKC_PLATFORM];
+}
 
 static const char *GetPhysicalDeviceType(VkPhysicalDeviceType type) {
     const char *translation[] = {"Other", "Integrated GPU", "Discrete GPU", "Virtual GPU", "CPU"};
@@ -40,7 +51,7 @@ static const char *GetPhysicalDeviceType(VkPhysicalDeviceType type) {
 
 Version GetVulkanLoaderVersion() {
     // Check loader version
-    QLibrary library(GetPlatformString(PLATFORM_STRING_VULKAN_LIBRARY));
+    QLibrary library(GetVulkanLibrary());
 
     if (!library.load()) return Version::VERSION_NULL;
 
@@ -95,11 +106,7 @@ std::string GenerateVulkanStatus() {
     const Version loader_version = GetVulkanLoaderVersion();
 
     if (loader_version == Version::VERSION_NULL) {
-        QMessageBox alert(NULL);
-        alert.setWindowTitle("Vulkan Development Status failure...");
-        alert.setText("Could not find a Vulkan Loader.");
-        alert.setIcon(QMessageBox::Critical);
-        alert.exec();
+        Alert::LoaderFailure();
 
         log += "- Could not find a Vulkan Loader.\n";
         return log;
@@ -115,7 +122,21 @@ std::string GenerateVulkanStatus() {
     if (configurator.configurations.HasActiveConfiguration(configurator.layers.available_layers))
         log += GetUserDefinedLayersPathsLog("Vulkan Configurator", USER_DEFINED_LAYERS_PATHS_GUI);
 
-    QLibrary library(GetPlatformString(PLATFORM_STRING_VULKAN_LIBRARY));
+    const std::string layer_settings_path(qgetenv("VK_LAYER_SETTINGS_PATH"));
+    if (!layer_settings_path.empty()) {
+        log += "- Global `vk_layer_settings.txt` location overridden by VK_LAYER_SETTINGS_PATH:\n";
+        if (layer_settings_path.find("vk_layer_settings.txt") == std::string::npos) {
+            log += format("    %s\n", layer_settings_path.c_str());
+        } else {
+            log += format("    %s\n", ExtractAbsoluteDir(layer_settings_path).c_str());
+        }
+    } else {
+        const std::string path = GetPath(BUILTIN_PATH_OVERRIDE_SETTINGS);
+        log += "- Global `vk_layer_settings.txt` uses the default platform path:\n";
+        log += format("    %s\n", ExtractAbsoluteDir(path).c_str());
+    }
+
+    QLibrary library(GetVulkanLibrary());
     PFN_vkEnumerateInstanceLayerProperties vkEnumerateInstanceLayerProperties =
         (PFN_vkEnumerateInstanceLayerProperties)library.resolve("vkEnumerateInstanceLayerProperties");
     assert(vkEnumerateInstanceLayerProperties);
@@ -177,11 +198,7 @@ std::string GenerateVulkanStatus() {
     assert(vkCreateInstance);
     err = vkCreateInstance(&inst_info, NULL, &inst);
     if (err == VK_ERROR_INCOMPATIBLE_DRIVER) {
-        QMessageBox alert(NULL);
-        alert.setWindowTitle("Vulkan Development Status failure...");
-        alert.setText("Cannot find a compatible Vulkan installable client driver (ICD).");
-        alert.setIcon(QMessageBox::Critical);
-        alert.exec();
+        Alert::InstanceFailure();
 
         log += "- Cannot find a compatible Vulkan installable client driver (ICD).\n";
         return log;
@@ -193,11 +210,7 @@ std::string GenerateVulkanStatus() {
 
     // This can fail on a new Linux setup. Check and fail gracefully rather than crash.
     if (err != VK_SUCCESS) {
-        QMessageBox alert(NULL);
-        alert.setWindowTitle("Vulkan Development Status failure...");
-        alert.setText("Cannot find any Vulkan Physical Devices.");
-        alert.setIcon(QMessageBox::Critical);
-        alert.exec();
+        Alert::PhysicalDeviceFailure();
 
         log += "- Cannot find a compatible Vulkan installable client driver (ICD).\n";
         return log;

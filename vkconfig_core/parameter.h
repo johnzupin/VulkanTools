@@ -22,7 +22,7 @@
 
 #include "layer.h"
 #include "layer_state.h"
-#include "setting_data.h"
+#include "setting.h"
 
 #include <vector>
 
@@ -38,9 +38,9 @@ enum ParameterRank {
 struct Parameter {
     static const int NO_RANK = -1;
 
-    Parameter() : state(LAYER_STATE_APPLICATION_CONTROLLED), platform_flags(PLATFORM_ALL_BIT), overridden_rank(NO_RANK) {}
+    Parameter() : state(LAYER_STATE_APPLICATION_CONTROLLED), platform_flags(PLATFORM_DESKTOP_BIT), overridden_rank(NO_RANK) {}
     Parameter(const std::string& key, const LayerState state)
-        : key(key), state(state), platform_flags(PLATFORM_ALL_BIT), overridden_rank(NO_RANK) {}
+        : key(key), state(state), platform_flags(PLATFORM_DESKTOP_BIT), overridden_rank(NO_RANK) {}
 
     bool ApplyPresetSettings(const LayerPreset& preset);
 

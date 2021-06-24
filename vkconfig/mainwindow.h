@@ -72,10 +72,10 @@ class MainWindow : public QMainWindow {
     void LoadConfigurationList();
     void SetupLauncherTree();
 
-    virtual void closeEvent(QCloseEvent *event) override;
-    virtual void showEvent(QShowEvent *event) override;
-    virtual void resizeEvent(QResizeEvent *event) override;
-    virtual bool eventFilter(QObject *target, QEvent *event) override;
+    void closeEvent(QCloseEvent *event) override;
+    void showEvent(QShowEvent *event) override;
+    void resizeEvent(QResizeEvent *event) override;
+    bool eventFilter(QObject *target, QEvent *event) override;
 
     std::unique_ptr<QDialog> vk_info_dialog;
     std::unique_ptr<QDialog> vk_installation_dialog;
@@ -108,19 +108,20 @@ class MainWindow : public QMainWindow {
     void EditCustomPathsClicked(ConfigurationListItem *item);
 
    public Q_SLOTS:
-    void aboutVkConfig(bool checked);
     void toolsVulkanInfo(bool checked);
     void toolsVulkanInstallation(bool checked);
     void toolsSetCustomPaths(bool checked);
     void toolsResetToDefault(bool checked);
 
-    void helpShowReadme(bool checked);
-    void helpShowChangelog(bool checked);
-    void helpShowVulkanSpec(bool checked);
-    void helpShowLayerSpec(bool checked);
-    void helpShowGPUInfo(bool checked);
+    void OnHelpFindLayers(bool checked);
+    void OnHelpAbout(bool checked);
+    void OnHelpReadme(bool checked);
+    void OnHelpChangelog(bool checked);
+    void OnHelpVulkanSpec(bool checked);
+    void OnHelpLayerSpec(bool checked);
+    void OnHelpGPUInfo(bool checked);
 
-    void addCustomPaths();
+    void FindLayerPaths();
 
     void editorExpanded(QTreeWidgetItem *item);
 
@@ -141,7 +142,8 @@ class MainWindow : public QMainWindow {
     void on_check_box_persistent_clicked();
     void on_check_box_clear_on_launch_clicked();
     void on_push_button_applications_clicked();
-    void on_push_button_select_configuration_clicked();
+    void on_push_button_select_layers_clicked();
+    void on_push_button_find_layers_clicked();
 
     void OnConfigurationItemExpanded(QTreeWidgetItem *item);
     void OnConfigurationItemClicked(bool checked);

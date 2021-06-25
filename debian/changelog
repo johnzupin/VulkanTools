@@ -1,3 +1,172 @@
+lunarg-tools (1.2.182.0~rc1-1lunarg20.04-1) focal; urgency=medium
+
+  [ Christophe ]
+  * vkconfig: add link to vulkan guide layers
+  * vkconfig: bump Vulkan Configurator version
+  * license: add valijon license
+  * license: fix root license doc
+  * vkconfig: add support of VK_LAYER_SETTINGS_PATH
+  * vkconfig: add VK_LOCAL and VK_APPDATA builtin var
+  * vkconfig: clean up path management
+  * vkconfig: streamline path code and added tests
+  * vkconfig: fix changelog
+  * vkconfig: fix legacy local
+  * api dump: use updated built-in variables
+  * screenshot: use built-in var for default dir
+  * vkconfig: fix unit test when VULKAN_SDK is not defined
+  * vkconfig: initial work for expanded support
+  * vkconfig: add expanded property to json manifest
+  * vkconfig: fix config files being systematically deleted
+  * vkconfig: fix configuration reset
+  * vkconfig streamline per platfrom strings
+  * vkconfig: fix unit tests
+  * vkconfig: fix build
+  * vkconfig: strip expanded_state from config export
+  * vkconfig: updated changelog for 'expanded' #1497
+  * vkconfig: initial work for env variable policy
+  * vkconfig: Add settings environment variables checking #1498
+  * vkconfig: skip overriden setting in gen vk_layer_settings.txt
+  * vkconfig: less invasive cmake def
+
+  [ Jeremy Kniager ]
+  * vkconfig: Add Vulkan 1.2 minimum preset
+  * devsim: Add extension simulation modes
+
+  [ Christophe ]
+  * vkconfig: fix layer override
+  * vkconfig: add context menu for setting tree
+  * vkconfig: add view advanced settings to context menu
+  * vkconfig: fix gfxrecon settings, only available in Windows
+  * vkconfig: clean up setting context menu feature
+  * vkconfig: initial layer generate HTML doc work
+  * vkconfig: updated built-in devsim presets
+  * vkconfig: updated geenrated HTML doc
+  * vkconfig: continued doc generation
+  * vkconfig: fix linux build
+  * vkconfig: fix build
+  * vkconfig: finalized context menu
+  * vkconfig: fix build
+  * vkconfig: fix unit tests
+  * vkconfig: updated changelog
+  * monitor: add url and introduction to layer manifest
+  * screenshot: add url and introduction to layer manifest
+  * devsim: add url and instruction to devsim manifest
+  * api dump: add url and introcution to API dump
+  * vkconfig: add intro and url to screenshot
+  * vkconfig: add intro and url to monitor layer
+  * vkconfig: add intro and url to gfxrecon layer
+  * vkconfig: add intro and url to sync2 layer
+  * vkconfig: add intro and url to validation layer
+  * vkconfig: add built-in validusage, only one useful
+  * vkconfig: remove 'latest' files, only used during 1.2.176 dev phase
+  * vkconfig: removed unused lastest files
+  * vkconfig: fix PR number
+
+  [ Dustin Graves ]
+  * screenshot: adjust synchronization
+
+  [ Christophe ]
+  * vkconfig: refactor doc generation into dedicated code file
+  * vkconfig: add layer documentation to the settings context menu
+  * vkconfig: add doc default value
+  * vkconfig: add layer properties doc
+  * vkconfig: add platforms value to layer manifests
+  * vkconfig: add layer platforms loading
+  * vkconfig: more layer manifest generated doc improvements
+  * vkconfig: sliced contributing and user documentations
+  * vkconfig: add animated presentation
+  * vkconfig: updated changelog
+  * monitor: add supported platforms to manifest
+  * screenshot: add supported platforms to the manifest
+  * vkconfig: add android to platform enum
+  * vkconfig: refactor platform support section
+  * vkconfig: refactor README introduction
+  * vkconfig: Refactor the layer window to see more doc #1519
+  * vkconfig: use built-in manifest for layer older than 176 inc
+  * vkconfig: refactor settings management
+  * vkconfig: fix configurations restored on next launch
+  * vkconfig: fix warnings and QtCreator build
+  * vkconfig: clean up administrastor mode code
+  * vkconfig: add static_assert tests
+  * vkconfig: fix memory clean up
+  * vkconfig: Move test code to test files
+  * vkconfig: fix initialization of TYPE and fix warnings
+  * vkconfig: add more settings unit tests
+  * vkconfig: fix validation list build and add unit tests
+  * vkconfig: add validation caching UI
+  * vkconfig: fix main menu user-defined path
+  * vkconfig: fix layer dialog user-defined path
+  * vkconfig: allow cancelling find layer paths
+  * vkconfig: Improve user-defined paths dialog and workflow #1523
+
+  [ Jeremy Kniager ]
+  * docs: Add list of sample configs to DevSim docs.
+
+  [ Christophe ]
+  * devsim: macOS doesn't support Vulkan 1.2
+
+  [ Tony-LunarG ]
+  * build: Update headers to 1.2.180
+
+  [ Christophe ]
+  * devsim: add desktop portability devsim config files
+  * devsim: add missing portability subset
+  * devsim: improve naming inconsistency
+  * devsim: first step to be able to read GPUinfo database
+
+  [ Jeremy Kniager ]
+  * devsim: Add combination modes for format props
+  * devsim: Fix minimum devsim config file issues
+
+  [ Tony-LunarG ]
+  * build: Enable warnings as errors
+
+  [ Christophe ]
+  * vkconfig: Fix message box with no title displayed on macOS #1547
+  * vkconfig: Improve alert for invalid manifest
+  * vkconfig: fix excluded missing layer case #1551
+  * vkconfig: fix select layers changes not taken into account
+  * vkconfig: fix new configuration, creates it empty now
+  * vkconfig: Improve UI labels #1551
+  * vkconfig: Fix crash when renaming a configuration from the layers window #1551
+  * vkconfig: fix broken generic preset
+  * vkconfig: fix user-defined path window refresh
+  * vkconfig: Fix validation layer bool setting written in 'vk_layer-setting.txt' #1551
+  * vkconfig: Add indirect parameter setting to validation built-in UI #1522
+  * vkconfig: a little less built-in specific code
+  * vkconfig: clean up
+
+  [ Jeremy Kniager ]
+  * devsim: Add surface capabilities modifications
+
+  [ Christophe ]
+  * vkconfig: fix shader cache setting key
+
+  [ Jeremy Kniager ]
+  * devsim: Update minimum portability subset configs
+
+  [ Dantali0n ]
+  * Information about deprecation, removal and replacement of vktrace
+
+  [ Christophe ]
+  * vkconfig: more consistent naming
+  * vkconfig: when we edit layers, we use default setting tree
+  * vkconfig: clean up code
+
+  [ Jeremy Kniager ]
+  * devsim: Fix layer extension list replacement
+
+  [ Tony-LunarG ]
+  * build: Update to 1.2.182 headers
+
+  [ Nathaniel Cesario ]
+  * build: Fix missing override warnings
+
+  [ John Zupin ]
+  * packaging: update control file for 1.2.182.0 SDK
+
+ -- John Zupin <john@odin>  Fri, 25 Jun 2021 15:25:27 -0600
+
 lunarg-tools (1.2.176.0~rc5-1lunarg20.04-1) focal; urgency=medium
 
   [ Christophe ]

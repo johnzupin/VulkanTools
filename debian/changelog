@@ -1,3 +1,20 @@
+lunarg-tools (1.2.182.0~rc2-1lunarg18.04-1) bionic; urgency=medium
+
+  [ Jeremy Kniager ]
+  * devsim: Fix AndroidGetEnv use after free error
+  * devsim: Fix Surface Capabilities
+
+  [ Christophe ]
+  * vkconfig: Fix upgrade of 'vkcube' path when the path is no longer valid
+  * vkconfig: fix settings children
+  * vkconfig: renamed to only say available on platforms
+  * vkconfig: expand Validation areas content by default
+  * vkconfig: fix typo
+  * vkconfig: add env var and description to built-in valid manifest
+  * vkconfig: don't crash when loader is not found
+
+ -- John Zupin <john@odin>  Tue, 29 Jun 2021 13:18:16 -0600
+
 lunarg-tools (1.2.182.0~rc1-1lunarg18.04-1) bionic; urgency=medium
 
   [ Christophe ]

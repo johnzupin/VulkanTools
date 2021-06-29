@@ -66,6 +66,7 @@ QCheckBox *WidgetSettingValidation::CreateWidget(QTreeWidgetItem *parent, QTreeW
     *item = new QTreeWidgetItem();
     (*item)->setSizeHint(0, QSize(0, ITEM_HEIGHT));
     parent->addChild(*item);
+    (*item)->setExpanded(true);
 
     QCheckBox *widget = new QCheckBox(this);
     widget->setText(value->label.c_str());
@@ -224,6 +225,8 @@ WidgetSettingValidation::WidgetSettingValidation(QTreeWidget *tree, QTreeWidgetI
             this->item_shader_gpu = new QTreeWidgetItem();
             this->item_shader_gpu->setSizeHint(0, QSize(0, ITEM_HEIGHT));
             this->item_shader->addChild(this->item_shader_gpu);
+            this->item_shader->setExpanded(true);
+            this->item_shader_gpu->setExpanded(true);
 
             this->widget_shader_gpu = new QRadioButton(this);
             this->widget_shader_gpu->setText(value_gpu->label.c_str());
@@ -243,6 +246,7 @@ WidgetSettingValidation::WidgetSettingValidation(QTreeWidget *tree, QTreeWidgetI
                     this->item_shader_gpu_oob = new QTreeWidgetItem();
                     this->item_shader_gpu_oob->setSizeHint(0, QSize(0, ITEM_HEIGHT));
                     this->item_shader_gpu->addChild(this->item_shader_gpu_oob);
+                    this->item_shader_gpu->setExpanded(true);
 
                     this->widget_shader_gpu_oob = new QCheckBox(this);
                     this->widget_shader_gpu_oob->setText(value->label.c_str());
@@ -258,6 +262,7 @@ WidgetSettingValidation::WidgetSettingValidation(QTreeWidget *tree, QTreeWidgetI
                     this->item_shader_gpu_indirect = new QTreeWidgetItem();
                     this->item_shader_gpu_indirect->setSizeHint(0, QSize(0, ITEM_HEIGHT));
                     this->item_shader_gpu->addChild(this->item_shader_gpu_indirect);
+                    this->item_shader_gpu->setExpanded(true);
 
                     this->widget_shader_gpu_indirect = new QCheckBox(this);
                     this->widget_shader_gpu_indirect->setText(value->label.c_str());
@@ -271,6 +276,8 @@ WidgetSettingValidation::WidgetSettingValidation(QTreeWidget *tree, QTreeWidgetI
             this->item_shader_printf = new QTreeWidgetItem();
             this->item_shader_printf->setSizeHint(0, QSize(0, ITEM_HEIGHT));
             this->item_shader->addChild(this->item_shader_printf);
+            this->item_shader->setExpanded(true);
+            this->item_shader_printf->setExpanded(true);
 
             this->widget_shader_printf = new QRadioButton(this);
             this->widget_shader_printf->setText(value_printf->label.c_str());
@@ -284,6 +291,7 @@ WidgetSettingValidation::WidgetSettingValidation(QTreeWidget *tree, QTreeWidgetI
                     this->item_shader_printf_to_stdout = new QTreeWidgetItem();
                     this->item_shader_printf_to_stdout->setSizeHint(0, QSize(0, ITEM_HEIGHT));
                     this->item_shader_printf->addChild(this->item_shader_printf_to_stdout);
+                    this->item_shader_printf->setExpanded(true);
 
                     this->widget_shader_printf_to_stdout = new QCheckBox(this);
                     this->widget_shader_printf_to_stdout->setText(value->label.c_str());
@@ -300,6 +308,7 @@ WidgetSettingValidation::WidgetSettingValidation(QTreeWidget *tree, QTreeWidgetI
                     this->item_shader_printf_verbose = new QTreeWidgetItem();
                     this->item_shader_printf_verbose->setSizeHint(0, QSize(0, ITEM_HEIGHT));
                     this->item_shader_printf->addChild(this->item_shader_printf_verbose);
+                    this->item_shader_printf->setExpanded(true);
 
                     this->widget_shader_printf_verbose = new QCheckBox(this);
                     this->widget_shader_printf_verbose->setText(value->label.c_str());
@@ -315,6 +324,7 @@ WidgetSettingValidation::WidgetSettingValidation(QTreeWidget *tree, QTreeWidgetI
                 if (IsSupported(value)) {
                     this->item_shader_printf_size = new QTreeWidgetItem();
                     this->item_shader_printf->addChild(this->item_shader_printf_size);
+                    this->item_shader_printf->setExpanded(true);
 
                     this->widget_debug_printf_size = new WidgetSettingInt(tree, this->item_shader_printf_size, *value, data_set);
                     this->connect(this->widget_debug_printf_size, SIGNAL(itemChanged()), this, SLOT(OnSettingChanged()));

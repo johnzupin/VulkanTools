@@ -404,7 +404,7 @@ struct ArrayCombinationModeSetting modifyPresentModes;
 const uint32_t MAX_BUFFER_SIZE = 255;
 typedef enum { VK_LOG_NONE = 0, VK_LOG_ERROR, VK_LOG_WARNING, VK_LOG_VERBOSE, VK_LOG_DEBUG } VkLogLevel;
 
-const char *AndroidGetEnv(const char *key) {
+std::string AndroidGetEnv(const char *key) {
     std::string command("settings get global ");
     command += key;
 
@@ -423,10 +423,10 @@ const char *AndroidGetEnv(const char *key) {
         __android_log_print(ANDROID_LOG_INFO, "devsim", "Vulkan device simulation layer %s: %s", command.c_str(),
                             android_env.c_str());
         android_env.erase(android_env.find_last_not_of(" \n\r\t") + 1);
-        return android_env.c_str();
+        return android_env;
     }
 
-    return nullptr;
+    return "";
 }
 #endif
 
@@ -441,8 +441,8 @@ std::string GetEnvarValue(const char *name) {
         value = buffer.data();
     }
 #elif defined(__ANDROID__)
-    const char *v = AndroidGetEnv(name);
-    if (v) value = v;
+    std::string v = AndroidGetEnv(name);
+    if (v.length() > 0) value = v;
 #else
     const char *v = getenv(name);
     if (v) value = v;
@@ -4008,6 +4008,19 @@ VKAPI_ATTR VkResult VKAPI_CALL GetPhysicalDeviceSurfaceCapabilitiesKHR(VkPhysica
         VkSurfaceCapabilitiesKHR surf_caps = pdd->surface_capabilities_;
         surf_caps.currentExtent = pSurfaceCapabilities->currentExtent;
         surf_caps.currentTransform = pSurfaceCapabilities->currentTransform;
+
+        if (surf_caps.minImageCount == 0) surf_caps.minImageCount = pSurfaceCapabilities->minImageCount;
+        if (surf_caps.maxImageCount == 0) surf_caps.maxImageCount = pSurfaceCapabilities->maxImageCount;
+        if (surf_caps.minImageExtent.width == 0 && surf_caps.minImageExtent.height == 0)
+            surf_caps.minImageExtent = pSurfaceCapabilities->minImageExtent;
+        if (surf_caps.maxImageExtent.width == 0 && surf_caps.maxImageExtent.height == 0)
+            surf_caps.maxImageExtent = pSurfaceCapabilities->maxImageExtent;
+        if (surf_caps.maxImageArrayLayers == 0) surf_caps.maxImageArrayLayers = pSurfaceCapabilities->maxImageArrayLayers;
+        if (surf_caps.supportedTransforms == 0) surf_caps.supportedTransforms = pSurfaceCapabilities->supportedTransforms;
+        if (surf_caps.supportedCompositeAlpha == 0)
+            surf_caps.supportedCompositeAlpha = pSurfaceCapabilities->supportedCompositeAlpha;
+        if (surf_caps.supportedUsageFlags == 0) surf_caps.supportedUsageFlags = pSurfaceCapabilities->supportedUsageFlags;
+
         *pSurfaceCapabilities = surf_caps;
     }
 

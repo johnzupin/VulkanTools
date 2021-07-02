@@ -18,19 +18,21 @@
  * - Christophe Riccio <christophe@lunarg.com>
  */
 
-#include "../layer_manager.h"
+#include "../date.h"
+#include "../util.h"
+
+#include <cstring>
 
 #include <gtest/gtest.h>
 
-TEST(test_layer_manager, load_only_layer_json) {
-    PathManager paths;
-    Environment environment(paths);
-    environment.Reset(Environment::DEFAULT);
+TEST(test_date, lenght) {
+    const std::string date = GetBuildDate();
 
-    LayerManager layer_manager(environment);
-    layer_manager.LoadLayersFromPath(":/");
+    EXPECT_EQ(8, date.size());
+}
 
-    EXPECT_EQ(9, layer_manager.available_layers.size());
+TEST(test_date, digit) {
+    const std::string date = GetBuildDate();
 
-    environment.Reset(Environment::SYSTEM);  // Don't change the system settings on exit
+    EXPECT_TRUE(IsNumber(date));
 }

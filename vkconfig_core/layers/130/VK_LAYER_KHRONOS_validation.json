@@ -56,8 +56,6 @@
                 {
                     "label": "Standard",
                     "description": "Good default validation setup that balance validation coverage and performance.",
-                    "platforms": [ "WINDOWS", "LINUX", "MACOS" ],
-                    "status": "STABLE",
                     "settings": [
                         {
                             "key": "enables",
@@ -72,9 +70,6 @@
                 {
                     "label": "Reduced-Overhead",
                     "description": "Disables some checks in the interest of better performance.",
-                    "platforms": [ "WINDOWS", "LINUX", "MACOS" ],
-                    "status": "STABLE",
-                    "editor_state": "01110111111111111111111001111111111110",
                     "settings": [
                         {
                             "key": "enables",
@@ -99,8 +94,6 @@
                 {
                     "label": "Best Practices",
                     "description": "Provides warnings about potential API misuse but valid usages of the API.",
-                    "platforms": [ "WINDOWS", "LINUX", "MACOS" ],
-                    "status": "STABLE",
                     "settings": [
                         {
                             "key": "enables",
@@ -185,7 +178,8 @@
                         {
                             "key": "VK_DBG_LAYER_ACTION_DEBUG_OUTPUT",
                             "label": "Debug Output",
-                            "description": "Log a txt message using the Windows OutputDebugString function."
+                            "description": "Log a txt message using the Windows OutputDebugString function.",
+                            "platforms": [ "WINDOWS" ]
                         },
                         {
                             "key": "VK_DBG_LAYER_ACTION_BREAK",
@@ -224,7 +218,8 @@
                         {
                             "key": "debug",
                             "label": "Debug",
-                            "description": "For layer development. Report messages for debugging layer behavior."
+                            "description": "For layer development. Report messages for debugging layer behavior.",
+                            "view": "ADVANCED"
                         }
                     ],
                     "default": [
@@ -290,21 +285,9 @@
                             "view": "ADVANCED"
                         },
                         {
-                            "key": "VALIDATION_CHECK_DISABLE_PUSH_CONSTANT_RANGE",
-                            "label": "Push Constant Range",
-                            "description": "",
-                            "view": "ADVANCED"
-                        },
-                        {
                             "key": "VALIDATION_CHECK_DISABLE_OBJECT_IN_USE",
                             "label": "Object in Use",
                             "description": "Check that the layout of each image subresource is correct whenever it is used by a command buffer. These checks are very CPU intensive for some applications.",
-                            "view": "ADVANCED"
-                        },
-                        {
-                            "key": "VALIDATION_CHECK_DISABLE_IDLE_DESCRIPTOR_SET",
-                            "label": "Idle Descriptor Set",
-                            "description": "",
                             "view": "ADVANCED"
                         }
                     ],
@@ -334,8 +317,7 @@
                             "key": "VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT",
                             "label": "Best Practices",
                             "description": "Activating this feature enables the output of warnings related to common misuse of the API, but which are not explicitly prohibited by the specification.",
-                            "url": "${LUNARG_SDK}/best_practices.html",
-                            "platforms": [ "WINDOWS", "LINUX", "MACOS" ]
+                            "url": "${LUNARG_SDK}/best_practices.html"
                         }
                     ],
                     "default": []

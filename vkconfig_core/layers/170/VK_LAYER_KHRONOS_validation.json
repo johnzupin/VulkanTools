@@ -57,8 +57,6 @@
                 {
                     "label": "Standard",
                     "description": "Good default validation setup that balance validation coverage and performance.",
-                    "platforms": [ "WINDOWS", "LINUX", "MACOS" ],
-                    "status": "STABLE",
                     "settings": [
                         {
                             "key": "enables",
@@ -73,9 +71,6 @@
                 {
                     "label": "Reduced-Overhead",
                     "description": "Disables some checks in the interest of better performance.",
-                    "platforms": [ "WINDOWS", "LINUX", "MACOS" ],
-                    "status": "STABLE",
-                    "editor_state": "01110111111111111111111001111111111110",
                     "settings": [
                         {
                             "key": "enables",
@@ -98,8 +93,6 @@
                 {
                     "label": "Best Practices",
                     "description": "Provides warnings about potential API misuse but valid usages of the API.",
-                    "platforms": [ "WINDOWS", "LINUX", "MACOS" ],
-                    "status": "STABLE",
                     "settings": [
                         {
                             "key": "enables",
@@ -122,8 +115,6 @@
                 {
                     "label": "Synchronization",
                     "description": "Identify resource access conflicts due to missing or incorrect synchronization operations between actions reading or writing the same regions of memory.",
-                    "platforms": [ "WINDOWS", "LINUX", "MACOS" ],
-                    "status": "STABLE",
                     "settings": [
                         {
                             "key": "enables",
@@ -146,7 +137,6 @@
                     "label": "GPU-Assisted",
                     "description": "Check for API usage errors at shader execution time.",
                     "platforms": [ "WINDOWS", "LINUX" ],
-                    "status": "STABLE",
                     "settings": [
                         {
                             "key": "enables",
@@ -171,7 +161,6 @@
                     "label": "Shader Printf",
                     "description": "Debug shader code by \"printing\" any values of interest to the debug callback or stdout.",
                     "platforms": [ "WINDOWS", "LINUX" ],
-                    "status": "STABLE",
                     "settings": [
                         {
                             "key": "enables",
@@ -231,7 +220,8 @@
                         {
                             "key": "VK_DBG_LAYER_ACTION_DEBUG_OUTPUT",
                             "label": "Debug Output",
-                            "description": "Log a txt message using the Windows OutputDebugString function."
+                            "description": "Log a txt message using the Windows OutputDebugString function.",
+                            "platforms": [ "WINDOWS" ]
                         },
                         {
                             "key": "VK_DBG_LAYER_ACTION_BREAK",
@@ -270,7 +260,8 @@
                         {
                             "key": "debug",
                             "label": "Debug",
-                            "description": "For layer development. Report messages for debugging layer behavior."
+                            "description": "For layer development. Report messages for debugging layer behavior.",
+                            "view": "ADVANCED"
                         }
                     ],
                     "default": [
@@ -374,9 +365,7 @@
                             "key": "VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT",
                             "label": "Synchronization",
                             "description": "This feature reports resource access conflicts due to missing or incorrect synchronization operations between actions (Draw, Copy, Dispatch, Blit) reading or writing the same regions of memory.",
-                            "url": "${LUNARG_SDK}/synchronization_usage.html",
-                            "status": "STABLE",
-                            "platforms": [ "WINDOWS", "LINUX", "MACOS" ]
+                            "url": "${LUNARG_SDK}/synchronization_usage.html"
                         },
                         {
                             "key": "VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT",
@@ -390,6 +379,7 @@
                                     "key": "printf_to_stdout",
                                     "label": "Printf to stdout",
                                     "description": "To redirect Debug Printf messages from the debug callback to stdout",
+                                    "platforms": [ "WINDOWS", "LINUX" ],
                                     "type": "BOOL",
                                     "default": true,
                                     "dependence": {
@@ -406,6 +396,7 @@
                                     "key": "printf_verbose",
                                     "label": "Verbose",
                                     "description": "Verbosity of debug printf messages",
+                                    "platforms": [ "WINDOWS", "LINUX" ],
                                     "type": "BOOL",
                                     "default": false,
                                     "dependence": {
@@ -422,6 +413,7 @@
                                     "key": "printf_buffer_size",
                                     "label": "Printf buffer size",
                                     "description": "The size in bytes of the buffer used by debug printf",
+                                    "platforms": [ "WINDOWS", "LINUX" ],
                                     "type": "INT",
                                     "default": 1024,
                                     "range": {
@@ -452,6 +444,7 @@
                                     "key": "gpuav_buffer_oob",
                                     "label": "Check Out of Bounds ",
                                     "description": "Enable buffer out of bounds checking",
+                                    "platforms": [ "WINDOWS", "LINUX" ],
                                     "type": "BOOL",
                                     "default": true,
                                     "dependence": {
@@ -476,14 +469,12 @@
                             "key": "VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT",
                             "label": "Best Practices",
                             "description": "Activating this feature enables the output of warnings related to common misuse of the API, but which are not explicitly prohibited by the specification.",
-                            "url": "${LUNARG_SDK}/best_practices.html",
-                            "platforms": [ "WINDOWS", "LINUX", "MACOS" ]
+                            "url": "${LUNARG_SDK}/best_practices.html"
                         },
                         {
                             "key": "VALIDATION_CHECK_ENABLE_VENDOR_SPECIFIC_ARM",
                             "label": "ARM-specific best practices",
-                            "description": "Enables processing of debug printf instructions in shaders and sending debug strings to the debug callback",
-                            "platforms": [ "WINDOWS", "LINUX", "MACOS" ]
+                            "description": "Enables processing of debug printf instructions in shaders and sending debug strings to the debug callback"
                         }
                     ],
                     "default": []

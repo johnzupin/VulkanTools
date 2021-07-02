@@ -20,6 +20,7 @@ export DH_VERBOSE = 1
 
 # dh_make generated override targets
 # This is example for Cmake (See https://bugs.debian.org/641051 )
+export SOURCE_DATE_EPOCH ?= $(shell dpkg-parsechangelog -STimestamp)
 override_dh_auto_configure:
 	dh_auto_configure -- -DCMAKE_LIBRARY_PATH=$(DEB_HOST_MULTIARCH) \
 				-DCMAKE_BUILD_TYPE="RelWithDebInfo" \
@@ -29,6 +30,7 @@ override_dh_auto_configure:
 				-DBUILD_VLF="NO" \
 				-DBUILD_VKTRACEVIEWER=OFF \
 				-DBUILD_TESTS="OFF" \
-				-DINSTALL_GTEST="OFF"
+				-DINSTALL_GTEST="OFF" \
+				-DSOURCE_DATE_EPOCH=$(SOURCE_DATE_EPOCH)
 
 override_dh_auto_test: ;

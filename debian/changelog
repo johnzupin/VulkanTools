@@ -1,3 +1,25 @@
+lunarg-tools (1.2.182.0~rc3-1lunarg18.04-1) bionic; urgency=medium
+
+  [ Christophe ]
+  * vkconfig: clean up, there is no local/global here
+  * vkconfig: fix crash when renaming a configuration #1551
+  * vkconfig: Remove Qt Warning on Qt 5.11 and older
+  * vkconfig: add build date in the title bar
+
+  [ Mark Young ]
+  * via: Fix single backslash json failure in settings file
+
+  [ Christophe ]
+  * vkconfig: fix validation layer manifest platforms
+  * vkconfig: Fix generated doc missing settings
+  * vkconfig: add platform, status, view inheritence and tests
+  * vkconfig: quicker unit test run time
+  * vkconfig: reduce unit tests run time
+  * vkconfig: clean up manifest files
+  * vkconfig: fix Linux packages build
+
+ -- John Zupin <john@odin>  Mon, 05 Jul 2021 09:20:54 -0600
+
 lunarg-tools (1.2.182.0~rc2-1lunarg18.04-1) bionic; urgency=medium
 
   [ Jeremy Kniager ]

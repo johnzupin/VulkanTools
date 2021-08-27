@@ -52,7 +52,6 @@ class Configurator {
     Configurator& operator=(const Configurator&) = delete;
 
     void CopyResourceFiles();
-    void LoadConfigurationsPath(PathType path_type);
 
    public:
     PathManager path;

@@ -1,3 +1,104 @@
+lunarg-tools (1.2.189.0~rc1-1lunarg18.04-1) bionic; urgency=medium
+
+  [ Jeremy Kniager ]
+  * devsim: Fix AndroidGetEnv use after free error
+
+  [ Christophe ]
+  * vkconfig: Fix upgrade of 'vkcube' path when the path is no longer valid
+
+  [ Jeremy Kniager ]
+  * devsim: Fix Surface Capabilities
+
+  [ Christophe ]
+  * vkconfig: fix settings children
+  * vkconfig: renamed to only say available on platforms
+  * vkconfig: expand Validation areas content by default
+  * vkconfig: fix typo
+  * vkconfig: add env var and description to built-in valid manifest
+  * vkconfig: don't crash when loader is not found
+  * vkconfig: clean up, there is no local/global here
+  * vkconfig: fix crash when renaming a configuration #1551
+  * vkconfig: Remove Qt Warning on Qt 5.11 and older
+  * vkconfig: add build date in the title bar
+
+  [ Mark Young ]
+  * via: Fix single backslash json failure in settings file
+
+  [ Christophe ]
+  * vkconfig: fix validation layer manifest platforms
+  * vkconfig: Fix generated doc missing settings
+  * vkconfig: add platform, status, view inheritence and tests
+  * vkconfig: quicker unit test run time
+  * vkconfig: reduce unit tests run time
+  * vkconfig: clean up manifest files
+  * vkconfig: fix Linux packages build
+
+  [ Jeremy Kniager ]
+  * devsim: Add GPUinfo file format as valid config
+
+  [ Christophe ]
+  * vkconfig: add examples and descriptions to the schema
+  * vkconfig: add descriptions to schema nodes
+  * vkconfig: fix old user-defined layer settings not loaded
+  * vkconfig: updated version
+  * vkconfig: fix shader-based UI invalidaly enabled
+
+  [ Jeremy Kniager ]
+  * docs: Fix devsim layer options table entry
+
+  [ Tony-LunarG ]
+  * build: Update to 1.2.186 headers
+
+  [ Christophe ]
+  * vkconfig: Fix settings written in 'vk_layer_settings.txt' even when the dependence is not met
+  * vkconfig: old val layers don't limit msgs with shader printf
+  * vkconfig: add missing env var in validation layer
+  * vkconfig: override layer settings up to SDK 1.2.182
+  * vkconfig: fix missing issue number
+  * vku: add help library for Vulkan layer
+  * vku: add unit tests
+  * vku: improve layer settings API
+  * vku: add IsLayerSetting API
+  * vku: fix Linux build
+  * vkconfig: tentative to fix unit test instabilities
+  * vku: add layer settings log system
+  * vku: add missing GetLayerSettingFrames API
+  * vkconfig: fix ARM best practices description
+
+  [ Mark Young ]
+  * [vkconfig] Add new loader debug options
+
+  [ Christophe ]
+  * vkconfig: add support for AMD best practices
+
+  [ Tony-LunarG ]
+  * build: Update to 1.2.188 headers
+
+  [ Jeremy Kniager ]
+  * devsim: Integrate vku library
+
+  [ Christophe ]
+  * vku: tentative fix of logging in shared library
+  * build: fix layer library link on Android
+  * build: fix vku Android build
+
+  [ Jeremy Kniager ]
+  * docs: Update Devsim layer option details
+
+  [ Christophe ]
+  * vku: handle Android build feedback
+
+  [ Jeremy Kniager ]
+  * devsim: Fix portability_desktop_1_0.json
+
+  [ Tony-LunarG ]
+  * build: Update to 1.2.189 headers
+
+  [ John Zupin ]
+  * packaging: update repo to reflect upstream
+
+ -- John Zupin <john@odin>  Fri, 27 Aug 2021 16:38:35 -0600
+
 lunarg-tools (1.2.182.0~rc3-1lunarg18.04-1) bionic; urgency=medium
 
   [ Christophe ]

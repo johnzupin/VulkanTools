@@ -1,3 +1,14 @@
+lunarg-tools (1.2.189.0~rc2-1lunarg20.04-1) focal; urgency=medium
+
+  [ Christophe ]
+  * vku: fix loading of env vars on Windows
+  * vku: fix loading of env vars on Windows
+
+  [ John Zupin ]
+  * README: specify to have qt installed to run vkconfig from tarball
+
+ -- John Zupin <john@odin>  Fri, 03 Sep 2021 11:04:18 -0600
+
 lunarg-tools (1.2.189.0~rc1-1lunarg20.04-1) focal; urgency=medium
 
   [ Jeremy Kniager ]

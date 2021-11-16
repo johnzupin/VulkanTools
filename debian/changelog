@@ -1,3 +1,42 @@
+lunarg-tools (1.2.198.0~rc1-1lunarg18.04-1) bionic; urgency=medium
+
+  [ Christophe ]
+  * vku: fix loading of env vars on Windows
+  * vku: fix loading of env vars on Windows
+
+  [ John Zupin ]
+  * README: specify to have qt installed to run vkconfig from tarball
+
+  [ Charles Giessen ]
+  * build: Update update_deps.py
+
+  [ Christophe ]
+  * vkconfig: Discard applied layers configuration to ensure the layers never crash Vulkan Configurator
+
+  [ Jeremy Kniager ]
+  * devsim: Remove formats from sample configs.
+  * devsim: Add image format properties
+
+  [ Tony-LunarG ]
+  * build: Update to 1.2.196 headers
+
+  [ Christophe ]
+  * vkconfig: fix edit layers button #1616
+  * vkconfig: fix appveyor build
+  * vkconfig: add gpuav_descriptor_indexing support to built-in UI
+
+  [ Tony-LunarG ]
+  * build: Update to 1.2.198 headers
+
+  [ John Zupin ]
+  * via: fix compilation on gcc version 11.2
+
+  [ Christophe ]
+  * vkconfig: fix difficult edit of new config
+  * vkconfig: fix unit test
+
+ -- John Zupin <john@odin>  Tue, 16 Nov 2021 16:59:25 -0700
+
 lunarg-tools (1.2.189.0~rc2-1lunarg18.04-1) bionic; urgency=medium
 
   [ Christophe ]

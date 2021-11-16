@@ -131,8 +131,6 @@ Configuration &ConfigurationManager::CreateConfiguration(const std::vector<Layer
     this->available_configurations.push_back(configuration);
     this->SortConfigurations();
 
-    SetActiveConfiguration(available_layers, configuration.key);
-
     return *FindByKey(this->available_configurations, configuration.key.c_str());
 }
 
@@ -252,8 +250,7 @@ void ConfigurationManager::RefreshConfiguration(const std::vector<Layer> &availa
 
 bool ConfigurationManager::HasActiveConfiguration(const std::vector<Layer> &available_layers) const {
     if (this->active_configuration != nullptr)
-        return !HasMissingLayer(this->active_configuration->parameters, available_layers) &&
-               this->active_configuration->HasOverride();
+        return !HasMissingLayer(this->active_configuration->parameters, available_layers);
     else
         return false;
 }

@@ -3,7 +3,7 @@ Upstream-Name: lunarg-vulkan-layers
 Source: https://github.com/LunarG/VulkanTools
 
 Files: *
-Copyright: 2021, LunarG Inc
+Copyright: 2022, LunarG Inc
            2015-2020, LunarG, Inc
            2015-2021, LunarG, Inc.
            2015-2016, Valve Corporation
@@ -211,7 +211,7 @@ Copyright: 2016, Advanced Micro Devices, Inc
 License: Apache-2.0
 
 Files: debian/*
-Copyright: 2021, LunarG Inc
+Copyright: 2022, LunarG Inc
 License: BSD-3-clause or GPL-3 or MIT
 
 Files: submodules/jsoncpp/LICENSE

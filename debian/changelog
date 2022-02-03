@@ -1,3 +1,58 @@
+lunarg-tools (1.3.204.0~rc1-1lunarg18.04-1) bionic; urgency=medium
+
+  [ Christophe ]
+  * vkconfig: fix difficult edit of new config
+  * vkconfig: fix unit test
+
+  [ Mark Young ]
+  * VkConfig: Separate application name from path.
+  * VkConfig: Add documentation on application change
+
+  [ Tony-LunarG ]
+  * build: Update to 1.2.201 headers
+
+  [ Mike Schuchardt ]
+  * build: Update build to python 3.6
+
+  [ Tony-LunarG ]
+  * build: Update to 1.2.203 headers
+
+  [ John Zupin ]
+  * packaging: update copyright
+
+  [ Yiwei Zhang ]
+  * Avoid creating ApiDumpSettings at ApiDumpInstance destruction
+
+  [ Tony-LunarG ]
+  * build: Update to 1.3.204 headers
+
+  [ Christophe ]
+  * vkconfig: remove dead code
+  * vkconfig: upgrade built-in portability compiguration
+  * vkconfig: add profile UI list update
+  * vkconfig: add profile selection from UI
+  * vkconfig: remove unnecessary change
+  * vkconfig: check for tentative to use an invalid file for profiles
+  * vkconfig: add status display next to the setting label in UI
+  * vkconfig: updated version
+
+  [ Tony-LunarG ]
+  * build: Use 1.3 gitlab repos for dependencies
+
+  [ Christophe ]
+  * vkconfig: fix version
+  * vkconfig: fix automatic reordering of profiles layer
+  * vkconfig: fix crash when profiles file doesn't exist
+  * vkconfig: fix any flags dependence
+  * vkconfig: warn users when the selected layer don't rely on the same Vulkan Header version
+  * vkconfig: update changelog
+  * vkconfig: fix copyright
+  * vkconfig: fix profile names loading
+  * build: fix repository URL
+  * vkconfig: fix folder selection
+
+ -- John Zupin <john@odin>  Thu, 03 Feb 2022 15:56:35 -0700
+
 lunarg-tools (1.2.198.0~rc1-1lunarg18.04-1) bionic; urgency=medium
 
   [ Christophe ]

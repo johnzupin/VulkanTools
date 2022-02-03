@@ -19,6 +19,7 @@
  */
 
 #include "alert.h"
+#include <QCheckBox>
 
 void Alert::LoaderFailure() {
     QMessageBox alert;
@@ -266,9 +267,47 @@ void Alert::LayerProperties(const Layer* layer) {
     alert.exec();
 }
 
+QMessageBox::Button Alert::LayerIncompatibleVersions(const char* message) {
+    QMessageBox alert;
+    alert.setWindowTitle("Incompatible layers versions");
+    alert.setText("The Vulkan Loader requires that the layers are built with the same Vulkan Headers version.");
+    alert.setInformativeText((std::string("Are you sure you want to keep using these layers?\n") + message).c_str());
+    alert.setIcon(QMessageBox::Warning);
+    alert.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+    alert.setDefaultButton(QMessageBox::No);
+    return static_cast<QMessageBox::Button>(alert.exec());
+}
+
 void Alert::LogFileFailed() {
     QMessageBox alert;
     alert.setText("Cannot open log file");
+    alert.setIcon(QMessageBox::Warning);
+    alert.exec();
+}
+
+void Alert::FileNotFound(const char* message) {
+    QMessageBox alert;
+    alert.setText(format("%s file not found.", message).c_str());
+    alert.setStandardButtons(QMessageBox::Ok);
+    alert.setDefaultButton(QMessageBox::Ok);
+    alert.setIcon(QMessageBox::Warning);
+    alert.exec();
+}
+
+void Alert::FileNotJson(const char* message) {
+    QMessageBox alert;
+    alert.setText(format("%s is not a JSON file.", message).c_str());
+    alert.setStandardButtons(QMessageBox::Ok);
+    alert.setDefaultButton(QMessageBox::Ok);
+    alert.setIcon(QMessageBox::Warning);
+    alert.exec();
+}
+
+void Alert::FileNotProfile(const char* message) {
+    QMessageBox alert;
+    alert.setText(format("%s is not a JSON profile file.", message).c_str());
+    alert.setStandardButtons(QMessageBox::Ok);
+    alert.setDefaultButton(QMessageBox::Ok);
     alert.setIcon(QMessageBox::Warning);
     alert.exec();
 }

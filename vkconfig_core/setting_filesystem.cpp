@@ -27,10 +27,13 @@ SettingMetaFilesystem::SettingMetaFilesystem(Layer& layer, const std::string& ke
     : SettingMeta(layer, key, type) {}
 
 bool SettingMetaFilesystem::Load(const QJsonObject& json_setting) {
+    this->default_value = ReadStringValue(json_setting, "default");
     if (json_setting.value("filter") != QJsonValue::Undefined) {
         this->filter = ReadStringValue(json_setting, "filter");
     }
-    this->default_value = ReadStringValue(json_setting, "default");
+    if (json_setting.value("format") != QJsonValue::Undefined) {
+        this->format = ReadStringValue(json_setting, "format");
+    }
     return true;
 }
 
@@ -86,9 +89,21 @@ SettingData* SettingMetaFileLoad::Instantiate() {
 // SettingDataFileLoad
 
 SettingDataFileLoad::SettingDataFileLoad(const SettingMetaFileLoad* meta)
-    : SettingDataFilesystem(meta->key, meta->type), meta(meta) {}
+    : SettingDataFilesystem(meta->key, meta->type), meta(meta) {
+}
 
-void SettingDataFileLoad::Reset() { this->value = this->meta->default_value; }
+bool SettingDataFileLoad::Load(const QJsonObject& json_setting) {
+    SettingDataString::Load(json_setting);
+
+    if (this->meta->format == "PROFILE") {
+        this->profile_names = GetProfileNames(this->value);
+    }
+    return true;
+}
+
+void SettingDataFileLoad::Reset() {
+    this->value = this->meta->default_value;
+}
 
 // SettingMetaFileSave
 

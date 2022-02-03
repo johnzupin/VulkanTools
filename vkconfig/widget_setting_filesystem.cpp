@@ -23,10 +23,23 @@
 #include "widget_setting.h"
 
 #include "../vkconfig_core/path.h"
+#include "../vkconfig_core/alert.h"
+#include "../vkconfig/configurator.h"
 
 #include <QFileDialog>
 
 #include <cassert>
+
+static std::vector<std::string> LoadProfiles(const QJsonDocument& doc) {
+    assert(!doc.isNull() && !doc.isEmpty());
+
+    const QJsonObject& json_root_object = doc.object();
+    if (json_root_object.value("profiles") == QJsonValue::Undefined) {
+        return std::vector<std::string>();
+    }
+
+    return ConvertString(ReadObject(json_root_object, "profiles").keys());
+}
 
 WidgetSettingFilesystem::WidgetSettingFilesystem(QTreeWidget* tree, QTreeWidgetItem* item, const SettingMetaFilesystem& meta,
                                                  SettingDataSet& data_set)
@@ -45,7 +58,7 @@ WidgetSettingFilesystem::WidgetSettingFilesystem(QTreeWidget* tree, QTreeWidgetI
     this->button->show();
     this->connect(this->button, SIGNAL(clicked()), this, SLOT(browseButtonClicked()));
 
-    this->item->setText(0, meta.label.c_str());
+    this->item->setText(0, GetLabel(this->meta).c_str());
     this->item->setToolTip(0, meta.description.c_str());
     this->item->setSizeHint(0, QSize(0, ITEM_HEIGHT));
     this->item->setExpanded(this->meta.expanded);
@@ -69,15 +82,17 @@ void WidgetSettingFilesystem::Refresh(RefreshAreas refresh_areas) {
     this->button->setEnabled(enabled);
 
     if (refresh_areas == REFRESH_ENABLE_AND_STATE) {
+        LoadFile(this->data().value);
+
+        this->field->blockSignals(true);
+        this->field->setText(ReplaceBuiltInVariable(this->data().value).c_str());
+        this->field->blockSignals(false);
+
         if (::CheckSettingOverridden(this->meta)) {
             this->DisplayOverride(this->field, this->meta);
         } else {
             this->field->setToolTip(this->field->text());
         }
-
-        this->field->blockSignals(true);
-        this->field->setText(ReplaceBuiltInVariable(this->data().value).c_str());
-        this->field->blockSignals(false);
     }
 }
 
@@ -88,11 +103,23 @@ void WidgetSettingFilesystem::resizeEvent(QResizeEvent* event) {
     this->button->setGeometry(button_rect);
 }
 
+void WidgetSettingFilesystem::LoadFile(const std::string& path) {
+    if (this->meta.type == SETTING_LOAD_FILE) {
+        const SettingMetaFileLoad& setting_file = static_cast<const SettingMetaFileLoad&>(this->meta);
+        if (setting_file.format == "PROFILE") {
+            if (path.empty()) return;
+
+            SettingDataFileLoad& setting_data = static_cast<SettingDataFileLoad&>(this->data());
+            setting_data.profile_names = GetProfileNames(path);
+        }
+    }
+}
+
 void WidgetSettingFilesystem::browseButtonClicked() {
     std::string file;
 
     const char* filter = this->meta.filter.c_str();
-    std::string value = this->data().value;
+    const std::string value = this->data().value;
 
     const std::string path = ReplaceBuiltInVariable(value.empty() ? "${VK_LOCAL}" : value.c_str());
 
@@ -113,8 +140,12 @@ void WidgetSettingFilesystem::browseButtonClicked() {
 
     if (!file.empty()) {
         file = ConvertNativeSeparators(file);
-        field->setText(file.c_str());
+        LoadFile(file);
+
         this->data().value = file;
+
+        field->setText(this->data().value.c_str());
+
         emit itemChanged();
     }
 }

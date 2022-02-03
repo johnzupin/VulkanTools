@@ -21,10 +21,19 @@
 
 #include "widget_setting_enum.h"
 #include "widget_setting.h"
+#include "configurator.h"
+
+#include "../vkconfig_core/setting_filesystem.h"
 
 #include <cassert>
 
 static const int MIN_FIELD_WIDTH = 80;
+
+static const std::vector<std::string>& GetProfileNames(SettingDataSet& data_set) {
+    SettingDataFileLoad* data_file_load = static_cast<SettingDataFileLoad*>(FindSetting(data_set, "profile_file"));
+
+    return data_file_load->profile_names;
+}
 
 WidgetSettingEnum::WidgetSettingEnum(QTreeWidget* tree, QTreeWidgetItem* item, const SettingMetaEnum& meta,
                                      SettingDataSet& data_set)
@@ -33,7 +42,7 @@ WidgetSettingEnum::WidgetSettingEnum(QTreeWidget* tree, QTreeWidgetItem* item, c
 
     this->field->show();
 
-    this->item->setText(0, this->meta.label.c_str());
+    this->item->setText(0, GetLabel(this->meta).c_str());
     this->item->setFont(0, this->tree->font());
     this->item->setToolTip(0, this->meta.description.c_str());
     this->item->setSizeHint(0, QSize(0, ITEM_HEIGHT));
@@ -52,7 +61,29 @@ void WidgetSettingEnum::Refresh(RefreshAreas refresh_areas) {
     this->field->setEnabled(enabled);
     this->setEnabled(enabled);
 
-    if (refresh_areas == REFRESH_ENABLE_AND_STATE) {
+    if (meta.default_value == "${VK_PROFILES}") {
+        if (::CheckSettingOverridden(this->meta)) {
+            this->DisplayOverride(this->field, this->meta);
+        }
+
+        this->field->blockSignals(true);
+        this->field->clear();
+        this->enum_indexes.clear();
+
+        const std::vector<std::string>& profiles = GetProfileNames(data_set);
+
+        int selection = 0;
+        const std::string value = this->data().value;
+        for (std::size_t i = 0, n = profiles.size(); i < n; ++i) {
+            this->field->addItem(profiles[i].c_str());
+            if (profiles[i] == value) {
+                selection = static_cast<int>(this->enum_indexes.size());
+            }
+            this->enum_indexes.push_back(i);
+        }
+        this->field->setCurrentIndex(selection);
+        this->field->blockSignals(false);
+    } else if (refresh_areas == REFRESH_ENABLE_AND_STATE) {
         if (::CheckSettingOverridden(this->meta)) {
             this->DisplayOverride(this->field, this->meta);
         }
@@ -62,7 +93,7 @@ void WidgetSettingEnum::Refresh(RefreshAreas refresh_areas) {
         this->enum_indexes.clear();
 
         int selection = 0;
-        const std::string value = data().value;
+        const std::string value = this->data().value;
         for (std::size_t i = 0, n = this->meta.enum_values.size(); i < n; ++i) {
             if (!IsSupported(&this->meta.enum_values[i])) continue;
 
@@ -72,7 +103,6 @@ void WidgetSettingEnum::Refresh(RefreshAreas refresh_areas) {
             }
             this->enum_indexes.push_back(i);
         }
-
         this->field->setCurrentIndex(selection);
         this->field->blockSignals(false);
     }
@@ -82,8 +112,16 @@ void WidgetSettingEnum::resizeEvent(QResizeEvent* event) {
     int width = MIN_FIELD_WIDTH;
 
     const QFontMetrics fm = this->field->fontMetrics();
-    for (std::size_t i = 0, n = this->meta.enum_values.size(); i < n; ++i) {
-        width = std::max(width, HorizontalAdvance(fm, (this->meta.enum_values[i].label + "0000").c_str()));
+
+    if (meta.default_value == "${VK_PROFILES}") {
+        const std::vector<std::string>& profiles = GetProfileNames(data_set);
+        for (std::size_t i = 0, n = profiles.size(); i < n; ++i) {
+            width = std::max(width, HorizontalAdvance(fm, (profiles[i] + "0000").c_str()));
+        }
+    } else {
+        for (std::size_t i = 0, n = this->meta.enum_values.size(); i < n; ++i) {
+            width = std::max(width, HorizontalAdvance(fm, (this->meta.enum_values[i].label + "0000").c_str()));
+        }
     }
 
     const QRect button_rect = QRect(event->size().width() - width, 0, width, event->size().height());
@@ -91,9 +129,16 @@ void WidgetSettingEnum::resizeEvent(QResizeEvent* event) {
 }
 
 void WidgetSettingEnum::OnIndexChanged(int index) {
-    assert(index >= 0 && index < static_cast<int>(this->meta.enum_values.size()));
+    if (meta.default_value == "${VK_PROFILES}") {
+        const std::vector<std::string>& profiles = GetProfileNames(data_set);
+        assert(index >= 0 && index < static_cast<int>(profiles.size()));
 
-    this->data().value = this->meta.enum_values[enum_indexes[static_cast<std::size_t>(index)]].key;
+        this->data().value = profiles[index];
+    } else {
+        assert(index >= 0 && index < static_cast<int>(this->meta.enum_values.size()));
+
+        this->data().value = this->meta.enum_values[enum_indexes[static_cast<std::size_t>(index)]].key;
+    }
     emit itemChanged();
 }
 

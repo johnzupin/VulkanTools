@@ -28,6 +28,7 @@ struct SettingMetaFilesystem : public SettingMeta {
 
     std::string default_value;
     std::string filter;
+    std::string format;
 
    protected:
     SettingMetaFilesystem(Layer& layer, const std::string& key, const SettingType& type);
@@ -37,6 +38,7 @@ struct SettingMetaFilesystem : public SettingMeta {
 
 struct SettingDataFilesystem : public SettingDataString {
     std::string Export(ExportMode export_mode) const override;
+
 
    protected:
     SettingDataFilesystem(const std::string& key, const SettingType& type);
@@ -56,7 +58,10 @@ struct SettingMetaFileLoad : public SettingMetaFilesystem {
 struct SettingDataFileLoad : public SettingDataFilesystem {
     SettingDataFileLoad(const SettingMetaFileLoad* meta);
 
+    bool Load(const QJsonObject& json_setting) override;
     void Reset() override;
+
+    std::vector<std::string> profile_names;
 
    private:
     const SettingMetaFileLoad* meta;

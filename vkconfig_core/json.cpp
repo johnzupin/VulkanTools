@@ -19,10 +19,31 @@
  */
 
 #include "json.h"
+#include "alert.h"
 
 #include <QJsonArray>
+#include <QFile>
 
 #include <cassert>
+
+QJsonDocument ParseJsonFile(const char* file) {
+    QFile file_schema(file);
+    const bool result = file_schema.open(QIODevice::ReadOnly | QIODevice::Text);
+    if (result) {
+        const QString& data = file_schema.readAll();
+        file_schema.close();
+
+        QJsonParseError json_parse_error;
+        const QJsonDocument& json_document = QJsonDocument::fromJson(data.toUtf8(), &json_parse_error);
+        if (json_document.isNull() || json_document.isEmpty()) {
+            Alert::FileNotJson(file);
+        }
+        return json_document;
+    } else {
+        Alert::FileNotFound(file);
+        return QJsonDocument();
+    }
+}
 
 QJsonObject ReadObject(const QJsonObject& json_object, const char* key) {
     const QJsonValue& json_value = json_object.value(key);

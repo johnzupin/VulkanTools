@@ -22,11 +22,12 @@
 #include "path_manager.h"
 #include "configuration_manager.h"
 #include "override.h"
+#include "alert.h"
 
 #include <QMessageBox>
 #include <QFileInfoList>
 
-static const char *SUPPORTED_CONFIG_FILES[] = {"_2_2_1"};
+static const char *SUPPORTED_CONFIG_FILES[] = {"_2_2_2", "_2_2_1"};
 
 ConfigurationManager::ConfigurationManager(const PathManager &path_manager, Environment &environment)
     : active_configuration(nullptr), path_manager(path_manager), environment(environment) {}
@@ -96,8 +97,13 @@ void ConfigurationManager::LoadConfigurationsPath(const std::vector<Layer> &avai
         const QFileInfo &info = configuration_files[i];
 
         Configuration configuration;
-        const bool result = configuration.Load(available_layers, info.absoluteFilePath().toStdString());
+        std::string path = info.absoluteFilePath().toStdString();
 
+        // Skip "2_2_1/Portability.json" because we replaced the devsim layer by the profiles layer
+        if (path.find("2_2_1/Portability.json") != std::string::npos) {
+            path = ":/configurations/Portability.json";
+        }
+        const bool result = configuration.Load(available_layers, path);
         if (!result) continue;
 
         if (FindByKey(available_configurations, configuration.key.c_str()) != nullptr) continue;
@@ -340,4 +346,36 @@ void ConfigurationManager::FirstDefaultsConfigurations(const std::vector<Layer> 
     }
 
     RefreshConfiguration(available_layers);
+}
+
+bool ConfigurationManager::CheckLayersVersions(const std::vector<Layer> &available_layers, Configuration *active_configuration,
+                                               std::string &log_versions) const {
+    assert(active_configuration != nullptr);
+
+    Version version = Version::VERSION_NULL;
+
+    bool result = true;
+
+    for (std::size_t param_index = 0, param_count = active_configuration->parameters.size(); param_index < param_count;
+         ++param_index) {
+        const Parameter &parameter = active_configuration->parameters[param_index];
+
+        if (parameter.state != LAYER_STATE_OVERRIDDEN) continue;
+
+        for (std::size_t layer_index = 0, layer_count = available_layers.size(); layer_index < layer_count; ++layer_index) {
+            const Layer &layer = available_layers[layer_index];
+
+            if (layer.key == parameter.key) {
+                if (version == Version::VERSION_NULL) {
+                    version = layer.api_version;
+                }
+
+                if (layer.api_version != version) result = false;
+
+                log_versions += format("%s - %s\n", layer.key.c_str(), layer.api_version.str().c_str());
+            }
+        }
+    }
+
+    return result;
 }

@@ -18,6 +18,7 @@
  * - Christophe Riccio <christophe@lunarg.com>
  */
 
+#include "setting_filesystem.h"
 #include "parameter.h"
 #include "platform.h"
 #include "version.h"

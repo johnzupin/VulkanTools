@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2020-2021 Valve Corporation
- * Copyright (c) 2020-2021 LunarG, Inc.
+ * Copyright (c) 2020-2022 Valve Corporation
+ * Copyright (c) 2020-2022 LunarG, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,9 +37,12 @@ class LayerManager {
     bool Empty() const;
 
     void LoadAllInstalledLayers();
+    void LoadLayer(const std::string& layer_name);
     void LoadLayersFromPath(const std::string& path);
 
     std::vector<Layer> available_layers;
 
     const Environment& environment;
+   private:
+    bool LoadLayerFromPath(const std::string& layer_name, const std::string& path);
 };

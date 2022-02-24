@@ -62,7 +62,13 @@ const char* GetToken(SettingType type);
 inline bool IsEnum(SettingType type) {
     assert(type >= SETTING_FIRST && type <= SETTING_LAST);
 
-    return type == SETTING_ENUM || type == SETTING_FLAGS;
+    return type == SETTING_ENUM;
+}
+
+inline bool IsFlags(SettingType type) {
+    assert(type >= SETTING_FIRST && type <= SETTING_LAST);
+
+    return type == SETTING_FLAGS;
 }
 
 enum DependenceMode {
@@ -95,6 +101,7 @@ struct SettingData;
 
 typedef std::vector<SettingMeta*> SettingMetaSet;
 typedef std::vector<SettingData*> SettingDataSet;
+typedef std::vector<const SettingData*> SettingDataSetConst;
 
 struct SettingMeta : public Header {
     SettingMeta(Layer& layer, const std::string& key, const SettingType type);
@@ -129,6 +136,7 @@ struct SettingData {
     bool operator!=(const SettingData& other) const { return !this->Equal(other); }
 
     virtual void Reset() = 0;
+    virtual void Copy(const SettingData* data) = 0;
     virtual bool Load(const QJsonObject& json_setting) = 0;
     virtual bool Save(QJsonObject& json_setting) const = 0;
     virtual std::string Export(ExportMode export_mode) const = 0;
@@ -164,6 +172,8 @@ const T* FindSetting(const SettingMetaSet& settings, const char* key) {
 }
 
 SettingData* FindSetting(SettingDataSet& settings, const char* key);
+
+const SettingData* FindSetting(SettingDataSetConst& settings, const char* key);
 
 template <typename T>
 T* FindSetting(SettingDataSet& settings, const char* key) {

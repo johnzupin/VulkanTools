@@ -172,7 +172,7 @@ SettingMeta* FindSetting(SettingMetaSet& settings, const char* key) {
         SettingMeta* child = FindSetting(settings[i]->children, key);
         if (child != nullptr) return child;
 
-        if (IsEnum(settings[i]->type)) {
+        if (IsEnum(settings[i]->type) || IsFlags(settings[i]->type)) {
             SettingMetaEnum& setting_meta_enum = static_cast<SettingMetaEnum&>(*settings[i]);
 
             for (std::size_t j = 0, o = setting_meta_enum.enum_values.size(); j < o; ++j) {
@@ -192,7 +192,7 @@ const SettingMeta* FindSetting(const SettingMetaSet& settings, const char* key) 
         const SettingMeta* child = FindSetting(settings[i]->children, key);
         if (child != nullptr) return child;
 
-        if (IsEnum(settings[i]->type)) {
+        if (IsEnum(settings[i]->type) || IsFlags(settings[i]->type)) {
             const SettingMetaEnum& setting_meta_enum = static_cast<const SettingMetaEnum&>(*settings[i]);
 
             for (std::size_t j = 0, o = setting_meta_enum.enum_values.size(); j < o; ++j) {
@@ -206,6 +206,16 @@ const SettingMeta* FindSetting(const SettingMetaSet& settings, const char* key) 
 }
 
 SettingData* FindSetting(SettingDataSet& settings, const char* key) {
+    for (std::size_t i = 0, n = settings.size(); i < n; ++i) {
+        if (settings[i]->key == key) {
+            return settings[i];
+        }
+    }
+
+    return nullptr;
+}
+
+const SettingData* FindSetting(SettingDataSetConst& settings, const char* key) {
     for (std::size_t i = 0, n = settings.size(); i < n; ++i) {
         if (settings[i]->key == key) {
             return settings[i];
@@ -231,7 +241,7 @@ std::size_t CountSettings(const SettingMetaSet& settings) {
     for (std::size_t i = 0, n = settings.size(); i < n; ++i) {
         count += CountSettings(settings[i]->children);
 
-        if (IsEnum(settings[i]->type)) {
+        if (IsEnum(settings[i]->type) || IsFlags(settings[i]->type)) {
             const SettingMetaEnumeration& meta_enum = static_cast<const SettingMetaEnumeration&>(*settings[i]);
 
             for (std::size_t j = 0, o = meta_enum.enum_values.size(); j < o; ++j) {
@@ -308,9 +318,9 @@ bool CheckDependence(const SettingMeta& meta, const SettingDataSet& data_set) {
 
 const char* GetToken(DependenceMode type) {
     static const char* table[] = {
-        "NONE",     // DEPENDENCE_NONE
-        "ALL",      // DEPENDENCE_ALL
-        "ANY"       // DEPENDENCE_ANY
+        "NONE",  // DEPENDENCE_NONE
+        "ALL",   // DEPENDENCE_ALL
+        "ANY"    // DEPENDENCE_ANY
     };
     static_assert(countof(table) == DEPENDENCE_COUNT, "The tranlation table size doesn't match the enum number of elements");
 

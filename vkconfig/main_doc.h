@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2020-2022 Valve Corporation
- * Copyright (c) 2020-2022 LunarG, Inc.
+ * Copyright (c) 2022 Valve Corporation
+ * Copyright (c) 2022 LunarG, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,17 +15,11 @@
  * limitations under the License.
  *
  * Authors:
- * - Christophe Riccio <christophe@lunarg.com>
  * - David Pinedo <david@lunarg.com>
  */
 
-#include "layer.h"
-#include "environment.h"
-#include "configuration.h"
+#pragma once
 
-void ExportHtmlDoc(const Layer& layer, const std::string& path);
+#include "../vkconfig_core/command_line.h"
 
-void ExportMarkdownDoc(const Layer& layer, const std::string& path);
-
-void ExportSettingsDoc(const std::vector<Layer>& available_layers,
-                       const Configuration& configuration, const std::string& path);
+int run_doc(const CommandLine& commandLine);

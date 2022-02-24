@@ -11,7 +11,21 @@
 
 # Release notes
 
-## [Vulkan Configurator 2.4.3](https://github.com/LunarG/VulkanTools/tree/master) - February 2022
+## [Vulkan Configurator 2.4.4](https://github.com/LunarG/VulkanTools/tree/master) - February 2022
+
+### Features:
+- Add markdown documentation export
+- Add `vk_layer_settings.txt` documentation export
+- Add command line support of HTML, markdown and `vk_layer_settings.txt` documentation exports
+
+### Improvements:
+- Add button to create a new layers configuration
+
+### Fixes:
+- Fix layer presets that could be modified by accident #1653
+- Fix loading of profiles file from the UI #1653
+
+## [Vulkan Configurator 2.4.3](https://github.com/LunarG/VulkanTools/tree/sdk-1.3.204.0) - February 2022
 
 ### Improvements:
 - Upgrade the built-in "Portability" to use the Profiles layer

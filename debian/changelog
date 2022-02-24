@@ -1,3 +1,36 @@
+lunarg-tools (1.3.204.1~rc1-1lunarg20.04-1) focal; urgency=medium
+
+  [ Christophe ]
+  * vkconfig: add check of the api-version and layer version
+  * vkconfig: always add all layers paths to override_paths
+  * vkconfig: fix typo
+
+  [ Richard S. Wright Jr ]
+  * Vkconfig fix for VULKAN_SDK set on macOS
+
+  [ Christophe ]
+  * vkconfig: fix creating a new configuration crash
+  * vkconfig: add populate builtin settings
+  * vkconfig: output ${VP_DEFAULT} when not profile name is selected
+  * vkconfig: system paths are added last in override_paths
+
+  [ David Pinedo ]
+  * Mods for auto gen of doc files. Add doc options to vkconfig.
+  * Documentation tweaks
+  * Tweaks to vkconfig doc implementation
+  * Fix vkconfig doc --settings <layername> on Windows
+  * Changes to layer documenation files
+  * Documentation tweaks, fix copyright dates
+
+  [ Christophe ]
+  * vkconfig: fix presets that were modifiable by the user
+  * vkconfig: Fix loading of profiles file from the UI #1653
+  * vkconfig: fix unit tests
+  * vkconfig: add doc changelog
+  * vkconfig: Add button to create a new layers configuration
+
+ -- john <john@odin>  Thu, 24 Feb 2022 15:37:13 -0700
+
 lunarg-tools (1.3.204.0~rc4-1lunarg20.04-1) focal; urgency=medium
 
   [ Christophe ]

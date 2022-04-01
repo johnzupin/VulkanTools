@@ -1,3 +1,15 @@
+lunarg-tools (1.3.209.0~rc2-1lunarg18.04-1) bionic; urgency=medium
+
+  [ Christophe ]
+  * cmake: update googletest version
+  * C.I.: replace appveyor by github actions
+  * C.I.: build Vulkan Configurator with qtcreator
+  * vkconfig: resolve linux warnings
+  * vkconfig: fix build on system with Vulkan header older than 1.2.135
+  * vkconfig: fix valid schema detection
+
+ -- john <john@odin>  Fri, 01 Apr 2022 11:15:30 -0600
+
 lunarg-tools (1.3.209.0~rc1-1lunarg18.04-1) bionic; urgency=medium
 
   [ David Pinedo ]

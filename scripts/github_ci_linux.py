@@ -51,7 +51,7 @@ BUILD_DIR_NAME = "build"
 INSTALL_DIR_NAME = "install"
 EXTERNAL_DIR = repo_relative(EXTERNAL_DIR_NAME)
 VT_BUILD_DIR = repo_relative(BUILD_DIR_NAME)
-CONFIGURATIONS = ['release', 'debug']
+CONFIGURATIONS = ['Release', 'Debug']
 DEFAULT_CONFIGURATION = CONFIGURATIONS[0]
 
 #
@@ -77,14 +77,23 @@ def BuildVT(args):
 
     CreateBuildDirectory(VT_BUILD_DIR)
     print("Run CMake")
-    cmake_cmd = 'cmake -C ../%s/helper.cmake -DCMAKE_BUILD_TYPE=%s -DUSE_CCACHE=ON ..' \
-        % (EXTERNAL_DIR_NAME, args.configuration.capitalize())
+    cmake_cmd = 'cmake -C ../%s/helper.cmake -DCMAKE_BUILD_TYPE=%s -DUSE_CCACHE=ON ..' % (EXTERNAL_DIR_NAME, args.configuration.capitalize())
     RunShellCmd(cmake_cmd, VT_BUILD_DIR)
 
     print("Build Vulkan Tools")
     os.chdir(VT_BUILD_DIR)
     build_cmd = 'cmake --build . -- -j%s' % os.cpu_count()
     RunShellCmd(build_cmd, VT_BUILD_DIR)
+
+    print("Run Vulkan Tools Tests")
+    os.chdir(VT_BUILD_DIR)
+    test_cmd = 'ctest --parallel %s --output-on-failure --config %s' % (os.cpu_count(), args.configuration)
+    RunShellCmd(test_cmd, VT_BUILD_DIR)
+
+    print("Build Vulkan Configurator with QtCreator")
+    os.chdir('%s/../vkconfig' % VT_BUILD_DIR)
+    RunShellCmd('qmake vkconfig.pro', '%s/../vkconfig' % VT_BUILD_DIR)
+    RunShellCmd('make', '%s/../vkconfig' % VT_BUILD_DIR)
 
 ret_code = 0
 def RunATest(vt_cmd, vt_env):
@@ -110,7 +119,6 @@ def RunVTTests(args):
     vt_env['LD_LIBRARY_PATH'] = '%s/Vulkan-Loader/%s/loader' % (EXTERNAL_DIR, BUILD_DIR_NAME)
     vt_env['VK_LAYER_PATH'] = '%s/%s/layersvt:%s/%s/layers' % (PROJECT_ROOT, BUILD_DIR_NAME, PROJECT_ROOT, BUILD_DIR_NAME)
     vt_env['VK_ICD_FILENAMES'] = '%s/Vulkan-Tools/%s/icd/VkICD_mock_icd.json' % (EXTERNAL_DIR, BUILD_DIR_NAME)
-    vt_env['DEVSIM_PROFILES'] = '%s/Vulkan-ValidationLayers/tests/device_profiles' % (EXTERNAL_DIR)
     vt_cmd = '%s/tests/vlf_test.sh -t %s/Vulkan-Tools/%s' % (BUILD_DIR_NAME, EXTERNAL_DIR, BUILD_DIR_NAME)
     RunATest(vt_cmd, vt_env)
     vt_cmd = '%s/tests/apidump_test.sh -t %s/Vulkan-Tools/%s' % (BUILD_DIR_NAME, EXTERNAL_DIR, BUILD_DIR_NAME)

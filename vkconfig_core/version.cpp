@@ -30,8 +30,18 @@
 
 const Version Version::VKCONFIG(2, 4, 5);
 const Version Version::LAYER_CONFIG(2, 2, 2);
+#ifdef VK_HEADER_VERSION_COMPLETE
 const Version Version::VKHEADER(VK_HEADER_VERSION_COMPLETE);
+#elif defined(VK_VERSION_1_2)
+const Version Version::VKHEADER(1, 2, VK_HEADER_VERSION);
+#elif defined(VK_VERSION_1_1)
+const Version Version::VKHEADER(1, 1, VK_HEADER_VERSION);
+#elif defined(VK_VERSION_1_0)
+const Version Version::VKHEADER(1, 0, VK_HEADER_VERSION);
+#endif
 const Version Version::VERSION_NULL(0u);
+const char *VKCONFIG_NAME = "Vulkan Configurator";
+const char *VKCONFIG_SHORT_NAME = "vkconfig";
 
 static Version GetVersionData(const char *version) {
     uint32_t version_major = 0;

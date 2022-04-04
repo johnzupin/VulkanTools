@@ -29,8 +29,7 @@
 
 static const char *SUPPORTED_CONFIG_FILES[] = {"_2_2_2", "_2_2_1"};
 
-ConfigurationManager::ConfigurationManager(const PathManager &path_manager, Environment &environment)
-    : active_configuration(nullptr), path_manager(path_manager), environment(environment) {}
+ConfigurationManager::ConfigurationManager(Environment &environment) : active_configuration(nullptr), environment(environment) {}
 
 ConfigurationManager::~ConfigurationManager() {}
 
@@ -133,6 +132,9 @@ Configuration &ConfigurationManager::CreateConfiguration(const std::vector<Layer
     // Reload from file to workaround the lack of SettingSet copy support
     Configuration configuration;
     const bool result = configuration.Load(available_layers, path.c_str());
+    assert(result);
+
+    RemoveConfigurationFile(new_configuration.key);
 
     this->available_configurations.push_back(configuration);
     this->SortConfigurations();

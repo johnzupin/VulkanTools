@@ -1,3 +1,34 @@
+lunarg-tools (1.3.209.0~rc3-1lunarg20.04-1) focal; urgency=medium
+
+  [ Christophe ]
+  * vkconfig: update vulkan guide link
+  * vkconfig: fix Vulkan Layers window layout
+  * vkconfig: fix message box referencing devsim layer instead of profiles layer
+  * vkconfig: remove reference to devsim
+  * vkconfig: fix typo
+  * vkconfig: resolve selected configuration when not configuration is active
+  * vkconfig: consistent active configuration and active settings
+  * vkconfig: fix search executable button
+  * vkconfig: remove unused code
+  * vkconfig: clean up warnings
+  * vkconfig: use minimum button size
+  * vkconfig: fix unit test build
+  * vkconfig: fix unit test build
+
+  [ Tony-LunarG ]
+  * build: Update to 1.3.209 headers
+
+  [ Christophe ]
+  * cmake: Add per-layer BUILD switches and remove BUILD_LAYERSVT
+  * vkconfig: fix number and grab changes from a branch
+  * vkconfig: use utility function
+  * vkconfig: improve build doc #1651
+  * vkconfig: Report when no layers are found
+  * vkconfig: fix configuration selection
+  * vkconfig: fix New Configuration created by accident
+
+ -- john <john@odin>  Mon, 04 Apr 2022 11:46:37 -0600
+
 lunarg-tools (1.3.209.0~rc2-1lunarg20.04-1) focal; urgency=medium
 
   [ Christophe ]

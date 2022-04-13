@@ -1,3 +1,13 @@
+lunarg-tools (1.3.211.0~rc2-1lunarg20.04-1) focal; urgency=medium
+
+  [ Christophe ]
+  * vkconfig: fix copyright
+  * vkconfig: remove splitter collapse
+  * vkconfig: Refinement of the layers window UI design
+  * vkconfig: refined UI on macOS
+
+ -- john <john@odin>  Wed, 13 Apr 2022 15:29:52 -0600
+
 lunarg-tools (1.3.211.0~rc1-1lunarg20.04-1) focal; urgency=medium
 
   [ Christophe ]

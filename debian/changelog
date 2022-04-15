@@ -1,3 +1,15 @@
+lunarg-tools (1.3.211.0~rc3-1lunarg18.04-1) bionic; urgency=medium
+
+  [ Bob Ellison ]
+  * docs: fix copyrights
+
+  [ Christophe ]
+  * clean up dead files from devsim removal
+  * clean up reference to removed file
+  * vkconfig: fix app list regression
+
+ -- john <john@odin>  Fri, 15 Apr 2022 11:16:45 -0600
+
 lunarg-tools (1.3.211.0~rc2-1lunarg18.04-1) bionic; urgency=medium
 
   [ Christophe ]

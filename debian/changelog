@@ -1,3 +1,35 @@
+lunarg-tools (1.3.216.0~rc1-1lunarg18.04-1) bionic; urgency=medium
+
+  [ Christophe ]
+  * Add VK_KHR_portability_enumeration extension support
+  * vkconfig: update changelog
+  * vkconfig: refactor to make it easier to add more extension requirements
+  * vkconfig: fix warning
+  * vkconfig: trying to fix Linux C.I. build
+  * vkconfig: fix C.I. build error and fix warnings
+  * vkconfig: fix build
+  * vkconfig: trying to fix Linux C.I.
+  * vkconfig: fix qmake build on C.I., fix build with old header
+  * vkconfig: fix min api version
+  * vkconfig: fix min api version
+  * vkconfig: fix unit test build
+
+  [ Charles Giessen ]
+  * vkvia: Support Portability Enumeration
+
+  [ Tony-LunarG ]
+  * build: Update to 1.3.215 headers
+
+  [ Christophe ]
+  * vkconfig: prevent mixing layer versions
+
+  [ Tony-LunarG ]
+  * build: Update to 1.3.216 headers
+  * doc: Fix android SDK location
+  * build: Fix Android build on Windows
+
+ -- john <john@odin>  Thu, 09 Jun 2022 10:24:29 -0600
+
 lunarg-tools (1.3.214.0~rc1-1lunarg18.04-1) bionic; urgency=medium
 
   [ Christophe ]

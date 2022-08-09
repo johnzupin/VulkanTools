@@ -27,7 +27,7 @@
 #include <QMessageBox>
 #include <QFileInfoList>
 
-static const char *SUPPORTED_CONFIG_FILES[] = {"_2_2_2", "_2_2_1"};
+static const char *SUPPORTED_CONFIG_FILES[] = {"_2_2_3", "_2_2_2", "_2_2_1"};
 
 ConfigurationManager::ConfigurationManager(Environment &environment) : active_configuration(nullptr), environment(environment) {}
 
@@ -178,8 +178,8 @@ void ConfigurationManager::RemoveConfigurationFile(const std::string &key) {
 
         const QFileInfoList &configuration_files = GetJSONFiles(path.c_str());
         for (int j = 0, o = configuration_files.size(); j < o; ++j) {
-            const std::string filename = configuration_files[j].baseName().toStdString();
-            if (filename == key) {
+            const QString filename = configuration_files[j].fileName();
+            if (filename.toStdString() == key + ".json") {
                 std::remove(configuration_files[j].filePath().toStdString().c_str());
             }
         }
@@ -257,8 +257,9 @@ void ConfigurationManager::RefreshConfiguration(const std::vector<Layer> &availa
 }
 
 bool ConfigurationManager::HasActiveConfiguration(const std::vector<Layer> &available_layers) const {
+    std::string missing_layer;
     if (this->active_configuration != nullptr)
-        return !HasMissingLayer(this->active_configuration->parameters, available_layers);
+        return !HasMissingLayer(this->active_configuration->parameters, available_layers, missing_layer);
     else
         return false;
 }

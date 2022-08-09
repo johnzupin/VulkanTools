@@ -73,11 +73,11 @@ static std::string GetUserDefinedLayersPathsLog(const char *label, UserDefinedLa
     const std::vector<std::string> &user_defined_layer_paths =
         Configurator::Get().environment.GetUserDefinedLayersPaths(custom_layer_path);
     if (!user_defined_layer_paths.empty()) {
-        log += format("- User-Defined Layers Paths from %s:\n", label);
+        log += format("    - %s:\n", label);
         for (std::size_t i = 0, n = user_defined_layer_paths.size(); i < n; ++i)
-            log += format("    - %s\n", user_defined_layer_paths[i].c_str());
+            log += format("        - %s\n", user_defined_layer_paths[i].c_str());
     } else
-        log += format("- User-Defined Layers Paths from %s: None\n", label);
+        log += format("    - %s: None\n", label);
 
     return log;
 }
@@ -174,10 +174,10 @@ std::string GenerateVulkanStatus() {
         }
     }
 
-    log += GetUserDefinedLayersPathsLog("VK_LAYER_PATH environment variable", USER_DEFINED_LAYERS_PATHS_ENV_SET);
-    log += GetUserDefinedLayersPathsLog("VK_ADD_LAYER_PATH environment variable", USER_DEFINED_LAYERS_PATHS_ENV_ADD);
-    if (configurator.configurations.HasActiveConfiguration(configurator.layers.available_layers))
-        log += GetUserDefinedLayersPathsLog("Vulkan Configurator", USER_DEFINED_LAYERS_PATHS_GUI);
+    log += "- User-Defined Layers locations:\n";
+    log += GetUserDefinedLayersPathsLog("VK_LAYER_PATH variable", USER_DEFINED_LAYERS_PATHS_ENV_SET);
+    log += GetUserDefinedLayersPathsLog("Per-configuration paths", USER_DEFINED_LAYERS_PATHS_GUI);
+    log += GetUserDefinedLayersPathsLog("VK_ADD_LAYER_PATH variable", USER_DEFINED_LAYERS_PATHS_ENV_ADD);
 
     const std::string layer_settings_path(qgetenv("VK_LAYER_SETTINGS_PATH"));
     if (!layer_settings_path.empty()) {

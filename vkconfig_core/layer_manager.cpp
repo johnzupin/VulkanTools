@@ -99,21 +99,21 @@ void LayerManager::LoadAllInstalledLayers() {
         LoadLayersFromPath(env_user_defined_layers_paths_set[i]);
     }
 
-    // SECOND: Any user-defined path from Vulkan Configurator? Search for those too
-    const std::vector<std::string> &gui_user_defined_layers_paths =
+    // SECOND: Any per layers configuration user-defined path from Vulkan Configurator? Search for those too
+    const std::vector<std::string> &gui_config_user_defined_layers_paths =
         environment.GetUserDefinedLayersPaths(USER_DEFINED_LAYERS_PATHS_GUI);
-    for (std::size_t i = 0, n = gui_user_defined_layers_paths.size(); i < n; ++i) {
-        LoadLayersFromPath(gui_user_defined_layers_paths[i]);
+    for (std::size_t i = 0, n = gui_config_user_defined_layers_paths.size(); i < n; ++i) {
+        LoadLayersFromPath(gui_config_user_defined_layers_paths[i]);
     }
 
-    // THIRD: Add VK_ADD_LAYER_PATH layers.
+    // THIRD: Add VK_ADD_LAYER_PATH layers
     const std::vector<std::string> &env_user_defined_layers_paths_add =
         environment.GetUserDefinedLayersPaths(USER_DEFINED_LAYERS_PATHS_ENV_ADD);
     for (std::size_t i = 0, n = env_user_defined_layers_paths_add.size(); i < n; ++i) {
         LoadLayersFromPath(env_user_defined_layers_paths_add[i]);
     }
 
-    // FOURTH: Standard layer paths, in standard locations. The above has always taken precedence.
+    // FOURTH: Standard layer paths, in standard locations. The above has always taken precedence
     for (std::size_t i = 0, n = countof(SEARCH_PATHS); i < n; i++) {
         LoadLayersFromPath(SEARCH_PATHS[i]);
     }
@@ -135,21 +135,21 @@ void LayerManager::LoadLayer(const std::string &layer_name) {
         if (LoadLayerFromPath(layer_name, env_user_defined_layers_paths_set[i])) return;
     }
 
-    // SECOND: Any user-defined path from Vulkan Configurator? Search for those too
-    const std::vector<std::string> &gui_user_defined_layers_paths =
+    // SECOND: Any per layers configuration user-defined path from Vulkan Configurator? Search for those too
+    const std::vector<std::string> &gui_config_user_defined_layers_paths =
         environment.GetUserDefinedLayersPaths(USER_DEFINED_LAYERS_PATHS_GUI);
-    for (std::size_t i = 0, n = gui_user_defined_layers_paths.size(); i < n; ++i) {
-        if (LoadLayerFromPath(layer_name, gui_user_defined_layers_paths[i])) return;
+    for (std::size_t i = 0, n = gui_config_user_defined_layers_paths.size(); i < n; ++i) {
+        if (LoadLayerFromPath(layer_name, gui_config_user_defined_layers_paths[i])) return;
     }
 
-    // THIRD: Add VK_ADD_LAYER_PATH layers.
+    // THIRD: Add VK_ADD_LAYER_PATH layers
     const std::vector<std::string> &env_user_defined_layers_paths_add =
         environment.GetUserDefinedLayersPaths(USER_DEFINED_LAYERS_PATHS_ENV_ADD);
     for (std::size_t i = 0, n = env_user_defined_layers_paths_add.size(); i < n; ++i) {
         if (LoadLayerFromPath(layer_name, env_user_defined_layers_paths_add[i])) return;
     }
 
-    // FOURTH: Standard layer paths, in standard locations. The above has always taken precedence.
+    // FOURTH: Standard layer paths, in standard locations. The above has always taken precedence
     for (std::size_t i = 0, n = countof(SEARCH_PATHS); i < n; i++) {
         if (LoadLayerFromPath(layer_name, SEARCH_PATHS[i])) return;
     }

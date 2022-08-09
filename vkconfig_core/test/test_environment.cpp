@@ -26,36 +26,6 @@
 
 #include <gtest/gtest.h>
 
-TEST(test_environment, custom_path_no_duplicate) {
-    PathManager paths;
-    Environment environment(paths);
-
-    environment.Reset(Environment::DEFAULT);
-
-    EXPECT_EQ(true, environment.AppendCustomLayerPath("./path"));
-    EXPECT_EQ(1, environment.GetUserDefinedLayersPaths(USER_DEFINED_LAYERS_PATHS_GUI).size());
-    EXPECT_EQ(false, environment.AppendCustomLayerPath("./path"));
-    EXPECT_EQ(1, environment.GetUserDefinedLayersPaths(USER_DEFINED_LAYERS_PATHS_GUI).size());
-
-    environment.Reset(Environment::SYSTEM);  // Don't change the system settings
-}
-
-TEST(test_environment, custom_path_not_found) {
-    PathManager paths;
-    Environment environment(paths);
-
-    environment.Reset(Environment::DEFAULT);
-
-    EXPECT_EQ(false, environment.RemoveCustomLayerPath("./path"));
-    EXPECT_EQ(0, environment.GetUserDefinedLayersPaths(USER_DEFINED_LAYERS_PATHS_GUI).size());
-    EXPECT_EQ(true, environment.AppendCustomLayerPath("./path"));
-    EXPECT_EQ(1, environment.GetUserDefinedLayersPaths(USER_DEFINED_LAYERS_PATHS_GUI).size());
-    EXPECT_EQ(true, environment.RemoveCustomLayerPath("./path"));
-    EXPECT_EQ(0, environment.GetUserDefinedLayersPaths(USER_DEFINED_LAYERS_PATHS_GUI).size());
-
-    environment.Reset(Environment::SYSTEM);  // Don't change the system settings
-}
-
 TEST(test_environment, remove_missing_applications) {
     QFile file("my_exciting_executable");
     const bool result = file.open(QIODevice::WriteOnly);

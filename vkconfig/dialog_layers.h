@@ -44,11 +44,9 @@ class LayersDialog : public QDialog {
     explicit LayersDialog(QWidget *parent, const Configuration &configuration);
     ~LayersDialog();
 
-    void LoadAvailableLayersUI();
-    void LoadSortedLayersUI();
-
    public Q_SLOTS:
     void accept() override;
+    void reject() override;
 
     void currentLayerChanged(QTreeWidgetItem *current, QTreeWidgetItem *previous);
 
@@ -58,6 +56,9 @@ class LayersDialog : public QDialog {
     void on_button_reset_clicked();
     void on_pushButtonUp_clicked();
     void on_pushButtonDown_clicked();
+    void on_pushButtonAdd_clicked();
+    void on_pushButtonRemove_clicked();
+    void on_layerTreePath_itemSelectionChanged();
 
     void OnLayerTreeSortedClicked(QTreeWidgetItem *item, int column);
 
@@ -74,6 +75,11 @@ class LayersDialog : public QDialog {
 
     void UpdateButtons();
 
+    void LoadAvailableLayersUI();
+    void LoadSortedLayersUI();
+    void LoadUserDefinedPaths();
+    void Reload();
+    void Reinit();
     void AddLayerItem(const Parameter &parameter);
     void BuildParameters();
     void OverrideAllExplicitLayers();

@@ -103,12 +103,10 @@ class MainWindow : public QMainWindow {
     void ExportClicked(ConfigurationListItem *item);
     void ImportClicked(ConfigurationListItem *item);
     void ReloadDefaultClicked(ConfigurationListItem *item);
-    void EditCustomPathsClicked(ConfigurationListItem *item);
 
    public Q_SLOTS:
     void toolsVulkanInfo(bool checked);
     void toolsVulkanInstallation(bool checked);
-    void toolsSetCustomPaths(bool checked);
     void toolsResetToDefault(bool checked);
 
     void OnHelpFindLayers(bool checked);
@@ -118,8 +116,6 @@ class MainWindow : public QMainWindow {
     void OnHelpVulkanSpec(bool checked);
     void OnHelpLayerSpec(bool checked);
     void OnHelpGPUInfo(bool checked);
-
-    void FindLayerPaths();
 
     void editorExpanded(QTreeWidgetItem *item);
 
@@ -143,9 +139,9 @@ class MainWindow : public QMainWindow {
     void on_check_box_clear_on_launch_clicked();
     void on_push_button_applications_clicked();
     void on_push_button_edit_clicked();
-    void on_push_button_find_clicked();
     void on_push_button_new_clicked();
     void on_push_button_remove_clicked();
+    void on_push_button_duplicate_clicked();
 
     void OnConfigurationItemExpanded(QTreeWidgetItem *item);
     void OnConfigurationItemClicked(bool checked);
@@ -164,7 +160,6 @@ class MainWindow : public QMainWindow {
     MainWindow &operator=(const MainWindow &) = delete;
 
     void RemoveConfiguration(const std::string &configuration_name);
-    void SetActiveConfiguration(const std::string &configuration_name);
     bool SelectConfigurationItem(const std::string &configuration_name);
     void ResetLaunchApplication();
     void StartTool(Tool tool);

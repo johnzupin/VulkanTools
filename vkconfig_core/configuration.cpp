@@ -39,7 +39,7 @@
 #include <string>
 #include <algorithm>
 
-static const char* SUPPORTED_CONFIG_FILES[] = {"_2_2_2", "_2_2_1"};
+static const char* SUPPORTED_CONFIG_FILES[] = {"_2_2_3", "_2_2_2", "_2_2_1"};
 
 Configuration::Configuration() : key("New Configuration"), platform_flags(PLATFORM_DESKTOP_BIT), view_advanced_settings(false) {}
 
@@ -64,6 +64,27 @@ bool Configuration::Load2_2(const std::vector<Layer>& available_layers, const QJ
 
     if (json_configuration_object.value("platforms") != QJsonValue::Undefined) {
         this->platform_flags = GetPlatformFlags(ReadStringArray(json_configuration_object, "platforms"));
+    }
+
+    if (json_configuration_object.value("layers_paths") != QJsonValue::Undefined) {
+        std::vector<std::string> paths = ReadStringArray(json_configuration_object, "layers_paths");
+        for (std::size_t i = 0, n = paths.size(); i < n; ++i) {
+            const QFileInfo info(paths[i].c_str());
+            if (info.exists()) {
+                this->user_defined_paths.push_back(paths[i]);
+            } else {
+                QMessageBox alert;
+                alert.QDialog::setWindowTitle("User-defined layer path doesn't exist");
+                alert.setText(format("'%s' user-defined layer path doesn't exist.", paths[i].c_str()).c_str());
+                alert.setInformativeText(
+                    format("'%s' configuration specifies this path, some expected layers might not be found.", this->key.c_str())
+                        .c_str());
+                alert.setStandardButtons(QMessageBox::Ok);
+                alert.setDefaultButton(QMessageBox::Ok);
+                alert.setIcon(QMessageBox::Warning);
+                alert.exec();
+            }
+        }
     }
 
     // Required configuration layers values
@@ -190,6 +211,13 @@ bool Configuration::Save(const std::vector<Layer>& available_layers, const std::
     }
     json_configuration.insert("view_advanced_settings", this->view_advanced_settings);
     json_configuration.insert("layers", json_layers);
+
+    QJsonArray json_paths;
+    for (std::size_t i = 0, n = user_defined_paths.size(); i < n; ++i) {
+        json_paths.append(user_defined_paths[i].c_str());
+    }
+    json_configuration.insert("layers_paths", json_paths);
+
     root.insert("configuration", json_configuration);
 
     QJsonDocument doc(root);

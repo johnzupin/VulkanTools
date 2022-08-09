@@ -11,7 +11,16 @@
 
 # Release notes
 
-## [Vulkan Configurator 2.4.6](https://github.com/LunarG/VulkanTools/tree/master) - June 2022
+## [Vulkan Configurator 2.5.0](https://github.com/LunarG/VulkanTools/tree/master) - August 2022
+
+### Features:
+- Add per layers-configuration user-defined layers paths #1711
+
+### Improvements:
+- Add reordering of configurations when renaming a configuration
+- Improve handling of missing layers
+
+## [Vulkan Configurator 2.4.6](https://github.com/LunarG/VulkanTools/tree/sdk-1.3.216.0) - June 2022
 
 ### Features:
 - Add `VK_KHR_portability_enumeration` extension support

@@ -26,7 +26,6 @@
 #include "dialog_vulkan_info.h"
 #include "dialog_layers.h"
 #include "dialog_applications.h"
-#include "dialog_custom_paths.h"
 
 #include "configurator.h"
 #include "vulkan_util.h"
@@ -95,8 +94,6 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->actionVulkan_Layer_Specification, SIGNAL(triggered(bool)), this, SLOT(OnHelpLayerSpec(bool)));
     connect(ui->actionGPU_Info_Reports, SIGNAL(triggered(bool)), this, SLOT(OnHelpGPUInfo(bool)));
 
-    connect(ui->actionCustom_Layer_Paths, SIGNAL(triggered(bool)), this, SLOT(toolsSetCustomPaths(bool)));
-
     connect(ui->actionVulkan_Installation, SIGNAL(triggered(bool)), this, SLOT(toolsVulkanInstallation(bool)));
     connect(ui->actionRestore_Default_Configurations, SIGNAL(triggered(bool)), this, SLOT(toolsResetToDefault(bool)));
 
@@ -117,7 +114,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->launcher_loader_debug, SIGNAL(currentIndexChanged(int)), this, SLOT(OnLauncherLoaderMessageChanged(int)));
 
     Configurator &configurator = Configurator::Get();
-    const Environment &environment = configurator.environment;
+    Environment &environment = configurator.environment;
 
     // Restore window geometry from last launch
     restoreGeometry(environment.Get(LAYOUT_MAIN_GEOMETRY));
@@ -125,8 +122,6 @@ MainWindow::MainWindow(QWidget *parent)
     ui->splitter->restoreState(environment.Get(LAYOUT_MAIN_SPLITTER1));
     ui->splitter_2->restoreState(environment.Get(LAYOUT_MAIN_SPLITTER2));
     ui->splitter_3->restoreState(environment.Get(LAYOUT_MAIN_SPLITTER3));
-
-    configurator.configurations.RefreshConfiguration(configurator.layers.available_layers);
 
     LoadConfigurationList();
 
@@ -137,9 +132,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->log_browser->document()->setMaximumBlockCount(2048);
     ui->configuration_tree->scrollToItem(ui->configuration_tree->topLevelItem(0), QAbstractItemView::PositionAtTop);
 
-    if (configurator.configurations.HasActiveConfiguration(configurator.layers.available_layers)) {
-        _settings_tree_manager.CreateGUI(ui->settings_tree);
-    }
+    _settings_tree_manager.CreateGUI(ui->settings_tree);
 
     UpdateUI();
 }
@@ -159,7 +152,7 @@ static std::string GetMainWindowTitle(bool active) {
 void MainWindow::UpdateUI() {
     Configurator &configurator = Configurator::Get();
     const Environment &environment = Configurator::Get().environment;
-    const bool has_active_configuration = configurator.configurations.HasActiveConfiguration(configurator.layers.available_layers);
+    const bool has_select_configuration = configurator.configurations.HasSelectConfiguration();
     const std::string &active_contiguration_name = environment.Get(ACTIVE_CONFIGURATION);
 
     ui->configuration_tree->blockSignals(true);
@@ -172,8 +165,8 @@ void MainWindow::UpdateUI() {
     ui->group_box_configurations->setEnabled(environment.UseOverride());
 
     ui->configuration_tree->setCurrentItem(nullptr);
-    ui->configuration_tree->setSelectionMode(has_active_configuration ? QAbstractItemView::SingleSelection
-                                                                      : QAbstractItemView::NoSelection);
+    // ui->configuration_tree->setSelectionMode(has_active_configuration ? QAbstractItemView::SingleSelection
+    //                                                                  : QAbstractItemView::NoSelection);
     for (int i = 0, n = ui->configuration_tree->topLevelItemCount(); i < n; ++i) {
         ConfigurationListItem *item = dynamic_cast<ConfigurationListItem *>(ui->configuration_tree->topLevelItem(i));
         assert(item);
@@ -183,15 +176,9 @@ void MainWindow::UpdateUI() {
             FindByKey(configurator.configurations.available_configurations, item->configuration_name.c_str());
         if (configuration == nullptr) continue;
 
-        if (!HasMissingLayer(configuration->parameters, configurator.layers.available_layers)) {
-            item->setText(1, item->configuration_name.c_str());
-            item->setToolTip(1, configuration->description.c_str());
-            item->radio_button->setToolTip(configuration->description.c_str());
-        } else {
-            item->setText(1, (item->configuration_name + " (Invalid)").c_str());
-            item->radio_button->setToolTip(
-                "Missing Vulkan Layer to use this configuration, try to add User-Defined Layers Path to locate the layers");
-        }
+        item->setText(1, item->configuration_name.c_str());
+        item->setToolTip(1, configuration->description.c_str());
+        item->radio_button->setToolTip(configuration->description.c_str());
 
         if (item->configuration_name == active_contiguration_name) {
             ui->configuration_tree->setCurrentItem(item);
@@ -202,12 +189,12 @@ void MainWindow::UpdateUI() {
     }
 
     // Update settings
-    ui->push_button_edit->setEnabled(environment.UseOverride() && has_active_configuration);
-    ui->push_button_remove->setEnabled(environment.UseOverride() && has_active_configuration);
-    ui->push_button_find->setEnabled(environment.UseOverride());
+    ui->push_button_edit->setEnabled(environment.UseOverride() && has_select_configuration);
+    ui->push_button_remove->setEnabled(environment.UseOverride() && has_select_configuration);
+    ui->push_button_duplicate->setEnabled(environment.UseOverride() && has_select_configuration);
     ui->push_button_new->setEnabled(environment.UseOverride());
-    ui->settings_tree->setEnabled(environment.UseOverride() && has_active_configuration);
-    ui->group_box_settings->setTitle(has_active_configuration ? (active_contiguration_name + " Settings").c_str()
+    ui->settings_tree->setEnabled(environment.UseOverride() && has_select_configuration);
+    ui->group_box_settings->setTitle(has_select_configuration ? (active_contiguration_name + " Settings").c_str()
                                                               : "Configuration Settings");
 
     // Handle application lists states
@@ -289,7 +276,9 @@ void MainWindow::UpdateUI() {
     }
 
     // Update title bar
-    setWindowTitle(GetMainWindowTitle(has_active_configuration && configurator.environment.UseOverride()).c_str());
+    setWindowTitle(GetMainWindowTitle(configurator.configurations.HasActiveConfiguration(configurator.layers.available_layers) &&
+                                      configurator.environment.UseOverride())
+                       .c_str());
 
     ui->configuration_tree->blockSignals(false);
 }
@@ -311,7 +300,8 @@ void MainWindow::LoadConfigurationList() {
         const Configuration &configuration = configurator.configurations.available_configurations[i];
 
         // Hide built-in configuration when the layer is missing. The Vulkan user may have not installed the necessary layer
-        if (configuration.IsBuiltIn() && HasMissingLayer(configuration.parameters, configurator.layers.available_layers)) continue;
+        // if (configuration.IsBuiltIn() && HasMissingLayer(configuration.parameters, configurator.layers.available_layers))
+        // continue;
 
         ConfigurationListItem *item = new ConfigurationListItem(configuration.key);
         item->setToolTip(0, configuration.description.c_str());
@@ -448,7 +438,7 @@ void MainWindow::OnConfigurationItemClicked(bool checked) {
     // to ensure the new item is "selected"
     ui->configuration_tree->setCurrentItem(item);
 
-    this->SetActiveConfiguration(item->configuration_name);
+    Configurator::Get().ActivateConfiguration(item->configuration_name);
 
     UpdateUI();
 }
@@ -458,7 +448,7 @@ void MainWindow::OnConfigurationTreeClicked(QTreeWidgetItem *item, int column) {
 
     ConfigurationListItem *configuration_item = dynamic_cast<ConfigurationListItem *>(item);
     if (configuration_item != nullptr) {
-        this->SetActiveConfiguration(configuration_item->configuration_name);
+        Configurator::Get().ActivateConfiguration(configuration_item->configuration_name);
     }
 
     UpdateUI();
@@ -477,7 +467,8 @@ void MainWindow::OnConfigurationItemChanged(QTreeWidgetItem *item, int column) {
 
         // We are renaming the file. Things can go wrong here...
         // This is the name of the configuratin we are changing
-        const std::string full_path = GetPath(BUILTIN_PATH_CONFIG_LAST) + configuration_item->configuration_name + ".json";
+        // const std::string full_path =
+        //    ConvertNativeSeparators(GetPath(BUILTIN_PATH_CONFIG_LAST) + "/" + configuration_item->configuration_name + ".json");
 
         // This is the new name we want to use for the configuration
         const std::string &new_name = configuration_item->text(1).toStdString();
@@ -507,13 +498,15 @@ void MainWindow::OnConfigurationItemChanged(QTreeWidgetItem *item, int column) {
             item->setText(1, old_name.c_str());
             ui->configuration_tree->blockSignals(false);
 
-            this->SetActiveConfiguration(old_name);
+            configurator.ActivateConfiguration(old_name);
         } else {
             // Rename configuration ; Remove old configuration file ; change the name of the configuration
-            std::remove(full_path.c_str());
+            configurator.configurations.RemoveConfigurationFile(old_name);
             configuration->key = configuration_item->configuration_name = new_name;
+            configurator.configurations.SaveAllConfigurations(configurator.layers.available_layers);
+            configurator.configurations.LoadAllConfigurations(configurator.layers.available_layers);
 
-            this->SetActiveConfiguration(new_name);
+            configurator.ActivateConfiguration(new_name);
 
             LoadConfigurationList();
             SelectConfigurationItem(new_name.c_str());
@@ -542,7 +535,7 @@ void MainWindow::OnConfigurationTreeChanged(QTreeWidgetItem *current, QTreeWidge
     _settings_tree_manager.CleanupGUI();
 
     configuration_item->radio_button->setChecked(true);
-    SetActiveConfiguration(configuration_item->configuration_name);
+    configurator.ActivateConfiguration(configuration_item->configuration_name);
 
     _settings_tree_manager.CreateGUI(ui->settings_tree);
 
@@ -718,27 +711,31 @@ void MainWindow::on_push_button_remove_clicked() {
     this->RemoveConfiguration(configurator.configurations.GetActiveConfiguration()->key);
 }
 
+void MainWindow::on_push_button_duplicate_clicked() {
+    Configurator &configurator = Configurator::Get();
+
+    Configuration *configutation = configurator.configurations.GetActiveConfiguration();
+    assert(configutation != nullptr);
+
+    const Configuration &duplicated_configuration =
+        configurator.configurations.CreateConfiguration(configurator.layers.available_layers, configutation->key, true);
+
+    configurator.ActivateConfiguration(duplicated_configuration.key);
+
+    LoadConfigurationList();
+}
+
 void MainWindow::on_push_button_edit_clicked() {
     Configurator &configurator = Configurator::Get();
     Configuration *configuration = configurator.configurations.GetActiveConfiguration();
     assert(configuration != nullptr);
 
+    const std::string configuration_name = configuration->key;
+
     LayersDialog dlg(this, *configuration);
     if (dlg.exec() == QDialog::Accepted) {
-        this->SetActiveConfiguration(configuration->key);
         LoadConfigurationList();
     }
-}
-
-void MainWindow::on_push_button_find_clicked() { this->FindLayerPaths(); }
-
-/// Allow addition or removal of custom layer paths. Afterwards reset the list
-/// of loaded layers, but only if something was changed.
-void MainWindow::FindLayerPaths() {
-    UserDefinedPathsDialog dlg(this);
-    dlg.exec();
-
-    LoadConfigurationList();
 }
 
 // Edit the layers for the given configuration.
@@ -753,7 +750,6 @@ void MainWindow::EditClicked(ConfigurationListItem *item) {
 
     LayersDialog dlg(this, *configuration);
     if (dlg.exec() == QDialog::Accepted) {
-        this->SetActiveConfiguration(configuration->key);
         LoadConfigurationList();
     }
 }
@@ -768,7 +764,6 @@ void MainWindow::NewClicked() {
     LayersDialog dlg(this, new_configuration);
     switch (dlg.exec()) {
         case QDialog::Accepted:
-            this->SetActiveConfiguration(new_configuration.key);
             break;
         case QDialog::Rejected:
             configurator.configurations.RemoveConfiguration(configurator.layers.available_layers, new_configuration.key);
@@ -799,6 +794,7 @@ void MainWindow::RemoveConfiguration(const std::string &configuration_name) {
 
     Configurator &configurator = Configurator::Get();
     configurator.configurations.RemoveConfiguration(configurator.layers.available_layers, configuration_name);
+    configurator.request_vulkan_status = true;
     LoadConfigurationList();
 }
 
@@ -858,7 +854,7 @@ void MainWindow::DuplicateClicked(ConfigurationListItem *item) {
 
     item->configuration_name = duplicated_configuration.key;
 
-    this->SetActiveConfiguration(duplicated_configuration.key);
+    configurator.ActivateConfiguration(duplicated_configuration.key);
 
     LoadConfigurationList();
 
@@ -913,16 +909,6 @@ void MainWindow::ReloadDefaultClicked(ConfigurationListItem *item) {
         LoadConfigurationList();
         _settings_tree_manager.CreateGUI(ui->settings_tree);
     }
-}
-
-void MainWindow::EditCustomPathsClicked(ConfigurationListItem *item) {
-    (void)item;
-    FindLayerPaths();
-}
-
-void MainWindow::toolsSetCustomPaths(bool checked) {
-    (void)checked;
-    FindLayerPaths();
 }
 
 void MainWindow::editorExpanded(QTreeWidgetItem *item) {
@@ -1334,7 +1320,7 @@ bool MainWindow::eventFilter(QObject *target, QEvent *event) {
             // Create context menu here
             QMenu menu(ui->configuration_tree);
 
-            QAction *edit_action = new QAction("Edit Layers...", nullptr);
+            QAction *edit_action = new QAction("Edit...", nullptr);
             edit_action->setEnabled(active && item != nullptr);
             menu.addAction(edit_action);
 
@@ -1378,12 +1364,6 @@ bool MainWindow::eventFilter(QObject *target, QEvent *event) {
             reload_default_action->setEnabled(true);
             menu.addAction(reload_default_action);
 
-            menu.addSeparator();
-
-            QAction *custom_path_action = new QAction("Edit User-Defined Layers Paths...", nullptr);
-            custom_path_action->setEnabled(true);
-            menu.addAction(custom_path_action);
-
             QPoint point(right_click->globalX(), right_click->globalY());
             QAction *action = menu.exec(point);
 
@@ -1405,8 +1385,6 @@ bool MainWindow::eventFilter(QObject *target, QEvent *event) {
                 ImportClicked(item);
             } else if (action == reload_default_action) {
                 ReloadDefaultClicked(item);
-            } else if (action == custom_path_action) {
-                EditCustomPathsClicked(item);
             } else {
                 return false;  // Unknown action
             }
@@ -1418,19 +1396,6 @@ bool MainWindow::eventFilter(QObject *target, QEvent *event) {
 
     // Pass it on
     return false;
-}
-
-void MainWindow::SetActiveConfiguration(const std::string &configuration_name) {
-    assert(!configuration_name.empty());
-
-    // Sort will invalidate the name
-    const std::string name_copy = configuration_name;
-
-    Configurator &configurator = Configurator::Get();
-    configurator.request_vulkan_status = true;
-
-    configurator.configurations.SortConfigurations();
-    configurator.configurations.SetActiveConfiguration(configurator.layers.available_layers, name_copy);
 }
 
 bool MainWindow::SelectConfigurationItem(const std::string &configuration_name) {
@@ -1483,11 +1448,12 @@ void MainWindow::on_push_button_launcher_clicked() {
 
     Configuration *configuration = configurator.configurations.GetActiveConfiguration();
 
+    std::string missing_layer;
     if (configuration == nullptr) {
         launch_log += "- Layers fully controlled by the application.\n";
-    } else if (HasMissingLayer(configuration->parameters, configurator.layers.available_layers)) {
-        launch_log +=
-            format("- No layers override. The active \"%s\" configuration is missing a layer.\n", configuration->key.c_str());
+    } else if (HasMissingLayer(configuration->parameters, configurator.layers.available_layers, missing_layer)) {
+        launch_log += format("- No layers override. The active \"%s\" configuration is missing '%s' layer.\n",
+                             configuration->key.c_str(), missing_layer.c_str());
     } else if (configurator.environment.UseOverride()) {
         if (configurator.environment.UseApplicationListOverrideMode() && configurator.environment.HasOverriddenApplications() &&
             !active_application.override_layers) {

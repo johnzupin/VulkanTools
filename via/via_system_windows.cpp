@@ -899,7 +899,9 @@ ViaSystem::ViaResults ViaSystemWindows::PrintSystemExecutableInfo() {
 
     PrintBeginTableRow();
     PrintTableElement("Vulkan API Version");
-    PrintTableElement("1.2." + std::to_string(VK_VERSION_PATCH(VK_HEADER_VERSION)));
+    PrintTableElement(std::to_string(VK_API_VERSION_MAJOR(VK_HEADER_VERSION_COMPLETE)) + "." +
+        std::to_string(VK_API_VERSION_MINOR(VK_HEADER_VERSION_COMPLETE)) + "." +
+        std::to_string(VK_API_VERSION_PATCH(VK_HEADER_VERSION_COMPLETE)));
     PrintEndTableRow();
 
     PrintBeginTableRow();
@@ -1227,8 +1229,6 @@ ViaSystem::ViaResults ViaSystemWindows::PrintSystemDriverInfo() {
         std::vector<std::tuple<std::string, bool, std::string>> driver_jsons;
         std::vector<HKEY> registry_top_hkey;
         std::string system_path;
-        char cur_vulkan_driver_json[1024];
-        char env_value[1024];
         std::ifstream *stream = NULL;
         bool found_json = false;
         bool found_lib = false;
@@ -1662,7 +1662,7 @@ ViaSystem::ViaResults ViaSystemWindows::PrintSystemSdkInfo() {
     }
     FindRegistryJsons(registry_top_hkey, registry_locations, layer_jsons);
 
-    PrintBeginTable("LunarG Vulkan SDKs", 4);
+    PrintBeginTable("Vulkan SDKs", 4);
 
     PrintBeginTableRow();
     PrintTableElement("SDKs Found In Registry");

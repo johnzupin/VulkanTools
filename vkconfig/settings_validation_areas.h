@@ -99,6 +99,9 @@ class WidgetSettingValidation : public WidgetSettingBase {
     QTreeWidgetItem *item_shader_gpu_indirect;
     QCheckBox *widget_shader_gpu_indirect;
 
+    QTreeWidgetItem *item_shader_dispatch_indirect;
+    QCheckBox *widget_shader_dispatch_indirect;
+
     QTreeWidgetItem *item_shader_gpu_vma_linear_output;
     QCheckBox *widget_shader_gpu_vma_linear_output;
 
@@ -117,6 +120,9 @@ class WidgetSettingValidation : public WidgetSettingBase {
     QTreeWidgetItem *item_sync;
     QCheckBox *widget_sync;
 
+    QTreeWidgetItem *item_sync_queue_submit;
+    QCheckBox *widget_sync_queue_submit;
+
     QTreeWidgetItem *item_best;
     QCheckBox *widget_best;
 
@@ -125,6 +131,9 @@ class WidgetSettingValidation : public WidgetSettingBase {
 
     QTreeWidgetItem *item_best_amd;
     QCheckBox *widget_best_amd;
+
+    QTreeWidgetItem *item_best_nvidia;
+    QCheckBox *widget_best_nvidia;
 
     QCheckBox *CreateWidget(QTreeWidgetItem *parent, QTreeWidgetItem **item, const char *key, const char *flag);
 
@@ -152,6 +161,7 @@ class WidgetSettingValidation : public WidgetSettingBase {
     void OnShaderGPUDescIndexingChecked(bool checked);
     void OnShaderGPUOOBChecked(bool checked);
     void OnShaderGPUIndirectChecked(bool checked);
+    void OnShaderDispatchIndirectChecked(bool checked);
     void OnShaderGPUVMALinearOutput(bool checked);
 
     void OnShaderPrintfChecked(bool checked);
@@ -159,10 +169,12 @@ class WidgetSettingValidation : public WidgetSettingBase {
     void OnShaderPrintfVerboseChecked(bool checked);
 
     void OnSyncChecked(bool checked);
+    void OnSyncQueueSubmitChecked(bool checked);
 
     void OnBestChecked(bool checked);
     void OnBestArmChecked(bool checked);
     void OnBestAmdChecked(bool checked);
+    void OnBestNvidiaChecked(bool checked);
 
     void OnSettingChanged();
 

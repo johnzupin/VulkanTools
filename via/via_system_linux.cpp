@@ -344,7 +344,9 @@ ViaSystem::ViaResults ViaSystemLinux::PrintSystemExecutableInfo() {
 
     PrintBeginTableRow();
     PrintTableElement("Vulkan API Version");
-    PrintTableElement("1.2." + std::to_string(VK_VERSION_PATCH(VK_HEADER_VERSION)));
+    PrintTableElement(std::to_string(VK_API_VERSION_MAJOR(VK_HEADER_VERSION_COMPLETE)) + "." +
+        std::to_string(VK_API_VERSION_MINOR(VK_HEADER_VERSION_COMPLETE)) + "." +
+        std::to_string(VK_API_VERSION_PATCH(VK_HEADER_VERSION_COMPLETE)));
     PrintEndTableRow();
 
     PrintBeginTableRow();
@@ -1095,7 +1097,7 @@ ViaSystem::ViaResults ViaSystemLinux::PrintSystemSdkInfo() {
     dirent *cur_ent;
     char *env_value;
 
-    PrintBeginTable("LunarG Vulkan SDKs", 4);
+    PrintBeginTable("Vulkan SDKs", 4);
 
     // First, try environmental variables
     for (uint32_t dir = 0; dir < 2; dir++) {

@@ -1,3 +1,67 @@
+lunarg-tools (1.3.224.0~rc1-1lunarg20.04-1) focal; urgency=medium
+
+  [ Christophe ]
+  * vkconfig: add user-defined paths in layers window
+  * vkconfig: fix parameter state when changing layer paths
+  * vkconfig: initial work to enable per config user path
+  * vkconfig: add per layers configuration user defined path
+  * vkconfig: fix configuration which name contain a '.' removal
+  * vkconfig: fix rename - duplicate - remove of configurations
+  * vkconfig: update changelog
+  * vkconfig: keep a global user-defined paths mode to run without SDK installed
+  * vkconfig: fix unit test
+  * vkconfig: refined user-defined paths log
+  * vkconfig: remove global vkconfig layer paths
+  * vkconfig: fix build
+  * vkconfig: fix unit test build
+  * vkconfig: check that user-defined layer path exists
+  * vkconfig: fix changelog
+  * vkconfig: Add reordering of configurations when renaming a configuration
+  * vkconfig: update changelog
+
+  [ Jeremy Gebben ]
+  * vku: Remove GetLayerEnvVar()
+
+  [ Tony-LunarG ]
+  * build: Update to 1.3.222 headers
+
+  [ Christophe ]
+  * vkconfig: changed default profile for portability config
+  * vkconfig: avoid annoying notifications
+  * vkconfig: fix profile name
+
+  [ Tony-LunarG ]
+  * build: Update to 1.3.224 headers
+
+  [ David Pinedo ]
+  * Change message when layer settings file can't be opened
+
+  [ Christophe ]
+  * vkconfig: search for executable locally if not found
+
+  [ David Pinedo ]
+  * Display correct Vulkan API Version in vkvia
+
+  [ Christophe ]
+  * vkconfig: add VULKAN_SDK undocumented cmd arg
+  * vkconfig: fix sync configuration being missing on Windows
+  * vkconfig: fix unit test build
+  * vkconfig: implement validate_dispatch_indirect validation setting
+  * vkconfig: fix unit tests
+  * vkconfig: add VALIDATION_CHECK_ENABLE_SYNCHRONIZATION_VALIDATION_QUEUE_SUBMIT implementation
+  * vkconfig: display status to flags
+
+  [ David Pinedo ]
+  * via: Change "LunarG Vulkan SDKs" to "Vulkan SDKs" in output
+  * via: Display html file in browser automatically
+
+  [ Christophe ]
+  * vkconfig: add nvidia best practices setting
+  * vkconfig: fix VULKAN_SDK command line
+  * vkconfig: clarify message box
+
+ -- john <john@odin>  Tue, 16 Aug 2022 09:39:34 -0600
+
 lunarg-tools (1.3.216.0~rc1-1lunarg20.04-1) focal; urgency=medium
 
   [ Christophe ]

@@ -51,10 +51,12 @@ static const char *TOKEN_SHADER_GPU_RESERVE = "VK_VALIDATION_FEATURE_ENABLE_GPU_
 static const char *TOKEN_SHADER_PRINTF = "VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT";
 
 static const char *TOKEN_SYNC = "VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT";
+static const char *TOKEN_SYNC_QUEUE_SUBMIT = "VALIDATION_CHECK_ENABLE_SYNCHRONIZATION_VALIDATION_QUEUE_SUBMIT";
 
 static const char *TOKEN_BEST = "VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT";
 static const char *TOKEN_BEST_ARM = "VALIDATION_CHECK_ENABLE_VENDOR_SPECIFIC_ARM";
 static const char *TOKEN_BEST_AMD = "VALIDATION_CHECK_ENABLE_VENDOR_SPECIFIC_AMD";
+static const char *TOKEN_BEST_NVIDIA = "VALIDATION_CHECK_ENABLE_VENDOR_SPECIFIC_NVIDIA";
 
 QCheckBox *WidgetSettingValidation::CreateWidget(QTreeWidgetItem *parent, QTreeWidgetItem **item, const char *key,
                                                  const char *flag) {
@@ -64,13 +66,15 @@ QCheckBox *WidgetSettingValidation::CreateWidget(QTreeWidgetItem *parent, QTreeW
         return nullptr;
     }
 
+    const std::string status = value->status == STATUS_STABLE ? "" : std::string(" (") + GetToken(value->status) + ")";
+
     *item = new QTreeWidgetItem();
     (*item)->setSizeHint(0, QSize(0, ITEM_HEIGHT));
     parent->addChild(*item);
     (*item)->setExpanded(true);
 
     QCheckBox *widget = new QCheckBox(this);
-    widget->setText(value->label.c_str());
+    widget->setText((value->label + status).c_str());
     widget->setToolTip(value->description.c_str());
     this->tree->setItemWidget(*item, 0, widget);
     return widget;
@@ -116,6 +120,8 @@ WidgetSettingValidation::WidgetSettingValidation(QTreeWidget *tree, QTreeWidgetI
       widget_shader_gpu_desc_indexing(nullptr),
       item_shader_gpu_indirect(nullptr),
       widget_shader_gpu_indirect(nullptr),
+      item_shader_dispatch_indirect(nullptr),
+      widget_shader_dispatch_indirect(nullptr),
       item_shader_gpu_vma_linear_output(nullptr),
       widget_shader_gpu_vma_linear_output(nullptr),
       item_shader_printf(nullptr),
@@ -130,12 +136,16 @@ WidgetSettingValidation::WidgetSettingValidation(QTreeWidget *tree, QTreeWidgetI
 
       item_sync(nullptr),
       widget_sync(nullptr),
+      item_sync_queue_submit(nullptr),
+      widget_sync_queue_submit(nullptr),
       item_best(nullptr),
       widget_best(nullptr),
       item_best_arm(nullptr),
       widget_best_arm(nullptr),
       item_best_amd(nullptr),
       widget_best_amd(nullptr),
+      item_best_nvidia(nullptr),
+      widget_best_nvidia(nullptr),
 
       meta_set(meta_set),
       data_set(data_set) {
@@ -298,6 +308,23 @@ WidgetSettingValidation::WidgetSettingValidation(QTreeWidget *tree, QTreeWidgetI
             }
 
             {
+                const SettingMetaBool *value = FindSetting<SettingMetaBool>(meta_set, "validate_dispatch_indirect");
+                if (IsSupported(value)) {
+                    this->item_shader_dispatch_indirect = new QTreeWidgetItem();
+                    this->item_shader_dispatch_indirect->setSizeHint(0, QSize(0, ITEM_HEIGHT));
+                    this->item_shader_gpu->addChild(this->item_shader_dispatch_indirect);
+                    this->item_shader_gpu->setExpanded(true);
+
+                    this->widget_shader_dispatch_indirect = new QCheckBox(this);
+                    this->widget_shader_dispatch_indirect->setText(value->label.c_str());
+                    this->widget_shader_dispatch_indirect->setToolTip(value->description.c_str());
+                    this->tree->setItemWidget(this->item_shader_dispatch_indirect, 0, this->widget_shader_dispatch_indirect);
+                    this->connect(this->widget_shader_dispatch_indirect, SIGNAL(clicked(bool)), this,
+                                  SLOT(OnShaderDispatchIndirectChecked(bool)));
+                }
+            }
+
+            {
                 const SettingMetaBool *value = FindSetting<SettingMetaBool>(meta_set, "vma_linear_output");
                 if (IsSupported(value)) {
                     this->item_shader_gpu_vma_linear_output = new QTreeWidgetItem();
@@ -387,6 +414,11 @@ WidgetSettingValidation::WidgetSettingValidation(QTreeWidget *tree, QTreeWidgetI
     this->widget_sync = this->CreateWidget(this->item, &this->item_sync, "enables", TOKEN_SYNC);
     if (this->widget_sync != nullptr) {
         this->connect(this->widget_sync, SIGNAL(clicked(bool)), this, SLOT(OnSyncChecked(bool)));
+
+        this->widget_sync_queue_submit =
+            this->CreateWidget(this->item_sync, &this->item_sync_queue_submit, "enables", TOKEN_SYNC_QUEUE_SUBMIT);
+        if (this->widget_sync_queue_submit != nullptr)
+            this->connect(this->widget_sync_queue_submit, SIGNAL(clicked(bool)), this, SLOT(OnSyncQueueSubmitChecked(bool)));
     }
 
     // Best Practices
@@ -394,13 +426,17 @@ WidgetSettingValidation::WidgetSettingValidation(QTreeWidget *tree, QTreeWidgetI
     if (this->widget_best != nullptr) {
         this->connect(this->widget_best, SIGNAL(clicked(bool)), this, SLOT(OnBestChecked(bool)));
 
+        this->widget_best_amd = this->CreateWidget(this->item_best, &this->item_best_amd, "enables", TOKEN_BEST_AMD);
+        if (this->widget_best_amd != nullptr)
+            this->connect(this->widget_best_amd, SIGNAL(clicked(bool)), this, SLOT(OnBestAmdChecked(bool)));
+
         this->widget_best_arm = this->CreateWidget(this->item_best, &this->item_best_arm, "enables", TOKEN_BEST_ARM);
         if (this->widget_best_arm != nullptr)
             this->connect(this->widget_best_arm, SIGNAL(clicked(bool)), this, SLOT(OnBestArmChecked(bool)));
 
-        this->widget_best_amd = this->CreateWidget(this->item_best, &this->item_best_amd, "enables", TOKEN_BEST_AMD);
-        if (this->widget_best_amd != nullptr)
-            this->connect(this->widget_best_amd, SIGNAL(clicked(bool)), this, SLOT(OnBestAmdChecked(bool)));
+        this->widget_best_nvidia = this->CreateWidget(this->item_best, &this->item_best_nvidia, "enables", TOKEN_BEST_NVIDIA);
+        if (this->widget_best_nvidia != nullptr)
+            this->connect(this->widget_best_nvidia, SIGNAL(clicked(bool)), this, SLOT(OnBestNvidiaChecked(bool)));
     }
 
     this->tree->setItemWidget(this->item, 0, this);
@@ -562,6 +598,11 @@ void WidgetSettingValidation::OnShaderGPUIndirectChecked(bool checked) {
     this->OnSettingChanged();
 }
 
+void WidgetSettingValidation::OnShaderDispatchIndirectChecked(bool checked) {
+    static_cast<SettingDataBool *>(FindSetting(this->data_set, "validate_dispatch_indirect"))->value = checked;
+    this->OnSettingChanged();
+}
+
 void WidgetSettingValidation::OnShaderGPUVMALinearOutput(bool checked) {
     static_cast<SettingDataBool *>(FindSetting(this->data_set, "vma_linear_output"))->value = checked;
     this->OnSettingChanged();
@@ -593,6 +634,11 @@ void WidgetSettingValidation::OnSyncChecked(bool checked) {
     this->OnSettingChanged();
 }
 
+void WidgetSettingValidation::OnSyncQueueSubmitChecked(bool checked) {
+    this->UpdateFlag("enables", TOKEN_SYNC_QUEUE_SUBMIT, checked);
+    this->OnSettingChanged();
+}
+
 void WidgetSettingValidation::OnBestChecked(bool checked) {
     if (checked && !CheckOverhead(OVERHEAD_BEST)) {
         this->widget_best->setChecked(false);
@@ -610,6 +656,11 @@ void WidgetSettingValidation::OnBestArmChecked(bool checked) {
 
 void WidgetSettingValidation::OnBestAmdChecked(bool checked) {
     this->UpdateFlag("enables", TOKEN_BEST_AMD, checked);
+    this->OnSettingChanged();
+}
+
+void WidgetSettingValidation::OnBestNvidiaChecked(bool checked) {
+    this->UpdateFlag("enables", TOKEN_BEST_NVIDIA, checked);
     this->OnSettingChanged();
 }
 
@@ -794,6 +845,12 @@ void WidgetSettingValidation::Refresh(RefreshAreas refresh_areas) {
                     this->widget_shader_gpu_indirect->setChecked(this->HasDataBool("validate_draw_indirect"));
             }
 
+            if (this->widget_shader_dispatch_indirect != nullptr) {
+                this->widget_shader_dispatch_indirect->setEnabled(shader_gpu);
+                if (refresh_areas == REFRESH_ENABLE_AND_STATE)
+                    this->widget_shader_dispatch_indirect->setChecked(this->HasDataBool("validate_dispatch_indirect"));
+            }
+
             if (this->widget_shader_gpu_vma_linear_output != nullptr) {
                 this->widget_shader_gpu_vma_linear_output->setEnabled(shader_gpu);
                 if (refresh_areas == REFRESH_ENABLE_AND_STATE)
@@ -837,6 +894,13 @@ void WidgetSettingValidation::Refresh(RefreshAreas refresh_areas) {
         this->widget_sync->setChecked(HasDataFlag("enables", TOKEN_SYNC));
     }
 
+    if (this->widget_sync_queue_submit != nullptr) {
+        this->widget_sync_queue_submit->setEnabled(HasDataFlag("enables", TOKEN_SYNC));
+        if (refresh_areas == REFRESH_ENABLE_AND_STATE) {
+            this->widget_sync_queue_submit->setChecked(HasDataFlag("enables", TOKEN_SYNC_QUEUE_SUBMIT));
+        }
+    }
+
     if (this->widget_best != nullptr && refresh_areas == REFRESH_ENABLE_AND_STATE) {
         this->widget_best->setChecked(HasDataFlag("enables", TOKEN_BEST));
     }
@@ -852,6 +916,13 @@ void WidgetSettingValidation::Refresh(RefreshAreas refresh_areas) {
         this->widget_best_amd->setEnabled(HasDataFlag("enables", TOKEN_BEST));
         if (refresh_areas == REFRESH_ENABLE_AND_STATE) {
             this->widget_best_amd->setChecked(HasDataFlag("enables", TOKEN_BEST_AMD));
+        }
+    }
+
+    if (this->widget_best_nvidia != nullptr) {
+        this->widget_best_nvidia->setEnabled(HasDataFlag("enables", TOKEN_BEST));
+        if (refresh_areas == REFRESH_ENABLE_AND_STATE) {
+            this->widget_best_nvidia->setChecked(HasDataFlag("enables", TOKEN_BEST_NVIDIA));
         }
     }
 

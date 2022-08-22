@@ -265,8 +265,8 @@ void MainWindow::UpdateUI() {
 
     if (configurator.request_vulkan_status) {
         ui->log_browser->clear();
-        ui->log_browser->append("<B>Vulkan Development Status:</B>");
-        ui->log_browser->append(GenerateVulkanStatus().c_str());
+
+        ui->log_browser->setPlainText(("Vulkan Development Status:\n" + GenerateVulkanStatus()).c_str());
         ui->push_button_clear_log->setEnabled(true);
         configurator.request_vulkan_status = false;
 
@@ -420,8 +420,6 @@ void MainWindow::toolsResetToDefault(bool checked) {
 
     LoadConfigurationList();
 
-    configurator.request_vulkan_status = true;
-
     UpdateUI();
 }
 
@@ -551,25 +549,24 @@ void MainWindow::OnHelpAbout(bool checked) {
 }
 
 void MainWindow::StartTool(Tool tool) {
-    std::string active_configuration;
-
-    Configurator &configurator = Configurator::Get();
-    if (configurator.configurations.HasActiveConfiguration(configurator.layers.available_layers)) {
-        active_configuration = configurator.configurations.GetActiveConfiguration()->key;
-        configurator.configurations.SetActiveConfiguration(configurator.layers.available_layers, nullptr);
-    }
-
     switch (tool) {
-        case TOOL_VULKAN_INFO:
-            vk_info_dialog.reset(new VulkanInfoDialog(this));
-            break;
-        case TOOL_VULKAN_INSTALL:
-            vk_installation_dialog.reset(new VulkanAnalysisDialog(this));
-            break;
-    }
+        case TOOL_VULKAN_INFO: {
+            std::string active_configuration;
 
-    if (!active_configuration.empty()) {
-        configurator.configurations.SetActiveConfiguration(configurator.layers.available_layers, active_configuration);
+            Configurator &configurator = Configurator::Get();
+            if (configurator.configurations.HasActiveConfiguration(configurator.layers.available_layers)) {
+                active_configuration = configurator.configurations.GetActiveConfiguration()->key;
+                configurator.configurations.SetActiveConfiguration(configurator.layers.available_layers, nullptr);
+            }
+            vk_info_dialog.reset(new VulkanInfoDialog(this));
+
+            if (!active_configuration.empty()) {
+                configurator.configurations.SetActiveConfiguration(configurator.layers.available_layers, active_configuration);
+            }
+        } break;
+        case TOOL_VULKAN_INSTALL: {
+            vk_installation_dialog.reset(new VulkanAnalysisDialog(this));
+        } break;
     }
 }
 
@@ -1569,7 +1566,7 @@ void MainWindow::errorOutputAvailable() {
 }
 
 void MainWindow::Log(const std::string &log) {
-    ui->log_browser->append(log.c_str());
+    ui->log_browser->setPlainText(ui->log_browser->toPlainText() + "\n" + log.c_str());
     ui->push_button_clear_log->setEnabled(true);
 
     if (_log_file.isOpen()) {

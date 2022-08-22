@@ -1,3 +1,10 @@
+lunarg-tools (1.3.224.0~rc4-1lunarg18.04-1) bionic; urgency=medium
+
+  [ Christophe ]
+  * Revert "vkconfig: show setting file location in vkvia"
+
+ -- john <john@odin>  Mon, 22 Aug 2022 10:30:31 -0600
+
 lunarg-tools (1.3.224.0~rc3-1lunarg18.04-1) bionic; urgency=medium
 
   [ Christophe ]

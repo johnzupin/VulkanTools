@@ -1,3 +1,65 @@
+lunarg-tools (1.3.231.0~rc1-1lunarg20.04-1) focal; urgency=medium
+
+  [ David Pinedo ]
+  * via: Report if failed test is due failure or if test is missing
+  * via: Display console on Windows until user presses <enter>
+
+  [ Christophe ]
+  * vkconfig: fix vkvia Vulkan SDK section
+  * vkconfig: show setting file location in vkvia
+  * vkconfig: fix reset when using a user defined path
+  * vkconfig: wait to run the instance until not other instance are running
+  * vkconfig: clarify the message
+  * vkconfig: clarify the message box
+  * vkconfig: clarify the message box
+  * vkconfig: clarify the message box
+  * vkconfig: clarify the message box
+  * vkconfig: fix blocking other instances
+  * Revert "vkconfig: show setting file location in vkvia"
+  * vkconfig: browser log is plain test
+
+  [ David Pinedo ]
+  * via: Address validation errors on macOS
+  * Address validation errors in screenshot layer.
+
+  [ Christophe ]
+  * build: Disable maybe-uninitialized GCC warning for vkvia and vkconfig_core
+  * vkconfig: add build date in the title bar
+  * vkconfig: only display profile list when a profiles file has multiple profiles
+  * vkconfig: fix ComputeMinApiVersion implementation and add unit tests
+  * C.I. fix Clang C.I.
+  * vkconfig: Fix override layer version when some layers are excluded or missing #1743
+  * vkconfig: Make built-in validation layer optional
+  * vkconfig: add mode to list settings children of a enum setting
+  * vkconfig: fix tooltip on enum setting
+  * vkconfig: update changelog
+  * vkconfig: change frame capture default configuration
+
+  [ Charles Giessen ]
+  * screenshot: Use standard mutex
+  * monitor: Remove vk_loader_platform.h header
+  * layer_factory: Remove unecessary header
+
+  [ John Zupin ]
+  * monitor: add include dlfcn.h
+
+  [ Charles Giessen ]
+  * layer_factory: Guard against win32 defines
+
+  [ Tony-LunarG ]
+  * build: Update to 1.3.230 headers
+
+  [ John Zupin ]
+  * packaging: update debian/copyright
+
+  [ Tony-LunarG ]
+  * build: Update to 1.3.231 headers
+
+  [ John Zupin ]
+  * packaging: update deps versions
+
+ -- john <john@odin>  Tue, 18 Oct 2022 12:05:26 -0600
+
 lunarg-tools (1.3.224.0~rc4-1lunarg20.04-1) focal; urgency=medium
 
   [ Christophe ]

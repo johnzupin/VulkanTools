@@ -30,6 +30,7 @@
 #include <map>
 #include <set>
 #include <vector>
+#include <mutex>
 #include <fstream>
 
 using namespace std;
@@ -111,8 +112,7 @@ static inline void local_free_getenv(const char *val) { free((void *)val); }
 
 namespace screenshot {
 
-static int globalLockInitialized = 0;
-static loader_platform_thread_mutex globalLock;
+std::mutex globalLock;
 
 const char *vk_screenshot_dir = nullptr;
 bool vk_screenshot_dir_used_env_var = false;
@@ -265,7 +265,7 @@ void readScreenShotFormatENV(void) {
                                 vk_screenshot_format);
 #else
             fprintf(stderr,
-                    "Selected format:%s\nIs NOT in the list:\nUNORM, SNORM, USCALED, SSCALED, UINT, SINT, SRGB\n"
+                    "screenshot: Selected format:%s\nIs NOT in the list:\nUNORM, SNORM, USCALED, SSCALED, UINT, SINT, SRGB\n"
                     "Swapchain Colorspace will be used instead\n",
                     vk_screenshot_format);
 #endif
@@ -345,9 +345,9 @@ static void populate_frame_list(const char *vk_screenshot_frames) {
         int parsingStatus = initScreenShotFrameRange(vk_screenshot_frames, &screenShotFrameRange);
         if (parsingStatus != 0) {
 #ifdef ANDROID
-            __android_log_print(ANDROID_LOG_ERROR, "screenshot", "range error\n");
+            __android_log_print(ANDROID_LOG_ERROR, "screenshot", "Range error\n");
 #else
-            fprintf(stderr, "Screenshot range error\n");
+            fprintf(stderr, "screenshot: Range error\n");
 #endif
         }
     }
@@ -414,15 +414,6 @@ static DeviceMapStruct *get_device_info(VkDevice dev) {
 }
 
 static void init_screenshot() {
-    if (!globalLockInitialized) {
-        // TODO/TBD: Need to delete this mutex sometime.  How???  One
-        // suggestion is to call this during vkCreateInstance(), and then we
-        // can clean it up during vkDestroyInstance().  However, that requires
-        // that the layer have per-instance locks.  We need to come back and
-        // address this soon.
-        loader_platform_thread_create_mutex(&globalLock);
-        globalLockInitialized = 1;
-    }
     readScreenShotFormatENV();
     readScreenShotDir();
     readScreenShotFrames();
@@ -526,8 +517,7 @@ static bool writePPM(const char *filename, VkImage image1) {
     bool pass;
 
     // Bail immediately if we can't find the image.
-    if (imageMap.empty() || imageMap.find(image1) == imageMap.end())
-        return false;
+    if (imageMap.empty() || imageMap.find(image1) == imageMap.end()) return false;
 
     // Collect object info from maps.  This info is generally recorded
     // by the other functions hooked in this layer.
@@ -544,7 +534,7 @@ static bool writePPM(const char *filename, VkImage image1) {
 #ifdef ANDROID
         __android_log_print(ANDROID_LOG_ERROR, "screenshot", "Failure - capable queue not found\n");
 #else
-        fprintf(stderr, "Screenshot could not find a capable queue\n");
+        fprintf(stderr, "screenshot: Could not find a capable queue\n");
 #endif
         return false;
     }
@@ -672,7 +662,7 @@ static bool writePPM(const char *filename, VkImage image1) {
                                 "Swapchain format is not in the list:\nUNORM, SNORM, USCALED, SSCALED, UINT, SINT, SRGB\n");
 #else
             fprintf(stderr,
-                    "Swapchain format is not in the list:\nUNORM, SNORM, USCALED, SSCALED, UINT, SINT, SRGB\n"
+                    "screenshot: Swapchain format is not in the list:\nUNORM, SNORM, USCALED, SSCALED, UINT, SINT, SRGB\n"
                     "UNORM colorspace will be used instead\n");
 #endif
             printFormatWarning = false;
@@ -681,6 +671,31 @@ static bool writePPM(const char *filename, VkImage image1) {
             destformat = VK_FORMAT_R8G8B8A8_UNORM;
         else
             destformat = VK_FORMAT_R8G8B8_UNORM;
+    }
+
+    // From vulkan spec:
+    //   VUID-vkCmdBlitImage-srcImage-00229
+    //     If either of srcImage or dstImage was created with a signed integer VkFormat,
+    //     the other must also have been created with a signed integer VkFormat
+    //   VUID-vkCmdBlitImage-srcImage-00230
+    //     If either of srcImage or dstImage was created with an unsigned integer VkFormat,
+    //     the other must also have been created with an unsigned integer VkFormat
+    // If the destination format is not compatible, set destintation format to source format and print a warning.
+    // Yes, the expression in the if stmt is correct. It makes sure that the correct signed/unsigned formats
+    // are used for destformat and format.
+    if (FormatIsSINT(format) || FormatIsSINT(destformat) || FormatIsUINT(format) || FormatIsUINT(destformat)) {
+        // Print a warning if we need to change destformat
+        if (destformat != format) {
+            destformat = format;
+#ifdef ANDROID
+            __android_log_print(ANDROID_LOG_INFO, "screenshot",
+                                "Incompatible output format requested, changing output format to %s\n",
+                                string_VkFormat(destformat));
+#else
+            fprintf(stderr, "screenshot: Incompatible output format requested, changing output format to %s\n",
+                    string_VkFormat(destformat));
+#endif
+        }
     }
 
     if ((FormatCompatibilityClass(destformat) != FormatCompatibilityClass(format))) {
@@ -735,10 +750,9 @@ static bool writePPM(const char *filename, VkImage image1) {
             // unlikely to have a device that cannot blit to either type.
             // This should be quite rare. Punt.
 #ifdef ANDROID
-            __android_log_print(ANDROID_LOG_DEBUG, "screenshot",
-                                "Output format not supported, screen capture failed");
+            __android_log_print(ANDROID_LOG_DEBUG, "screenshot", "Output format not supported, screen capture failed");
 #else
-            fprintf(stderr, "Output format not supported, screen capture failed\n");
+            fprintf(stderr, "screenshot: Output format not supported, screen capture failed\n");
 #endif
             return false;
         } else if (!bltLinear && bltOptimal) {
@@ -794,8 +808,7 @@ static bool writePPM(const char *filename, VkImage image1) {
     // final image.
     err = pTableDevice->CreateImage(device, &imgCreateInfo2, NULL, &data.image2);
     assert(!err);
-    if (VK_SUCCESS != err)
-        return false;
+    if (VK_SUCCESS != err) return false;
     pTableDevice->GetImageMemoryRequirements(device, data.image2, &memRequirements);
     memAllocInfo.allocationSize = memRequirements.size;
     pInstanceTable->GetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
@@ -805,19 +818,16 @@ static bool writePPM(const char *filename, VkImage image1) {
     assert(pass);
     err = pTableDevice->AllocateMemory(device, &memAllocInfo, NULL, &data.mem2);
     assert(!err);
-    if (VK_SUCCESS != err)
-        return false;
+    if (VK_SUCCESS != err) return false;
     err = pTableQueue->BindImageMemory(device, data.image2, data.mem2, 0);
     assert(!err);
-    if (VK_SUCCESS != err)
-        return false;
+    if (VK_SUCCESS != err) return false;
 
     // Create image3 and allocate its memory, if needed.
     if (need2steps) {
         err = pTableDevice->CreateImage(device, &imgCreateInfo3, NULL, &data.image3);
         assert(!err);
-        if (VK_SUCCESS != err)
-            return false;
+        if (VK_SUCCESS != err) return false;
         pTableDevice->GetImageMemoryRequirements(device, data.image3, &memRequirements);
         memAllocInfo.allocationSize = memRequirements.size;
         pInstanceTable->GetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
@@ -826,12 +836,10 @@ static bool writePPM(const char *filename, VkImage image1) {
         assert(pass);
         err = pTableDevice->AllocateMemory(device, &memAllocInfo, NULL, &data.mem3);
         assert(!err);
-        if (VK_SUCCESS != err)
-            return false;
+        if (VK_SUCCESS != err) return false;
         err = pTableQueue->BindImageMemory(device, data.image3, data.mem3, 0);
         assert(!err);
-        if (VK_SUCCESS != err)
-            return false;
+        if (VK_SUCCESS != err) return false;
     }
 
     // We want to create our own command pool to be sure we can use it from this thread
@@ -851,8 +859,7 @@ static bool writePPM(const char *filename, VkImage image1) {
                                                                 data.commandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1};
     err = pTableDevice->AllocateCommandBuffers(device, &allocCommandBufferInfo, &data.commandBuffer);
     assert(!err);
-    if (VK_SUCCESS != err)
-        return false;
+    if (VK_SUCCESS != err) return false;
 
     VkDevice cmdBuf = static_cast<VkDevice>(static_cast<void *>(data.commandBuffer));
     if (deviceMap.find(cmdBuf) != deviceMap.end()) {
@@ -1028,15 +1035,13 @@ static bool writePPM(const char *filename, VkImage image1) {
         pTableDevice->GetImageSubresourceLayout(device, data.image2, &sr, &srLayout);
         err = pTableDevice->MapMemory(device, data.mem2, 0, VK_WHOLE_SIZE, 0, (void **)&ptr);
         assert(!err);
-        if (VK_SUCCESS != err)
-             return false;
+        if (VK_SUCCESS != err) return false;
         data.mem2mapped = true;
     } else {
         pTableDevice->GetImageSubresourceLayout(device, data.image3, &sr, &srLayout);
         err = pTableDevice->MapMemory(device, data.mem3, 0, VK_WHOLE_SIZE, 0, (void **)&ptr);
         assert(!err);
-        if (VK_SUCCESS != err)
-            return false;
+        if (VK_SUCCESS != err) return false;
         data.mem3mapped = true;
     }
 
@@ -1044,10 +1049,9 @@ static bool writePPM(const char *filename, VkImage image1) {
     ofstream file(filename, ios::binary);
     if (!file.is_open()) {
 #ifdef ANDROID
-        __android_log_print(ANDROID_LOG_DEBUG, "screenshot",
-                            "Failed to open output file: %s", filename);
+        __android_log_print(ANDROID_LOG_DEBUG, "screenshot", "Failed to open output file: %s", filename);
 #else
-        fprintf(stderr, "Failed to open output file: %s\n", filename);
+        fprintf(stderr, "screenshot: Failed to open output file: %s\n", filename);
 #endif
         return false;
     }
@@ -1190,7 +1194,7 @@ VKAPI_ATTR VkResult VKAPI_CALL EnumeratePhysicalDevices(VkInstance instance, uin
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL EnumeratePhysicalDeviceGroups(VkInstance instance, uint32_t *pPhysicalDeviceGroupCount,
-                                                        VkPhysicalDeviceGroupProperties *pPhysicalDeviceGroupProperties) {
+                                                             VkPhysicalDeviceGroupProperties *pPhysicalDeviceGroupProperties) {
     VkResult result;
     VkLayerInstanceDispatchTable *pTable = instance_dispatch_table(instance);
     result = pTable->EnumeratePhysicalDeviceGroups(instance, pPhysicalDeviceGroupCount, pPhysicalDeviceGroupProperties);
@@ -1203,7 +1207,7 @@ VKAPI_ATTR VkResult VKAPI_CALL EnumeratePhysicalDeviceGroups(VkInstance instance
                     physDeviceMap[pPhysicalDeviceGroupProperties[i].physicalDevices[j]] = physDeviceMapElem;
                 }
                 physDeviceMap[pPhysicalDeviceGroupProperties[i].physicalDevices[j]]->instance = instance;
-           }
+            }
         }
     }
     return VK_SUCCESS;
@@ -1221,13 +1225,12 @@ VKAPI_ATTR void VKAPI_CALL DestroyDevice(VkDevice device, const VkAllocationCall
         local_free_getenv(vk_screenshot_dir);
     }
 
-    loader_platform_thread_lock_mutex(&globalLock);
+    std::lock_guard<std::mutex> lg(globalLock);
     delete pDisp;
     delete dispMap;
     delete devMap;
 
     deviceMap.erase(device);
-    loader_platform_thread_unlock_mutex(&globalLock);
 }
 
 VKAPI_ATTR void VKAPI_CALL GetDeviceQueue(VkDevice device, uint32_t queueFamilyIndex, uint32_t queueIndex, VkQueue *pQueue) {
@@ -1237,10 +1240,9 @@ VKAPI_ATTR void VKAPI_CALL GetDeviceQueue(VkDevice device, uint32_t queueFamilyI
     pDisp->GetDeviceQueue(device, queueFamilyIndex, queueIndex, pQueue);
 
     // Save the device queue in a map if we are taking screenshots.
-    loader_platform_thread_lock_mutex(&globalLock);
+    std::lock_guard<std::mutex> lg(globalLock);
     if (screenshotFramesReceived && screenshotFrames.empty() && !screenShotFrameRange.valid) {
         // No screenshots in the list to take
-        loader_platform_thread_unlock_mutex(&globalLock);
         return;
     }
 
@@ -1259,8 +1261,6 @@ VKAPI_ATTR void VKAPI_CALL GetDeviceQueue(VkDevice device, uint32_t queueFamilyI
     VkDevice que = static_cast<VkDevice>(static_cast<void *>(*pQueue));
     if (dispatchMap.find(que) != dispatchMap.end()) dispatchMap.erase(que);
     dispatchMap.emplace(que, dispMap);
-
-    loader_platform_thread_unlock_mutex(&globalLock);
 }
 
 VKAPI_ATTR void VKAPI_CALL GetDeviceQueue2(VkDevice device, const VkDeviceQueueInfo2 *pQueueInfo, VkQueue *pQueue) {
@@ -1280,10 +1280,9 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateSwapchainKHR(VkDevice device, const VkSwapc
     VkResult result = pDisp->CreateSwapchainKHR(device, &myCreateInfo, pAllocator, pSwapchain);
 
     // Save the swapchain in a map of we are taking screenshots.
-    loader_platform_thread_lock_mutex(&globalLock);
+    std::lock_guard<std::mutex> lg(globalLock);
     if (screenshotFramesReceived && screenshotFrames.empty() && !screenShotFrameRange.valid) {
         // No screenshots in the list to take
-        loader_platform_thread_unlock_mutex(&globalLock);
         return result;
     }
 
@@ -1305,7 +1304,6 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateSwapchainKHR(VkDevice device, const VkSwapc
         // TODO is this needed? screenshot_device_table_map.emplace((void
         // *)pSwapchain, pTable);
     }
-    loader_platform_thread_unlock_mutex(&globalLock);
 
     return result;
 }
@@ -1318,10 +1316,9 @@ VKAPI_ATTR VkResult VKAPI_CALL GetSwapchainImagesKHR(VkDevice device, VkSwapchai
     VkResult result = pDisp->GetSwapchainImagesKHR(device, swapchain, pCount, pSwapchainImages);
 
     // Save the swapchain images in a map if we are taking screenshots
-    loader_platform_thread_lock_mutex(&globalLock);
+    std::lock_guard<std::mutex> lg(globalLock);
     if (screenshotFramesReceived && screenshotFrames.empty() && !screenShotFrameRange.valid) {
         // No screenshots in the list to take
-        loader_platform_thread_unlock_mutex(&globalLock);
         return result;
     }
 
@@ -1350,7 +1347,6 @@ VKAPI_ATTR VkResult VKAPI_CALL GetSwapchainImagesKHR(VkDevice device, VkSwapchai
             }
         }
     }
-    loader_platform_thread_unlock_mutex(&globalLock);
     return result;
 }
 
@@ -1358,73 +1354,73 @@ VKAPI_ATTR VkResult VKAPI_CALL QueuePresentKHR(VkQueue queue, const VkPresentInf
     static int frameNumber = 0;
     DispatchMapStruct *dispMap = get_dispatch_info((VkDevice)queue);
     assert(dispMap);
-    loader_platform_thread_lock_mutex(&globalLock);
+    std::lock_guard<std::mutex> lg(globalLock);
+    {  // scope around the mutexed data
+        if (!screenshotFrames.empty() || screenShotFrameRange.valid) {
+            set<int>::iterator it;
+            bool inScreenShotFrames = false;
+            bool inScreenShotFrameRange = false;
+            it = screenshotFrames.find(frameNumber);
+            inScreenShotFrames = (it != screenshotFrames.end());
+            isInScreenShotFrameRange(frameNumber, &screenShotFrameRange, &inScreenShotFrameRange);
+            if ((inScreenShotFrames) || (inScreenShotFrameRange)) {
+                string fileName;
 
-    if (!screenshotFrames.empty() || screenShotFrameRange.valid) {
-        set<int>::iterator it;
-        bool inScreenShotFrames = false;
-        bool inScreenShotFrameRange = false;
-        it = screenshotFrames.find(frameNumber);
-        inScreenShotFrames = (it != screenshotFrames.end());
-        isInScreenShotFrameRange(frameNumber, &screenShotFrameRange, &inScreenShotFrameRange);
-        if ((inScreenShotFrames) || (inScreenShotFrameRange)) {
-            string fileName;
+                if (vk_screenshot_dir == NULL || strlen(vk_screenshot_dir) == 0) {
+                    fileName = to_string(frameNumber) + ".ppm";
+                } else {
+                    fileName = vk_screenshot_dir;
+                    fileName += "/" + to_string(frameNumber) + ".ppm";
+                }
 
-            if (vk_screenshot_dir == NULL || strlen(vk_screenshot_dir) == 0) {
-                fileName = to_string(frameNumber) + ".ppm";
-            } else {
-                fileName = vk_screenshot_dir;
-                fileName += "/" + to_string(frameNumber) + ".ppm";
-            }
-
-            VkImage image;
-            VkSwapchainKHR swapchain;
-            // We'll dump only one image: the first
-            // If there are 0 swapchains, skip taking the snapshot
-            if (pPresentInfo && pPresentInfo->swapchainCount > 0) {
-                swapchain = pPresentInfo->pSwapchains[0];
-                image = swapchainMap[swapchain]->imageList[pPresentInfo->pImageIndices[0]];
-                if (writePPM(fileName.c_str(), image)) {
+                VkImage image;
+                VkSwapchainKHR swapchain;
+                // We'll dump only one image: the first
+                // If there are 0 swapchains, skip taking the snapshot
+                if (pPresentInfo && pPresentInfo->swapchainCount > 0) {
+                    swapchain = pPresentInfo->pSwapchains[0];
+                    image = swapchainMap[swapchain]->imageList[pPresentInfo->pImageIndices[0]];
+                    if (writePPM(fileName.c_str(), image)) {
 #ifdef ANDROID
-                    __android_log_print(ANDROID_LOG_INFO, "screenshot", "Screen capture file is: %s", fileName.c_str());
+                        __android_log_print(ANDROID_LOG_INFO, "screenshot", "Screen capture file is: %s", fileName.c_str());
 #else
-                    printf("Screen Capture file is: %s \n", fileName.c_str());
+                        printf("screenshot: Capture file is: %s \n", fileName.c_str());
+#endif
+                    }
+                } else {
+#ifdef ANDROID
+                    __android_log_print(ANDROID_LOG_ERROR, "screenshot", "Failure - no swapchain specified\n");
+#else
+                    fprintf(stderr, "screenshot: Failure - no swapchain specified\n");
 #endif
                 }
-            } else {
-#ifdef ANDROID
-                __android_log_print(ANDROID_LOG_ERROR, "screenshot", "Failure - no swapchain specified\n");
-#else
-                fprintf(stderr, "Screenshot failure - no swapchain specified\n");
-#endif
-            }
-            if (inScreenShotFrames) {
-                screenshotFrames.erase(it);
-            }
+                if (inScreenShotFrames) {
+                    screenshotFrames.erase(it);
+                }
 
-            if (screenshotFrames.empty() && isEndOfScreenShotFrameRange(frameNumber, &screenShotFrameRange)) {
-                // Free all our maps since we are done with them.
-                for (auto swapchainIter = swapchainMap.begin(); swapchainIter != swapchainMap.end(); swapchainIter++) {
-                    SwapchainMapStruct *swapchainMapElem = swapchainIter->second;
-                    delete swapchainMapElem;
+                if (screenshotFrames.empty() && isEndOfScreenShotFrameRange(frameNumber, &screenShotFrameRange)) {
+                    // Free all our maps since we are done with them.
+                    for (auto swapchainIter = swapchainMap.begin(); swapchainIter != swapchainMap.end(); swapchainIter++) {
+                        SwapchainMapStruct *swapchainMapElem = swapchainIter->second;
+                        delete swapchainMapElem;
+                    }
+                    for (auto imageIter = imageMap.begin(); imageIter != imageMap.end(); imageIter++) {
+                        ImageMapStruct *imageMapElem = imageIter->second;
+                        delete imageMapElem;
+                    }
+                    for (auto physDeviceIter = physDeviceMap.begin(); physDeviceIter != physDeviceMap.end(); physDeviceIter++) {
+                        PhysDeviceMapStruct *physDeviceMapElem = physDeviceIter->second;
+                        delete physDeviceMapElem;
+                    }
+                    swapchainMap.clear();
+                    imageMap.clear();
+                    physDeviceMap.clear();
+                    screenShotFrameRange.valid = false;
                 }
-                for (auto imageIter = imageMap.begin(); imageIter != imageMap.end(); imageIter++) {
-                    ImageMapStruct *imageMapElem = imageIter->second;
-                    delete imageMapElem;
-                }
-                for (auto physDeviceIter = physDeviceMap.begin(); physDeviceIter != physDeviceMap.end(); physDeviceIter++) {
-                    PhysDeviceMapStruct *physDeviceMapElem = physDeviceIter->second;
-                    delete physDeviceMapElem;
-                }
-                swapchainMap.clear();
-                imageMap.clear();
-                physDeviceMap.clear();
-                screenShotFrameRange.valid = false;
             }
         }
-    }
-    frameNumber++;
-    loader_platform_thread_unlock_mutex(&globalLock);
+        frameNumber++;
+    }  // scope around the mutexed data
     VkLayerDispatchTable *pDisp = dispMap->device_dispatch_table;
     VkResult result = pDisp->QueuePresentKHR(queue, pPresentInfo);
     return result;

@@ -56,11 +56,12 @@ WidgetSettingEnum::WidgetSettingEnum(QTreeWidget* tree, QTreeWidgetItem* item, c
 }
 
 void WidgetSettingEnum::Refresh(RefreshAreas refresh_areas) {
-    const bool enabled = ::CheckDependence(this->meta, data_set);
+    const SettingDependenceMode enabled = ::CheckDependence(this->meta, data_set);
 
-    this->item->setDisabled(!enabled);
-    this->field->setEnabled(enabled);
-    this->setEnabled(enabled);
+    this->item->setHidden(enabled == SETTING_DEPENDENCE_HIDE);
+    this->item->setDisabled(enabled != SETTING_DEPENDENCE_ENABLE);
+    this->field->setEnabled(enabled == SETTING_DEPENDENCE_ENABLE);
+    this->setEnabled(enabled == SETTING_DEPENDENCE_ENABLE);
 
     if (meta.default_value == "${VP_DEFAULT}") {
         if (::CheckSettingOverridden(this->meta)) {
@@ -72,6 +73,7 @@ void WidgetSettingEnum::Refresh(RefreshAreas refresh_areas) {
         this->enum_indexes.clear();
 
         const std::vector<std::string>& profiles = GetProfileNames(data_set);
+        this->item->setHidden(profiles.size() <= 1 || enabled == SETTING_DEPENDENCE_HIDE);
 
         int selection = 0;
         const std::string value = this->data().value;
@@ -95,6 +97,7 @@ void WidgetSettingEnum::Refresh(RefreshAreas refresh_areas) {
 
         int selection = 0;
         const std::string value = this->data().value;
+
         for (std::size_t i = 0, n = this->meta.enum_values.size(); i < n; ++i) {
             if (!IsSupported(&this->meta.enum_values[i])) continue;
 
@@ -119,6 +122,7 @@ void WidgetSettingEnum::resizeEvent(QResizeEvent* event) {
         for (std::size_t i = 0, n = profiles.size(); i < n; ++i) {
             width = std::max(width, HorizontalAdvance(fm, (profiles[i] + "0000").c_str()));
         }
+        this->item->setHidden(profiles.size() <= 1);
     } else {
         for (std::size_t i = 0, n = this->meta.enum_values.size(); i < n; ++i) {
             width = std::max(width, HorizontalAdvance(fm, (this->meta.enum_values[i].label + "0000").c_str()));
@@ -135,11 +139,15 @@ void WidgetSettingEnum::OnIndexChanged(int index) {
         assert(index >= 0 && index < static_cast<int>(profiles.size()));
 
         this->data().value = profiles[index];
+        this->item->setHidden(profiles.size() <= 1);
     } else {
         assert(index >= 0 && index < static_cast<int>(this->meta.enum_values.size()));
 
-        this->data().value = this->meta.enum_values[enum_indexes[static_cast<std::size_t>(index)]].key;
+        const std::size_t value_index = enum_indexes[static_cast<std::size_t>(index)];
+        this->data().value = this->meta.enum_values[value_index].key;
+        this->field->setToolTip(this->meta.enum_values[value_index].description.c_str());
     }
+
     emit itemChanged();
 }
 

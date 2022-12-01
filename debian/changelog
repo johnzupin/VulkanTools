@@ -1,3 +1,37 @@
+lunarg-tools (1.3.235.0~rc1-1lunarg22.04-1) jammy; urgency=medium
+
+  [ Christophe ]
+  * vkconfig: fix application controlled mode
+
+  [ Andrew Cox ]
+  * Removed DevSim references.
+
+  [ Tony-LunarG ]
+  * build: Update to 1.3.234 headers
+
+  [ Bob Ellison ]
+  * scripts: use python3 if python is not available
+  * vkconfig: include <limits>
+
+  [ Christophe ]
+  * vkconfig: add warn_on_robust_oob val setting
+  * C.I.: fix Github actions build
+  * vkconfig: improve handling of robust oob warn
+  * vkconfig: fix setting dependences with enums
+
+  [ Charles Giessen ]
+  * apidump: Use setfill/setw to prevent indentation overflow
+
+  [ Bob Ellison ]
+  * android: limit parallel builds
+
+  [ Tony-LunarG ]
+  * build: Build layers using C++ 17
+  * build: Update to 1.3.235 headers
+  * docs: Remove VS 2015 references
+
+ -- john <john@odin>  Thu, 01 Dec 2022 09:29:40 -0700
+
 lunarg-tools (1.3.231.0~rc2-1lunarg22.04-1) jammy; urgency=medium
 
   [ Christophe ]

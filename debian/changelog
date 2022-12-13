@@ -1,3 +1,10 @@
+lunarg-tools (1.3.236.0~rc2-1lunarg20.04-1) focal; urgency=medium
+
+  [ Christophe ]
+  * vkconfig: fix macOS hang (maybe)
+
+ -- john <john@odin>  Tue, 13 Dec 2022 10:02:17 -0700
+
 lunarg-tools (1.3.236.0~rc1-1lunarg20.04-1) focal; urgency=medium
 
   [ Tony-LunarG ]

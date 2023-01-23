@@ -1,3 +1,34 @@
+lunarg-tools (1.3.239.0~rc1-1lunarg20.04-1) focal; urgency=medium
+
+  [ Christophe ]
+  * vkconfig: fix macOS hang (maybe)
+  * vkconfig: Add Imagination Technologies best practices
+
+  [ Juan Ramos ]
+  * vkvia: Fix not finding Ubuntu package on Ubuntu based distros
+  * cmake: Fix Wayland CMake warnings
+
+  [ Tony-LunarG ]
+  * build: Update to 1.3.238 headers
+
+  [ Jeremy Gebben ]
+  * layers: Update to use latest vk_layer_logging.h
+
+  [ Juan Ramos ]
+  * cmake: Raise minimum to 3.17.2
+  * cmake: Cleanup CMake build
+
+  [ John Zupin ]
+  * packaging: debian: update copyright
+
+  [ Juan Ramos ]
+  * github: Rename master to main
+
+  [ Tony-LunarG ]
+  * build: Update to 1.3.239 headers
+
+ -- john <john@odin>  Mon, 23 Jan 2023 12:42:42 -0700
+
 lunarg-tools (1.3.236.0~rc2-1lunarg20.04-1) focal; urgency=medium
 
   [ Christophe ]

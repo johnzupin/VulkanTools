@@ -1,0 +1,20 @@
+name: 'Get a VulkanTools dependencies refs'
+description: 'Get a VulkanTools dependencies from known_good file'
+inputs:
+  repo:
+    description: 'What repo to clone the Vulkan-Headers package from'
+    required: true
+    default: 'main'
+  ref:
+    description: 'What ref to build the Vulkan-Headers package with'
+    required: true
+    default: 'main'
+outputs:
+  dependency_ref:
+    description: "dep ref"
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  args:
+    - ${{ inputs.repo }}
+    - ${{ inputs.ref }}

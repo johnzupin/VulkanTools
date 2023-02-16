@@ -1,0 +1,322 @@
+name: build-focal-package
+run-name: Build Debian style packages for Ubuntu Focal (20.04)
+on:
+  push:
+  workflow_call:
+    inputs:
+      spirv_headers:
+        required: false
+        type: string
+        default: '{"repo":"","ref":""}'
+      spirv_tools:
+        required: false
+        type: string
+        default: '{"repo":"","ref":""}'
+      glslang:
+        required: false
+        type: string
+        default: '{"repo":"","ref":""}'
+      rhh:
+        required: false
+        type: string
+        default: '{"repo":"","ref":""}'
+      vh:
+        required: false
+        type: string
+        default: '{"repo":"","ref":""}'
+      vl:
+        required: false
+        type: string
+        default: '{"repo":"","ref":""}'
+      vvl:
+        required: false
+        type: string
+        default: '{"repo":"","ref":""}'
+      vt:
+        required: false
+        type: string
+        default: '{"repo":"","ref":""}'
+      lgvt:
+        required: true
+        type: string
+        default: '{"repo":"johnzupin/VulkanTools","ref":"ubuntu/focal"}'
+        description: "A json object that defines repo and ref. Ex) {repo:LunarG/VulkanTools, ref:ubuntu/focal}"
+  workflow_dispatch:
+    inputs:
+      spirv_headers:
+        required: false
+        type: string
+        default: '{"repo":"","ref":""}'
+      spirv_tools:
+        required: false
+        type: string
+        default: '{"repo":"","ref":""}'
+      glslang:
+        required: false
+        type: string
+        default: '{"repo":"","ref":""}'
+      rhh:
+        required: false
+        type: string
+        default: '{"repo":"","ref":""}'
+      vh:
+        required: false
+        type: string
+        default: '{"repo":"","ref":""}'
+      vl:
+        required: false
+        type: string
+        default: '{"repo":"","ref":""}'
+      vvl:
+        required: false
+        type: string
+        default: '{"repo":"","ref":""}'
+      vt:
+        required: false
+        type: string
+        default: '{"repo":"","ref":""}'
+      lgvt:
+        required: true
+        type: string
+        default: '{"repo":"johnzupin/VulkanTools","ref":"ubuntu/focal"}'
+        description: "A json object that defines repo and ref. Ex) {repo:LunarG/VulkanTools, ref:ubuntu/focal}"
+
+jobs:
+  get-lgvt-deps:
+    runs-on: ubuntu-latest
+    outputs:
+      spirv-headers-repo: ${{ steps.parse-deps.outputs.SPV_HEADERS_REPO }}
+      spirv-headers-ref: ${{ steps.parse-deps.outputs.SPV_HEADERS_REF }}
+      spirv-tools-repo: ${{ steps.parse-deps.outputs.SPV_TOOLS_REPO }}
+      spirv-tools-ref: ${{ steps.parse-deps.outputs.SPV_TOOLS_REF }}
+      glslang-repo: ${{ steps.parse-deps.outputs.GLSLANG_REPO }}
+      glslang-ref: ${{ steps.parse-deps.outputs.GLSLANG_REF }}
+      vh-repo: ${{ steps.parse-deps.outputs.VH_REPO }}
+      vh-ref: ${{ steps.parse-deps.outputs.VH_REF }}
+      vl-repo: ${{ steps.parse-deps.outputs.VL_REPO }}
+      vl-ref: ${{ steps.parse-deps.outputs.VL_REF }}
+      vvl-repo: ${{ steps.parse-deps.outputs.VVL_REPO }}
+      vvl-ref: ${{ steps.parse-deps.outputs.VVL_REF }}
+      vt-repo: ${{ steps.parse-deps.outputs.VT_REPO }}
+      vt-ref: ${{ steps.parse-deps.outputs.VT_REF }}
+      rhh-repo: ${{ steps.parse-deps.outputs.RHH_REPO }}
+      rhh-ref: ${{ steps.parse-deps.outputs.RHH_REF }}
+      lgvt-repo: ${{ steps.parse-deps.outputs.LGVT_REPO }}
+      lgvt-ref: ${{ steps.parse-deps.outputs.LGVT_REF }}
+    steps:
+      - name: "Inputs have been specified - Set repo/ref variables with specified input"
+        if: ${{ inputs.lgvt != '' }}
+        run: |
+          echo SPV_HEADERS_REPO="${{ fromJSON(inputs.spirv_headers).repo }}" >> "$GITHUB_ENV"
+          echo SPV_HEADERS_REF="${{ fromJSON(inputs.spirv_headers).ref }}" >> "$GITHUB_ENV"
+          echo SPV_TOOLS_REF="${{ fromJSON(inputs.spirv_tools).repo }}" >> "$GITHUB_ENV"
+          echo SPV_TOOLS_REPO="${{ fromJSON(inputs.spirv_tools).ref }}" >> "$GITHUB_ENV"
+          echo GLSLANG_REF="${{ fromJSON(inputs.glslang).repo }}" >> "$GITHUB_ENV"
+          echo GLSLANG_REPO="${{ fromJSON(inputs.glslang).ref }}" >> "$GITHUB_ENV"
+          echo VH_REPO="${{ fromJSON(inputs.vh).repo }}" >> "$GITHUB_ENV"
+          echo VH_REF="${{ fromJSON(inputs.vh).ref }}" >> "$GITHUB_ENV"
+          echo VL_REPO="${{ fromJSON(inputs.vl).repo }}" >> "$GITHUB_ENV"
+          echo VL_REF="${{ fromJSON(inputs.vl).ref }}" >> "$GITHUB_ENV"
+          echo VVL_REPO="${{ fromJSON(inputs.vvl).repo }}" >> "$GITHUB_ENV"
+          echo VVL_REF="${{ fromJSON(inputs.vvl).ref }}" >> "$GITHUB_ENV"
+          echo VT_REPO="${{ fromJSON(inputs.vt).repo }}" >> "$GITHUB_ENV"
+          echo VT_REF="${{ fromJSON(inputs.vt).ref }}" >> "$GITHUB_ENV"
+          echo RHH_REPO="${{ fromJSON(inputs.rhh).repo }}" >> "$GITHUB_ENV"
+          echo RHH_REF="${{ fromJSON(inputs.rhh).ref }}" >> "$GITHUB_ENV"
+          echo LGVT_REPO="${{ fromJSON(inputs.lgvt).repo }}" >> "$GITHUB_ENV"
+          echo LGVT_REF="${{ fromJSON(inputs.lgvt).ref }}" >> "$GITHUB_ENV"
+      - name: "No inputs specified - Checkout repository to get dependency versions from repository known_good.json file"
+        if: ${{ inputs.lgvt == '' }}
+        uses: actions/checkout@v3
+      - name: "No input specified - Parse the known_good.json file to get the dependency refs for building package dependencies"
+        if: ${{ inputs.lgvt == '' }}
+        run: |
+          # WARNING: the spirv-headers/spirv-tools/etc repo is hardcoded to johnzupin org, this needs to change to Khronos when /debian gets merged
+          # echo SPV_HEADERS_REPO="johnzupin/SPIRV-Headers" >> "$GITHUB_ENV"
+          # echo SPV_HEADERS_REF=`jq -r '.repos[2].commit' scripts/known_good.json` >> "$GITHUB_ENV"
+          # echo SPV_TOOLS_REPO="johnzupin/SPIRV-Tools" >> "$GITHUB_ENV"
+          # echo SPV_TOOLS_REF=`jq -r '.repos[3].commit' scripts/known_good.json` >> "$GITHUB_ENV"
+          echo GLSLANG_REPO="johnzupin/glslang" >> "$GITHUB_ENV"
+          echo GLSLANG_REF=`jq -r '.repos[0].commit' scripts/known_good.json` >> "$GITHUB_ENV"
+          echo VH_REPO="johnzupin/Vulkan-Headers" >> "$GITHUB_ENV"
+          echo VH_REF=`jq -r '.repos[0].commit' scripts/known_good.json` >> "$GITHUB_ENV"
+          echo VL_REPO="johnzupin/Vulkan-Loader" >> "$GITHUB_ENV"
+          echo VL_REF=`jq -r '.repos[1].commit' scripts/known_good.json` >> "$GITHUB_ENV"
+          echo VVL_REPO="johnzupin/Vulkan-ValidationLayers" >> "$GITHUB_ENV"
+          echo VVL_REF=`jq -r '.repos[3].commit' scripts/known_good.json` >> "$GITHUB_ENV"
+          echo VT_REPO="johnzupin/Vulkan-Tools" >> "$GITHUB_ENV"
+          echo VT_REF=`jq -r '.repos[2].commit' scripts/known_good.json` >> "$GITHUB_ENV"  
+          # echo RHH_REPO="johnzupin/robin-hood-hashing" >> "$GITHUB_ENV"
+          # echo RHH_REF=`jq -r '.repos[4].commit' scripts/known_good.json` >> "$GITHUB_ENV"
+          echo LGVT_REPO="$GITHUB_REPOSITORY" >> "$GITHUB_ENV"
+          echo LGVT_REF="$GITHUB_REF_NAME" >> "$GITHUB_ENV"
+      - id: parse-deps
+        run: |
+          echo SPV_HEADERS_REPO="${{ env.SPV_HEADERS_REPO }}" >> "$GITHUB_OUTPUT"
+          echo SPV_HEADERS_REF="${{ env.SPV_HEADERS_REF }}" >> "$GITHUB_OUTPUT"
+          echo SPV_TOOLS_REPO="${{ env.SPV_TOOLS_REPO }}" >> "$GITHUB_OUTPUT"
+          echo SPV_TOOLS_REF="${{ env.SPV_TOOLS_REF }}" >> "$GITHUB_OUTPUT"
+          echo GLSLANG_REPO="${{ env.GLSLANG_REPO }}" >> "$GITHUB_OUTPUT"
+          echo GLSLANG_REF="${{ env.GLSLANG_REF }}" >> "$GITHUB_OUTPUT"
+          echo VH_REPO="${{ env.VH_REPO }}" >> "$GITHUB_OUTPUT"
+          echo VH_REF="${{ env.VH_REF }}" >> "$GITHUB_OUTPUT"
+          echo VL_REPO="${{ env.VL_REPO }}" >> "$GITHUB_OUTPUT"
+          echo VL_REF="${{ env.VL_REF }}" >> "$GITHUB_OUTPUT"
+          echo VVL_REPO="${{ env.VVL_REPO }}" >> "$GITHUB_OUTPUT"
+          echo VVL_REF="${{ env.VVL_REF }}" >> "$GITHUB_OUTPUT"
+          echo VT_REPO="${{ env.VT_REPO }}" >> "$GITHUB_OUTPUT"
+          echo VT_REF="${{ env.VT_REF }}" >> "$GITHUB_OUTPUT"
+          echo RHH_REPO="${{ env.RHH_REPO }}" >> "$GITHUB_OUTPUT"
+          echo RHH_REF="${{ env.RHH_REF }}" >> "$GITHUB_OUTPUT"
+          echo LGVT_REPO="${{ env.LGVT_REPO }}" >> "$GITHUB_OUTPUT"
+          echo LGVT_REF="${{ env.LGVT_REF }}" >> "$GITHUB_OUTPUT"
+
+  build-spirv-headers-package:
+    needs: "get-lgvt-deps"
+    if: ${{ needs.get-lgvt-deps.outputs.spirv-headers-repo != '' && needs.get-lgvt-deps-refs.outputs.spirv-headers-ref != '' }}
+    uses: johnzupin/SPIRV-Headers/.github/workflows/build-ubuntu-packages.yml@zupin_create_workflow_ubuntu_package
+    with:
+      spirv_headers: '{"repo":"${{needs.get-lgvt-deps.outputs.spirv-headers-repo}}","ref":"${{needs.get-lgvt-deps-refs.outputs.spirv-headers-ref}}"}'
+
+  build-spirv-tools-package:
+    needs: [ "get-lgvt-deps", "build-spirv-headers-package" ]
+    if: ${{ needs.build-spirv-headers-package.result == 'success' && needs.get-lgvt-deps-refs.outputs.spirv-tools-repo != '' && needs.get-lgvt-deps-refs.outputs.spirv-tools-ref != '' }}
+    uses: johnzupin/SPIRV-Tools/.github/workflows/build-ubuntu-packages.yml@zupin_create_workflow_ubuntu_package
+    with:
+      spirv_tools: '{"repo":"${{needs.get-lgvt-deps-refs.outputs.spirv-tools-repo}}","ref":"${{needs.get-lgvt-deps-refs.outputs.spirv-tools-ref}}"}'
+
+  build-glslang-package:
+    needs: [ "get-lgvt-deps", "build-spirv-headers-package", "build-spirv-tools-package"]
+    if: ${{ needs.build-spirv-headers-package.result == 'success' &&  needs.build-spirv-tools-package.result == 'success' || needs.get-vvl-deps.outputs.glslang-repo != '' && needs.get-vvl-deps.outputs.glslang-ref != '' }}
+    uses: johnzupin/glslang/.github/workflows/build-ubuntu-packages.yml@zupin_create_workflow_ubuntu_package
+    with:
+      glslang: '{"repo":"${{ needs.get-lgvt-deps.outputs.glslang-repo }}","ref":"${{ needs.get-lgvt-deps.outputs.glslang-ref }}"}'
+      # spirv_headers: '{"repo":"${{needs.get-lgvt-deps.outputs.spirv-headers-repo}}","ref":"${{needs.get-lgvt-deps-refs.outputs.spirv-headers-ref}}"}'
+      # spirv_tools: '{"repo":"${{needs.get-lgvt-deps-refs.outputs.spirv-tools-repo}}","ref":"${{needs.get-lgvt-deps-refs.outputs.spirv-tools-ref}}"}'
+
+  build-robin-hood-hashing-package:
+    needs: "get-lgvt-deps"
+    if: ${{ needs.get-lgvt-deps.outputs.rhh-repo != '' && needs.get-lgvt-deps.outputs.rhh-ref != '' }}
+    uses: johnzupin/robin-hood-hashing/.github/workflows/build-ubuntu-packages.yml@zupin_create_workflow_ubuntu_package
+    with:
+      rhh: '{"repo":"${{ needs.get-lgvt-deps.outputs.rhh-repo }}","ref":"${{ needs.get-lgvt-deps.outputs.rhh-ref }}"}'
+
+  build-vulkan-headers-package:
+    needs: "get-lgvt-deps"
+    if: ${{ needs.get-lgvt-deps.outputs.vh-repo != '' && needs.get-lgvt-deps.outputs.vh-ref != '' }}
+    uses: johnzupin/Vulkan-Headers/.github/workflows/build-ubuntu-packages.yml@zupin_create_workflow_ubuntu_package
+    with:
+      vh: '{"repo":"${{ needs.get-lgvt-deps.outputs.vh-repo }}","ref":"${{ needs.get-lgvt-deps.outputs.vh-ref }}"}'
+
+  build-vulkan-loader-package:
+    needs: [ "get-lgvt-deps", "build-vulkan-headers-package" ]
+    if: ${{ needs.build-vulkan-headers-package.result == 'success' && needs.get-lgvt-deps.outputs.vl-repo != '' && needs.get-lgvt-deps.outputs.vl-ref != '' }}
+    uses: johnzupin/Vulkan-Loader/.github/workflows/build-focal-package.yml@zupin_create_workflow_ubuntu_package
+    with:
+      vl: '{"repo":"${{ needs.get-lgvt-deps.outputs.vl-repo }}","ref":"${{ needs.get-lgvt-deps.outputs.vl-ref }}"}'
+
+  build-vulkan-validationlayers-package:
+    needs: [ "get-lgvt-deps", "build-robin-hood-hashing-package", "build-vulkan-headers-package", "build-vulkan-loader-package" ]
+    if: ${{ needs.build-robin-hood-hashing-package.result == 'success' && needs.build-vulkan-headers-package.result == 'success' && needs.build-vulkan-loader-package.result == 'success' && needs.get-lgvt-deps.outputs.vvl-repo != '' && needs.get-lgvt-deps.outputs.vvl-ref != '' }}
+    # uses: johnzupin/Vulkan-ValidationLayers/.github/workflows/build-ubuntu-packages.yml@zupin_create_workflow_ubuntu_package
+    # with:
+    #   vvl: '{"repo":"${{ needs.get-lgvt-deps.outputs.vvl-repo }}","ref":"${{ needs.get-lgvt-deps.outputs.vvl-repo }}"}'
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:20.04
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: "spirv-headers-focal-package"
+          path: "/tmp/"
+      - uses: actions/download-artifact@v3
+        with:
+          name: "spirv-tools-focal-package"
+          path: "/tmp/"
+      - uses: actions/download-artifact@v3
+        with:
+          name: "glslang-focal-package"
+          path: "/tmp/"
+      - uses: actions/download-artifact@v3
+        with:
+          name: "robin-hood-hashing-focal-package"
+          path: "/tmp/"
+      - uses: actions/download-artifact@v3
+        with:
+          name: "vulkan-headers-focal-package"
+          path: "/tmp/"
+      - run: |
+          apt-get install -y /tmp/spirv-headers*.deb /tmp/spirv-tools*.deb /tmp/glslang*.deb \
+          /tmp/robin-hood-hashing*.deb /tmp/vulkan-headers*.deb
+      - run: "apt-get update && apt-get install -y wget gpg"
+      - run: "wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc | gpg --dearmor - | tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null"
+      - run: "echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ focal main' | tee /etc/apt/sources.list.d/kitware.list"
+      - run: |
+          apt-get update && \
+          DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y \
+          git build-essential libx11-xcb-dev pkg-config \
+          libxkbcommon-dev libwayland-dev libxrandr-dev \
+          libegl1-mesa-dev python3-distutils \
+          cmake git-buildpackage debhelper
+      - uses: actions/checkout@v3
+        with:
+          repository: "${{ needs.get-lgvt-deps.outputs.vvl-repo }}"
+          ref: "${{ needs.get-lgvt-deps.outputs.vvl-ref }}"
+      - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - run: gbp buildpackage --git-verbose --git-force-create --git-upstream-tree="branch" --git-ignore-branch --git-upstream-branch="${{ needs.get-lgvt-deps.outputs.vvl-ref }}" --no-sign
+      - uses: actions/upload-artifact@v3
+        with:
+          name: "vulkan-validationlayers-focal-package"
+          path: "${{ runner.workspace }}/vulkan-validation*20.04*amd64.deb"
+
+  build-vulkan-tools-package:
+    needs: [ "get-lgvt-deps", "build-vulkan-headers-package", "build-vulkan-loader-package" ]
+    if: ${{ needs.build-vulkan-headers-package.result == 'success' && needs.build-vulkan-loader-package.result == 'success' && needs.get-lgvt-deps.outputs.vt-repo != '' && needs.get-lgvt-deps.outputs.vt-ref != '' }}
+    uses: johnzupin/Vulkan-Tools/.github/workflows/build-ubuntu-packages.yml@zupin_create_workflow_ubuntu_package
+    with:
+      vt: '{"repo":"${{ needs.get-lgvt-deps.outputs.vt-repo }}","ref":"${{ needs.get-lgvt-deps.outputs.vt-repo }}"}'
+
+  build-lunarg-tools-amd64-focal-package:
+    needs: [ "build-vulkan-headers-package", "build-vulkan-loader-package", "build-vulkan-validationlayers-package", "build-vulkan-tools-package" ]
+    if: ${{ needs.build-spirv-headers-package.result == 'skipped' ||  needs.build-spirv-tools-package.result == 'skipped' ||  needs.build-glslang-package.result == 'skipped' || needs.build-robin-hood-hashing-package.result == 'skipped' || needs.build-vulkan-headers-package.result == 'skipped' || needs.build-vulkan-loader-package.result == 'skipped' || needs.build-vulkan-validationlayers-package.result == 'skipped' || needs.build-vulkan-tools-package.result == 'skipped' || success() }}
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:20.04
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: "glslang-focal-package"
+          path: "/tmp/"
+      - uses: actions/download-artifact@v3
+        with:
+          name: "vulkan-headers-focal-package"
+          path: "/tmp/"
+      - uses: actions/download-artifact@v3
+        with:
+          name: "vulkan-loader-focal-package"
+          path: "/tmp/"
+      - uses: actions/download-artifact@v3
+        with:
+          name: "vulkan-validationlayers-focal-package"
+          path: "/tmp/"
+      - run: "apt-get install -y /tmp/glslang*.deb /tmp/vulkan-validationlayers*.deb /tmp/libvulkan*.deb"
+      - run: "apt-get update && apt-get install -y wget gpg"
+      - run: "wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc | gpg --dearmor - | tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null"
+      - run: "echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ focal main' | tee /etc/apt/sources.list.d/kitware.list"
+      - run: |
+          apt-get update && \
+          DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y \
+          bison libx11-xcb-dev libxkbcommon-dev libwayland-dev libxrandr-dev libxcb-randr0-dev \
+          autotools-dev libxcb-keysyms1 libxcb-keysyms1-dev libxcb-ewmh-dev \
+          qtwebengine5-dev \
+          git cmake build-essential git-buildpackage debhelper
+      - uses: actions/checkout@v3
+        with:
+          repository: "${{ needs.get-lgvt-deps.outputs.lgvt-repo }}"
+          ref: "${{ needs.get-lgvt-deps.outputs.lgvt-ref }}"
+      - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - run: gbp buildpackage --git-verbose --git-force-create --git-upstream-tree="branch" --git-ignore-branch --git-upstream-branch="${{ needs.get-lgvt-deps.outputs.lgvt-ref }}" --no-sign
+      - uses: actions/upload-artifact@v3
+        with:
+          name: "lunarg-vulkantools-focal-package"
+          path: "${{ runner.workspace }}/lunarg-*20.04*amd64.deb"

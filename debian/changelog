@@ -1,3 +1,60 @@
+lunarg-tools (1.3.243.0~rc1-1lunarg20.04-1) focal; urgency=medium
+
+  [ Juan Ramos ]
+  * cmake: Remove custom install code
+
+  [ Oskar Roesler ]
+  * docs: Fix type in vkconfig/README.md
+
+  [ Charles Giessen ]
+  * apidump: Fix whitespace between names & types
+  * apidump: Remove variadic templates and inline
+  * apidump: Factor out head & body print functions
+  * apidump: Remove unsued std::ostream& return type
+  * apidump: remove dump_bitmaskOption & cleanup OutputAddress
+  * apidump: Refactor generator to use dictionaries
+  * apidump: Use correct name of types
+  * apidump: Remove runtime json comma printing
+  * apidump: Correctly quote json in unknown pnext struct
+  * apidump: Use const correctly in pNext printing
+  * apidump: Remove unnecessary struct declarations
+  * apidump: Indent struct generator template
+  * apidump: Better handle array member special cases
+  * apidump: Consolidate api_dump.cpp template
+  * apidump: Clean up stream handling & update copyright
+  * apidump: Cleanup threadID() logic
+  * apidump: Use boolean or instead of bitwise
+  * apidump: Expand settings file boolean fields
+  * apidump: Remove spaces in json output
+  * apidump: Print pNext chain with no_addr set
+  * apidump: Use correct heapBudgetCount in pNext chain
+  * apidump: Print correct pNext type
+  * apidump: Print pointer system types correctly
+  * apidump: fix queue priorities printing
+  * apidump: Print JSON correctly when detailed is false
+  * apidump: Store data before printing anything
+  * apidump: Fix type_size being ignored
+  * apidump: Use "address" for appropriate system types
+  * Remove usage of VK_LAYER_EXPORT
+  * apidump: Don't lock for functions that may block
+
+  [ Tony-LunarG ]
+  * build: Update to 1.3.241 headers
+  * build: Remove xxhash dependency from layer factory
+  * build: Update to 1.3.243 headers
+
+  [ Christophe ]
+  * vkconfig: fix validation layer with generic layer settings
+  * vkconfig: updated version
+
+  [ Charles Giessen ]
+  * apidump: Support Video Extensions
+
+  [ John Zupin ]
+  * packaging: debian: update control file
+
+ -- john <john@odin>  Thu, 23 Mar 2023 15:10:22 -0600
+
 lunarg-tools (1.3.239.0~rc1-1lunarg20.04-1) focal; urgency=medium
 
   [ Christophe ]

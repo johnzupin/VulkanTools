@@ -58,7 +58,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends},
  libqt5core5a,
  libqt5gui5,
  libqt5widgets5,
- qtwayland
+ qtwayland5
 Description: LunarG GUI tool to configure Vulkan layers
  The Vulkan configuration tool is a graphical application that allows a user to
  specify which layers will be loaded by Vulkan applications at runtime. It

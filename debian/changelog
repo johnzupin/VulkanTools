@@ -1,3 +1,53 @@
+lunarg-tools (1.3.250.0~rc1-1lunarg20.04-1) focal; urgency=medium
+
+  [ Christophe ]
+  * vkconfig: fix copyright
+
+  [ Charles Giessen ]
+  * apidump: Generate is_struct/is_union logic
+
+  [ Christophe ]
+  * vkconfig: fix link after doc reorganization
+  * vkconfig: fix link after doc reorganization
+
+  [ Nathaniel Cesario ]
+  * build: Use apksigner for Android
+  * build: Update VVL paths
+
+  [ Tony-LunarG ]
+  * build: Bump VVL known good for next SDK
+
+  [ Christophe ]
+  * vkconfig: add display of deviceUUID and driverUUID
+  * vkconfig: fix Reload Default when unselected config #1811
+  * vkconfig: add built-in variation to list physical devices
+  * vkconfig: fix force physical device
+  * vkconfig: add default physical device selection config
+
+  [ Charles Giessen ]
+  * android ci: Use specific validation layer commit
+
+  [ David Pinedo ]
+  * vkconfig doc: Change output of "Setting Type" & "Setting Default Value"
+
+  [ Jason Macnak ]
+  * Make update_object_name_map() update on name re-assignment
+
+  [ Tony-LunarG ]
+  * build: Update to 1.3.249 headers
+  * build: Use python3 specifically in update scripts
+
+  [ Mark Young ]
+  * Fix JSON output on Mac M1
+
+  [ Marcin Zając ]
+  * Update version.h
+
+  [ Tony-LunarG ]
+  * build: Update to 1.3.250 headers
+
+ -- john <john@odin>  Tue, 23 May 2023 14:48:26 -0600
+
 lunarg-tools (1.3.243.0~rc3-1lunarg20.04-1) focal; urgency=medium
 
   [ John Zupin ]

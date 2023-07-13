@@ -23,7 +23,8 @@ Build-Depends: debhelper (>= 10),
  libqt5svg5-dev,
  pkg-config,
  python3,
- qtwebengine5-dev
+ qtwebengine5-dev,
+ libjsoncpp-dev
 Standards-Version: 4.1.2
 Homepage: https://github.com/LunarG/VulkanTools
 Vcs-Git: https://github.com/LunarG/VulkanTools

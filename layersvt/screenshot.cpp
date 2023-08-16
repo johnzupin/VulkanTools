@@ -111,6 +111,8 @@ static inline char *local_getenv(const char *name) {
 static inline void local_free_getenv(const char *val) { free((void *)val); }
 #endif
 
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
+
 namespace screenshot {
 
 std::mutex globalLock;
@@ -744,8 +746,8 @@ static bool writePPM(const char *filename, VkImage image1) {
     if (destformat == format) {
         copyOnly = true;
     } else {
-        bool const bltLinear = targetFormatProps.linearTilingFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT ? true : false;
-        bool const bltOptimal = targetFormatProps.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT ? true : false;
+        bool const bltLinear = targetFormatProps.linearTilingFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT;
+        bool const bltOptimal = targetFormatProps.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT;
         if (!bltLinear && !bltOptimal) {
             // Cannot blit to either target tiling type.  It should be pretty
             // unlikely to have a device that cannot blit to either type.
@@ -817,6 +819,7 @@ static bool writePPM(const char *filename, VkImage image1) {
                                        need2steps ? VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT : VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
                                        &memAllocInfo.memoryTypeIndex);
     assert(pass);
+    (void)pass;
     err = pTableDevice->AllocateMemory(device, &memAllocInfo, NULL, &data.mem2);
     assert(!err);
     if (VK_SUCCESS != err) return false;
@@ -835,6 +838,7 @@ static bool writePPM(const char *filename, VkImage image1) {
         pass = memory_type_from_properties(&memoryProperties, memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
                                            &memAllocInfo.memoryTypeIndex);
         assert(pass);
+        (void)pass;
         err = pTableDevice->AllocateMemory(device, &memAllocInfo, NULL, &data.mem3);
         assert(!err);
         if (VK_SUCCESS != err) return false;

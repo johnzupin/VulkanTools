@@ -1,0 +1,21 @@
+From: John Zupin <johnz@lunarg.com>
+Date: Thu, 13 Jul 2023 11:34:00 -0600
+Subject: patch: use jsoncpp .so instead of static one
+
+---
+ via/CMakeLists.txt | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/via/CMakeLists.txt b/via/CMakeLists.txt
+index 680fbb2..8df9530 100644
+--- a/via/CMakeLists.txt
++++ b/via/CMakeLists.txt
+@@ -67,7 +67,7 @@ add_executable(vkvia
+                   via_system_bsd.cpp)
+ endif()
+ 
+-target_link_libraries(vkvia Vulkan::Headers Vulkan::Vulkan jsoncpp_static ${CMAKE_DL_LIBS})
++target_link_libraries(vkvia Vulkan::Headers Vulkan::Vulkan jsoncpp_lib ${CMAKE_DL_LIBS})
+ if(WIN32)
+     target_link_libraries(vkvia version shlwapi Cfgmgr32)
+ endif()

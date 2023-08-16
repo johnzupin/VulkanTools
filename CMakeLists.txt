@@ -139,9 +139,6 @@ endif()
 
 set (VULKAN_SDK $ENV{VULKAN_SDK})
 
-# NOTE: jsoncpp is located in SUBPROJECTS_DIR.
-set (SUBPROJECTS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/submodules)
-
 set(VULKANTOOLS_SCRIPTS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/scripts)
 
 find_package(VulkanHeaders REQUIRED CONFIG)
@@ -157,8 +154,10 @@ if (VULKAN_LOADER_INSTALL_DIR)
 elseif(ENV{VULKAN_LOADER_INSTALL_DIR})
     message(STATUS "VULKAN_LOADER_INSTALL_DIR environment variable specified, using find_package to locate Vulkan")
 endif()
-set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH};${VULKAN_LOADER_INSTALL_DIR};${VULKAN_HEADERS_INSTALL_DIR};$ENV{VULKAN_LOADER_INSTALL_DIR};$ENV{VULKAN_HEADERS_INSTALL_DIR})
+set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH};${VULKAN_LOADER_INSTALL_DIR};${VULKAN_HEADERS_INSTALL_DIR};${JSONCPP_INSTALL_DIR};$ENV{VULKAN_LOADER_INSTALL_DIR};$ENV{VULKAN_HEADERS_INSTALL_DIR};$ENV{JSONCPP_INSTALL_DIR})
 find_package(Vulkan)
+
+find_package(jsoncpp REQUIRED CONFIG)
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows" OR
     CMAKE_SYSTEM_NAME STREQUAL "Linux" OR
@@ -188,44 +187,19 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 
 endif()
 
-find_path(JSONCPP_INCLUDE_DIR json/json.h HINTS "${SUBPROJECTS_DIR}/jsoncpp/dist"
-                                                   "${SUBPROJECTS_DIR}/JsonCpp/dist"
-                                                   "${SUBPROJECTS_DIR}/JsonCPP/dist"
-                                                   "${SUBPROJECTS_DIR}/JSONCPP/dist"
-                                                   "${CMAKE_SOURCE_DIR}/../jsoncpp/dist"
-                                             DOC "Path to jsoncpp/dist/json/json.h")
-
-find_path(JSONCPP_SOURCE_DIR jsoncpp.cpp HINTS "${SUBPROJECTS_DIR}/jsoncpp/dist"
-                                                   "${SUBPROJECTS_DIR}/JsonCpp/dist"
-                                                   "${SUBPROJECTS_DIR}/JsonCPP/dist"
-                                                   "${SUBPROJECTS_DIR}/JSONCPP/dist"
-                                                   "${CMAKE_SOURCE_DIR}/../jsoncpp/dist"
-                                             DOC "Path to jsoncpp/dist/jsoncpp.cpp")
-
-find_library(JSONCPP_LIB NAMES jsoncpp HINTS ${JSONCPP_SEARCH_PATH} )
-
-if (WIN32)
-    add_library(jsoncpp         STATIC IMPORTED)
-    find_library(JSONCPP_DLIB NAMES jsoncpp
-                 HINTS ${JSONCPP_DEBUG_SEARCH_PATH} )
-    set_target_properties(jsoncpp PROPERTIES
-                         IMPORTED_LOCATION       "${JSONCPP_LIB}"
-                         IMPORTED_LOCATION_DEBUG "${JSONCPP_DLIB}")
-endif()
-
 # Define macro used for building vk.xml generated files
 function(run_vulkantools_vk_xml_generate dependency output)
     add_custom_command(OUTPUT ${output}
-        COMMAND ${PYTHON_CMD} -B ${VULKANTOOLS_SCRIPTS_DIR}/vt_genvk.py -registry ${VULKAN_HEADERS_REGISTRY_DIRECTORY}/vk.xml -scripts ${VULKAN_HEADERS_REGISTRY_DIRECTORY} ${output}
-        DEPENDS ${VULKAN_HEADERS_REGISTRY_DIRECTORY}/vk.xml ${VULKAN_HEADERS_REGISTRY_DIRECTORY}/generator.py ${VULKANTOOLS_SCRIPTS_DIR}/${dependency} ${VULKANTOOLS_SCRIPTS_DIR}/vt_genvk.py ${VULKAN_HEADERS_REGISTRY_DIRECTORY}/reg.py
+        COMMAND ${PYTHON_CMD} -B ${VULKANTOOLS_SCRIPTS_DIR}/vt_genvk.py -registry ${VULKAN_HEADERS_INSTALL_DIR}/${CMAKE_INSTALL_DATADIR}/vulkan/registry/vk.xml -scripts ${VULKAN_HEADERS_INSTALL_DIR}/${CMAKE_INSTALL_DATADIR}/vulkan/registry ${output} -removeExtensions VK_NV_cooperative_matrix -removeExtensions VK_QNX_external_memory_screen_buffer
+        DEPENDS ${VULKAN_HEADERS_INSTALL_DIR}/${CMAKE_INSTALL_DATADIR}/vulkan/registry/vk.xml ${VULKAN_HEADERS_INSTALL_DIR}/${CMAKE_INSTALL_DATADIR}/vulkan/registry/generator.py ${VULKANTOOLS_SCRIPTS_DIR}/${dependency} ${VULKANTOOLS_SCRIPTS_DIR}/vt_genvk.py ${VULKAN_HEADERS_INSTALL_DIR}/${CMAKE_INSTALL_DATADIR}/vulkan/registry/reg.py
     )
 endfunction()
 
 # Define macro used for building video.xml generated files
 function(run_vulkantools_video_xml_generate dependency output)
     add_custom_command(OUTPUT ${output}
-        COMMAND ${PYTHON_CMD} -B ${VULKANTOOLS_SCRIPTS_DIR}/vt_genvk.py -registry ${VULKAN_HEADERS_REGISTRY_DIRECTORY}/video.xml -scripts ${VULKAN_HEADERS_REGISTRY_DIRECTORY} ${output}
-        DEPENDS ${VULKAN_HEADERS_REGISTRY_DIRECTORY}/video.xml ${VULKAN_HEADERS_REGISTRY_DIRECTORY}/generator.py ${VULKANTOOLS_SCRIPTS_DIR}/${dependency} ${VULKANTOOLS_SCRIPTS_DIR}/vt_genvk.py ${VULKAN_HEADERS_REGISTRY_DIRECTORY}/reg.py
+        COMMAND ${PYTHON_CMD} -B ${VULKANTOOLS_SCRIPTS_DIR}/vt_genvk.py -registry ${VULKAN_HEADERS_INSTALL_DIR}/${CMAKE_INSTALL_DATADIR}/vulkan/registry/video.xml -scripts ${VULKAN_HEADERS_INSTALL_DIR}/${CMAKE_INSTALL_DATADIR}/vulkan/registry ${output}
+        DEPENDS ${VULKAN_HEADERS_INSTALL_DIR}/${CMAKE_INSTALL_DATADIR}/vulkan/registry/video.xml ${VULKAN_HEADERS_INSTALL_DIR}/${CMAKE_INSTALL_DATADIR}/vulkan/registry/generator.py ${VULKANTOOLS_SCRIPTS_DIR}/${dependency} ${VULKANTOOLS_SCRIPTS_DIR}/vt_genvk.py ${VULKAN_HEADERS_INSTALL_DIR}/${CMAKE_INSTALL_DATADIR}/vulkan/registry/reg.py
     )
 endfunction()
 

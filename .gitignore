@@ -1,3 +1,10 @@
+# By default we install dependencies to the external directory
+/external/*
+
+# Ignore any build directories
+*build*/
+
+CMakeUserPresets.json
 CMakeCache.txt
 CMakeLists.txt.user
 CMakeFiles/
@@ -19,12 +26,6 @@ out64/*
 *.sdf
 *.filters
 .*.swp
-build
-build32
-dbuild
-rbuild
-external
-build-android/external
 *.config
 *.creator
 *.creator.user
@@ -33,8 +34,3 @@ build-android/external
 *.files
 *.includes
 .vscode/
-helper.cmake
-Vulkan-Headers/
-Vulkan-Tools/
-Vulkan-ValidationLayers/
-build-vkconfig*/

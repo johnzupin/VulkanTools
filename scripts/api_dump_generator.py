@@ -97,6 +97,7 @@ COMMON_CODEGEN = """
 VKAPI_ATTR VkResult VKAPI_CALL vkCreateInstance(const VkInstanceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkInstance* pInstance)
 {{
     ApiDumpInstance::current().outputMutex()->lock();
+    ApiDumpInstance::current().initLayerSettings(pCreateInfo, pAllocator);
     dump_function_head(ApiDumpInstance::current(), "vkCreateInstance", "pCreateInfo, pAllocator, pInstance", "VkResult");
 
     // Get the function pointer
@@ -115,6 +116,7 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateInstance(const VkInstanceCreateInfo* pCre
     if(result == VK_SUCCESS) {{
         initInstanceTable(*pInstance, fpGetInstanceProcAddr);
     }}
+
     // Output the API dump
     if (ApiDumpInstance::current().shouldDumpOutput()) {{
         switch(ApiDumpInstance::current().settings().format())
@@ -366,12 +368,39 @@ VKAPI_ATTR {funcReturn} VKAPI_CALL {funcName}({funcTypedParams})
 }}
 @end function
 
-EXPORT_FUNCTION VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL vkGetInstanceProcAddr(VkInstance instance, const char* pName)
+VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL api_dump_known_instance_functions(VkInstance instance, const char* pName)
 {{
     @foreach function where('{funcType}' in ['global', 'instance'] and '{funcName}' not in [ 'vkEnumerateDeviceExtensionProperties' ])
+    @if('${funcDispatchType}' == 'instance')
+    if(strcmp(pName, "{funcName}") == 0 && (!instance || instance_dispatch_table(instance)->{funcShortName}))
+    @end if
+    @if('${funcDispatchType}' != 'instance')
     if(strcmp(pName, "{funcName}") == 0)
+    @end if
         return reinterpret_cast<PFN_vkVoidFunction>({funcName});
     @end function
+
+    return nullptr;
+}}
+
+VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL api_dump_known_device_functions(VkDevice device, const char* pName)
+{{
+    @foreach function where('{funcType}' == 'device')
+    if(strcmp(pName, "{funcName}") == 0 && (!device || device_dispatch_table(device)->{funcShortName}))
+        return reinterpret_cast<PFN_vkVoidFunction>({funcName});
+    @end function
+
+    return nullptr;
+}}
+
+EXPORT_FUNCTION VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL vkGetInstanceProcAddr(VkInstance instance, const char* pName)
+{{
+    auto instance_func = api_dump_known_instance_functions(instance, pName);
+    if (instance_func) return instance_func;
+
+    // Make sure that device functions queried through GIPA works
+    auto device_func = api_dump_known_device_functions(NULL, pName);
+    if (device_func) return device_func;
 
     // Haven't created an instance yet, exit now since there is no instance_dispatch_table
     if(instance_dispatch_table(instance)->GetInstanceProcAddr == NULL)
@@ -381,10 +410,8 @@ EXPORT_FUNCTION VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL vkGetInstanceProcAddr(V
 
 EXPORT_FUNCTION VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL vkGetDeviceProcAddr(VkDevice device, const char* pName)
 {{
-    @foreach function where('{funcType}' == 'device')
-    if(strcmp(pName, "{funcName}") == 0)
-        return reinterpret_cast<PFN_vkVoidFunction>({funcName});
-    @end function
+    auto device_func = api_dump_known_device_functions(device, pName);
+    if (device_func) return device_func;
 
     // Haven't created a device yet, exit now since there is no device_dispatch_table
     if(device_dispatch_table(device)->GetDeviceProcAddr == NULL)
@@ -431,23 +458,6 @@ void dump_text_pNext_trampoline(const void* object, const ApiDumpSettings& setti
 void dump_text_{unName}(const {unName}& object, const ApiDumpSettings& settings, int indents);
 @end union
 
-//============================= typedefs ==============================//
-
-@if(not {isVideoGeneration})
-// Functions for dumping typedef types that the codegen scripting can't handle
-#if defined(VK_ENABLE_BETA_EXTENSIONS)
-void dump_text_VkAccelerationStructureTypeKHR(VkAccelerationStructureTypeKHR object, const ApiDumpSettings& settings, int indents);
-void dump_text_VkAccelerationStructureTypeNV(VkAccelerationStructureTypeNV object, const ApiDumpSettings& settings, int indents)
-{{
-    dump_text_VkAccelerationStructureTypeKHR(object, settings, indents);
-}}
-void dump_text_VkBuildAccelerationStructureFlagsKHR(VkBuildAccelerationStructureFlagsKHR object, const ApiDumpSettings& settings, int indents);
-void dump_text_VkBuildAccelerationStructureFlagsNV(VkBuildAccelerationStructureFlagsNV object, const ApiDumpSettings& settings, int indents)
-{{
-    dump_text_VkBuildAccelerationStructureFlagsKHR(object, settings, indents);
-}}
-#endif // VK_ENABLE_BETA_EXTENSIONS
-@end if
 //=========================== Type Implementations ==========================//
 
 @foreach type where('{etyName}' != 'void')
@@ -693,6 +703,9 @@ void dump_text_{unName}(const {unName}& object, const ApiDumpSettings& settings,
         settings.stream() << "address (Union):\\n";
 
     @foreach choice
+    @if('{chcCondition}' != 'None')
+    if({chcCondition})
+    @end if
     @if({chcPtrLevel} == 0)
     dump_text_value<const {chcBaseType}>(object.{chcName}, settings, "{chcType}", "{chcName}", indents + 1, dump_text_{chcTypeID}); // LET
     @end if
@@ -724,8 +737,8 @@ void dump_text_pNext_struct_name(const void* object, const ApiDumpSettings& sett
             break;
         @end if
     @end struct
-        case 47: // VK_STRUCTURE_TYPE_LOADER_INSTANCE_CREATE_INFO
-        case 48: // VK_STRUCTURE_TYPE_LOADER_DEVICE_CREATE_INFO
+        case VK_STRUCTURE_TYPE_LOADER_INSTANCE_CREATE_INFO: // 47
+        case VK_STRUCTURE_TYPE_LOADER_DEVICE_CREATE_INFO: // 48
         default:
             settings.stream() << "NULL\\n";
             break;
@@ -744,8 +757,8 @@ void dump_text_pNext_trampoline(const void* object, const ApiDumpSettings& setti
         @end if
     @end struct
 
-    case 47: // VK_STRUCTURE_TYPE_LOADER_INSTANCE_CREATE_INFO
-    case 48: // VK_STRUCTURE_TYPE_LOADER_DEVICE_CREATE_INFO
+    case VK_STRUCTURE_TYPE_LOADER_INSTANCE_CREATE_INFO: // 47
+    case VK_STRUCTURE_TYPE_LOADER_DEVICE_CREATE_INFO: // 48
         if(base_struct->pNext != nullptr){{
             dump_text_pNext_trampoline(reinterpret_cast<const void*>(base_struct->pNext), settings, indents);
         }} else {{
@@ -840,24 +853,6 @@ void dump_html_pNext_trampoline(const void* object, const ApiDumpSettings& setti
 @foreach union
 void dump_html_{unName}(const {unName}& object, const ApiDumpSettings& settings, int indents);
 @end union
-
-//============================= typedefs ==============================//
-
-@if(not {isVideoGeneration})
-// Functions for dumping typedef types that the codegen scripting can't handle
-#if defined(VK_ENABLE_BETA_EXTENSIONS)
-void dump_html_VkAccelerationStructureTypeKHR(VkAccelerationStructureTypeKHR object, const ApiDumpSettings& settings, int indents);
-void dump_html_VkAccelerationStructureTypeNV(VkAccelerationStructureTypeNV object, const ApiDumpSettings& settings, int indents)
-{{
-    dump_html_VkAccelerationStructureTypeKHR(object, settings, indents);
-}}
-void dump_html_VkBuildAccelerationStructureFlagsKHR(VkBuildAccelerationStructureFlagsKHR object, const ApiDumpSettings& settings, int indents);
-void dump_html_VkBuildAccelerationStructureFlagsNV(VkBuildAccelerationStructureFlagsNV object, const ApiDumpSettings& settings, int indents)
-{{
-    dump_html_VkBuildAccelerationStructureFlagsKHR(object, settings, indents);
-}}
-#endif // VK_ENABLE_BETA_EXTENSIONS
-@end if
 
 //=========================== Type Implementations ==========================//
 
@@ -1103,6 +1098,9 @@ void dump_html_{unName}(const {unName}& object, const ApiDumpSettings& settings,
     settings.stream() << "</div></summary>";
 
     @foreach choice
+    @if('{chcCondition}' != 'None')
+    if({chcCondition})
+    @end if
     @if({chcPtrLevel} == 0)
     dump_html_value<const {chcBaseType}>(object.{chcName}, settings, "{chcType}", "{chcName}", indents + 1, dump_html_{chcTypeID});
     @end if
@@ -1129,8 +1127,8 @@ void dump_html_pNext_trampoline(const void* object, const ApiDumpSettings& setti
         @end if
     @end struct
 
-    case 47: // VK_STRUCTURE_TYPE_LOADER_INSTANCE_CREATE_INFO
-    case 48: // VK_STRUCTURE_TYPE_LOADER_DEVICE_CREATE_INFO
+    case VK_STRUCTURE_TYPE_LOADER_INSTANCE_CREATE_INFO: // 47
+    case VK_STRUCTURE_TYPE_LOADER_DEVICE_CREATE_INFO: // 48
         if(static_cast<const VkBaseInStructure*>(object)->pNext != nullptr){{
             dump_html_pNext_trampoline(static_cast<const void*>(static_cast<const VkBaseInStructure*>(object)->pNext), settings, indents);
         }} else {{
@@ -1227,24 +1225,6 @@ void dump_json_pNext_trampoline(const void* object, const ApiDumpSettings& setti
 @foreach union
 void dump_json_{unName}(const {unName}& object, const ApiDumpSettings& settings, int indents);
 @end union
-
-//============================= typedefs ==============================//
-
-@if(not {isVideoGeneration})
-// Functions for dumping typedef types that the codegen scripting can't handle
-#if defined(VK_ENABLE_BETA_EXTENSIONS)
-void dump_json_VkAccelerationStructureTypeKHR(VkAccelerationStructureTypeKHR object, const ApiDumpSettings& settings, int indents);
-void dump_json_VkAccelerationStructureTypeNV(VkAccelerationStructureTypeNV object, const ApiDumpSettings& settings, int indents)
-{{
-    dump_json_VkAccelerationStructureTypeKHR(object, settings, indents);
-}}
-void dump_json_VkBuildAccelerationStructureFlagsKHR(VkBuildAccelerationStructureFlagsKHR object, const ApiDumpSettings& settings, int indents);
-void dump_json_VkBuildAccelerationStructureFlagsNV(VkBuildAccelerationStructureFlagsNV object, const ApiDumpSettings& settings, int indents)
-{{
-    dump_json_VkBuildAccelerationStructureFlagsKHR(object, settings, indents);
-}}
-#endif // VK_ENABLE_BETA_EXTENSIONS
-@end if
 
 //=========================== Type Implementations ==========================//
 
@@ -1468,8 +1448,11 @@ void dump_json_{unName}(const {unName}& object, const ApiDumpSettings& settings,
     settings.stream() << settings.indentation(indents) << "[\\n";
 
     @foreach choice
-    @if({chcIndex} != 0)
-    settings.stream() << ",\\n";
+    @if('{chcCondition}' != 'None')
+    if({chcCondition})
+    @end if
+    @if({chcIndex} != 0 and '{chcCondition}' == 'None')
+    settings.stream() << ",\\n"; // Only need commas when more than one field is printed
     @end if
     @if({chcPtrLevel} == 0)
     dump_json_value<const {chcBaseType}>(object.{chcName}, NULL, settings, "{chcType}", "{chcName}", {chcIsStruct}, {chcIsUnion}, indents + 2, dump_json_{chcTypeID});
@@ -1499,8 +1482,8 @@ void dump_json_pNext_trampoline(const void* object, const ApiDumpSettings& setti
         @end if
     @end struct
 
-    case 47: // VK_STRUCTURE_TYPE_LOADER_INSTANCE_CREATE_INFO
-    case 48: // VK_STRUCTURE_TYPE_LOADER_DEVICE_CREATE_INFO
+    case VK_STRUCTURE_TYPE_LOADER_INSTANCE_CREATE_INFO: // 47
+    case VK_STRUCTURE_TYPE_LOADER_DEVICE_CREATE_INFO: // 48
         if(static_cast<const VkBaseInStructure*>(object)->pNext != nullptr){{
             dump_json_pNext_trampoline(static_cast<const void*>(static_cast<const VkBaseInStructure*>(object)->pNext), settings, indents);
         }} else {{
@@ -1572,7 +1555,7 @@ void dump_json_{funcName}(ApiDumpInstance& dump_inst, {funcTypedParams})
 @end function
 """
 
-POINTER_TYPES = ['void', 'xcb_connection_t', 'Display', 'SECURITY_ATTRIBUTES', 'ANativeWindow', 'AHardwareBuffer']
+POINTER_TYPES = ['void', 'xcb_connection_t', 'Display', 'SECURITY_ATTRIBUTES', 'ANativeWindow', 'AHardwareBuffer', 'wl_display', '_screen_context', '_screen_window', '_screen_buffer']
 
 TRACKED_STATE = {
     'vkAllocateCommandBuffers':
@@ -1593,51 +1576,35 @@ TRACKED_STATE = {
 
 PARAMETER_STATE = {
     'VkPipelineViewportStateCreateInfo': {
-        'VkGraphicsPipelineCreateInfo': [
-            {
-                'name': 'is_dynamic_viewport',
-                'type': 'bool',
-                'stmt':
-                    'ApiDumpInstance::current().setIsDynamicViewport(' +
-                    'object.pDynamicState && ' +
-                    'std::count(' +
-                        'object.pDynamicState->pDynamicStates, ' +
-                        'object.pDynamicState->pDynamicStates + object.pDynamicState->dynamicStateCount, ' +
-                        'VK_DYNAMIC_STATE_VIEWPORT' +
-                    ') > 0);',
-             },
-             {
-                'name':'is_dynamic_scissor',
-                'type': 'bool',
-                'stmt':
-                    'ApiDumpInstance::current().setIsDynamicScissor(' +
-                    'object.pDynamicState && ' +
-                    'std::count(' +
-                        'object.pDynamicState->pDynamicStates, ' +
-                        'object.pDynamicState->pDynamicStates + object.pDynamicState->dynamicStateCount, ' +
-                        'VK_DYNAMIC_STATE_SCISSOR' +
-                    '));',
-            },
-        ],
+        'VkGraphicsPipelineCreateInfo':
+            'ApiDumpInstance::current().setIsDynamicViewport('
+            'object.pDynamicState && '
+            'std::count('
+                'object.pDynamicState->pDynamicStates, '
+                'object.pDynamicState->pDynamicStates + object.pDynamicState->dynamicStateCount, '
+                'VK_DYNAMIC_STATE_VIEWPORT'
+            ') > 0);'
+            'ApiDumpInstance::current().setIsDynamicScissor('
+            'object.pDynamicState && '
+            'std::count('
+                'object.pDynamicState->pDynamicStates, '
+                'object.pDynamicState->pDynamicStates + object.pDynamicState->dynamicStateCount, '
+                'VK_DYNAMIC_STATE_SCISSOR'
+            '));'
+            'ApiDumpInstance::current().setIsGPLPreRasterOrFragmentShader(checkForGPLPreRasterOrFragmentShader(object));',
     },
     'VkCommandBufferBeginInfo': {
-        'vkBeginCommandBuffer': [
-            {
-                'name': 'cmd_buffer',
-                'type': 'VkCommandBuffer',
-                'stmt': 'ApiDumpInstance::current().setCmdBuffer(commandBuffer);',
-            },
-        ],
+        'vkBeginCommandBuffer':
+            'ApiDumpInstance::current().setCmdBuffer(commandBuffer);',
     },
     'VkPhysicalDeviceMemoryProperties': {
-        'VkPhysicalDeviceMemoryProperties2': [
-            {
-                'name': 'memoryProperties',
-                'type': 'VkPhysicalDeviceMemoryProperties',
-                'stmt': 'ApiDumpInstance::current().setMemoryHeapCount(object.memoryProperties.memoryHeapCount);',
-            },
-        ],
+        'VkPhysicalDeviceMemoryProperties2':
+            'ApiDumpInstance::current().setMemoryHeapCount(object.memoryProperties.memoryHeapCount);',
     },
+    'VkDescriptorDataEXT': {
+        'VkDescriptorGetInfoEXT':
+            'ApiDumpInstance::current().setDescriptorType(object.type);',
+    }
 }
 
 VALIDITY_CHECKS = {
@@ -1679,6 +1646,24 @@ VALIDITY_CHECKS = {
             '(object.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER) || ' +
             '(object.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER)',
     },
+    'VkDescriptorDataEXT':{
+        'pSampler': 'ApiDumpInstance::current().getDescriptorType() == VK_DESCRIPTOR_TYPE_SAMPLER',
+        'pCombinedImageSampler': 'ApiDumpInstance::current().getDescriptorType() == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER',
+        'pInputAttachmentImage': 'ApiDumpInstance::current().getDescriptorType() == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT',
+        'pSampledImage': 'ApiDumpInstance::current().getDescriptorType() == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE',
+        'pStorageImage': 'ApiDumpInstance::current().getDescriptorType() == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE',
+        'pUniformTexelBuffer': 'ApiDumpInstance::current().getDescriptorType() == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER',
+        'pStorageTexelBuffer': 'ApiDumpInstance::current().getDescriptorType() == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER',
+        'pUniformBuffer': 'ApiDumpInstance::current().getDescriptorType() == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER',
+        'pStorageBuffer': 'ApiDumpInstance::current().getDescriptorType() == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER',
+        'accelerationStructure': 'ApiDumpInstance::current().getDescriptorType() == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR',
+    },
+    'VkPipelineRenderingCreateInfo': {
+        'colorAttachmentCount': '!ApiDumpInstance::current().getIsGPLPreRasterOrFragmentShader()',
+        'pColorAttachmentFormats': '!ApiDumpInstance::current().getIsGPLPreRasterOrFragmentShader()',
+        'depthAttachmentFormat': '!ApiDumpInstance::current().getIsGPLPreRasterOrFragmentShader()',
+        'stencilAttachmentFormat': '!ApiDumpInstance::current().getIsGPLPreRasterOrFragmentShader()',
+    }
 }
 
 # These types are defined in both video.xml and vk.xml. Because duplicate functions aren't allowed,
@@ -1779,9 +1764,6 @@ class ApiDumpOutputGenerator(OutputGenerator):
 
         self.registryFile = registryFile
 
-        # Used to track duplications (thanks 1.1 spec)
-        self.trackedTypes = []
-
     def beginFile(self, genOpts):
         gen.OutputGenerator.beginFile(self, genOpts)
         self.format = genOpts.input
@@ -1793,7 +1775,7 @@ class ApiDumpOutputGenerator(OutputGenerator):
             root = self.registry.reg
 
         for node in root.find('extensions').findall('extension'):
-            if node.get('supported') == 'vulkan': # dont print unsupported extensions
+            if 'vulkan' in node.get('supported'): # dont print unsupported extensions
                 ext = VulkanExtension(node)
                 self.extensions[ext.name] = ext
                 for item in ext.vktypes:
@@ -1857,6 +1839,12 @@ class ApiDumpOutputGenerator(OutputGenerator):
                     variable.is_struct = True
                 if variable.typeID in self.unions:
                     variable.is_union = True
+
+        # Replace any types that are aliases with the non-aliased type
+        for struct in self.structs.values():
+            for member in struct.members:
+                if member.typeID in self.aliases:
+                    member.typeID = self.aliases[member.typeID]
 
 
         # Find every @foreach, @if, and @end
@@ -1955,12 +1943,8 @@ class ApiDumpOutputGenerator(OutputGenerator):
         gen.OutputGenerator.genGroup(self, groupinfo, groupName, alias)
 
         if alias is not None:
-            trackedName = alias
-        else:
-            trackedName = groupName
-        if trackedName in self.trackedTypes:
+            self.aliases[groupName] = alias
             return
-        self.trackedTypes.append(trackedName)
 
         if groupinfo.elem.get('type') == 'bitmask':
             self.bitmasks[groupinfo.elem.get('name')] = VulkanBitmask(groupinfo.elem, self.extensions)
@@ -1971,14 +1955,8 @@ class ApiDumpOutputGenerator(OutputGenerator):
         gen.OutputGenerator.genType(self, typeinfo, name, alias)
 
         if alias is not None:
-            trackedName = alias
-            if typeinfo.elem.get('category') == 'struct':
-                self.aliases[name] = alias
-        else:
-            trackedName = name
-        if trackedName in self.trackedTypes:
+            self.aliases[name] = alias
             return
-        self.trackedTypes.append(trackedName)
 
         if typeinfo.elem.get('category') == 'struct':
             self.structs[typeinfo.elem.get('name')] = VulkanStruct(typeinfo.elem, self.constants, self.enums)
@@ -2190,8 +2168,7 @@ class VulkanVariable:
 
         self.parameterStorage = ''
         if self.typeID in PARAMETER_STATE and parentName in PARAMETER_STATE[self.typeID]:
-            for states in PARAMETER_STATE[self.typeID][parentName]:
-                self.parameterStorage += states['stmt']
+            self.parameterStorage = PARAMETER_STATE[self.typeID][parentName]
 
         self.is_struct = False
         self.is_union = False
@@ -2504,9 +2481,6 @@ class VulkanHandle:
             'hdlParent': self.parent,
         }
 
-def str_VkStructureTypeToEnum(structureType):
-    return structureType.title().replace('_', '').replace('VkStructureType','Vk')
-
 class VulkanStruct:
 
     class Member(VulkanVariable):
@@ -2555,6 +2529,7 @@ class VulkanStruct:
                 for opt in enums['VkStructureType'].options:
                     if(member.structValues  == opt.name):
                         self.structureIndex = opt.value
+                        break
 
         # The xml doesn't contain the relevant information here since the struct contains 'fixed' length arrays.
         # Thus we have to fix up the variable such that the length member corresponds to the runtime length, not compile time.
@@ -2616,6 +2591,11 @@ class VulkanUnion:
             VulkanVariable.__init__(self, rootNode, constants, None, parentName)
             self.index = index
 
+             # Search for a member condition
+            self.condition = None
+            if parentName in VALIDITY_CHECKS and self.name in VALIDITY_CHECKS[parentName]:
+                self.condition = VALIDITY_CHECKS[parentName][self.name]
+
         def values(self):
             return {
                 'chcName': self.name,
@@ -2625,6 +2605,7 @@ class VulkanUnion:
                 'chcChildType': self.childType,
                 'chcPtrLevel': self.pointerLevels,
                 'chcLength': self.arrayLength,
+                'chcCondition': self.condition,
                 #'chcLengthIsMember': self.lengthMember,
                 'chcIndex': self.index,
                 'chcIsStruct': 'true' if self.is_struct else 'false',

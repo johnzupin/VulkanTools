@@ -1,2 +1,2 @@
-etc/vulkan/explicit_layer.d usr/share/vulkan
+usr/share/vulkan/explicit_layer.d
 usr/lib/x86_64-linux-gnu/libVkLayer*.so

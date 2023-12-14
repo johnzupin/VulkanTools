@@ -1,3 +1,156 @@
+lunarg-tools (1.3.273.0~rc1-1lunarg22.04-1) jammy; urgency=medium
+
+  [ Charles Giessen ]
+  * repo: Remove Vulkan-Layer-Factory
+  * docs: Update Readme
+
+  [ Juan Ramos ]
+  * Remove unused CMake build
+  * Ignore CMakeUserPresets.json
+  * Minor CMake cleanup
+  * ci: Cleanup GitHub Actions CI
+  * Delete CMakeUserPresets.json
+
+  [ Charles Giessen ]
+  * apidump: Use correct aliased types
+  * api_dump: Prevent crash in VkDescriptorDataEXT union
+  * apidump: Query device functions during GetInstanceProcAddr
+  * Enable VK_NV_cooperative_matrix
+  * Enable VK_QNX_external_memory_screen_buffer
+  * build: Use Vulkan-Loader on windows
+
+  [ Juan Ramos ]
+  * cmake: Remove cmake directory
+  * cmake: Cleanup Python Generation Code
+  * cmake: Remove excess cmake_minimum_required / project usage
+  * Remove external/googletest
+  * update update_deps.py
+  * Add googletest to known_good.json
+  * Utilize known_good.json for jsoncpp / valijson
+  * cmake: Fix -Wno-maybe-uninitialized
+  * Delete determine_vs_version.py
+  * cmake: Add UPDATE_DEPS support
+  * Get Android CMake build working
+  * Remove build-android
+  * CMake ensure important compiler flags/definitions are set
+  * docs: Remove deprecated Android build instructions
+
+  [ Charles Giessen ]
+  * layers: Use Vulkan-Utility-Libraries for dispatch table
+
+  [ Juan Ramos ]
+  * Fix known_good.json
+
+  [ Richard S. Wright Jr ]
+  * Add case for iOS builds with cmake
+
+  [ Mike Gorchak ]
+  * Add QNX types.
+
+  [ Christophe ]
+  * cmake: Enable MSVC parallel build
+  * layer: Use layer settings library
+  * vkconfig: Use layer settings library
+  * layers: Use layer settings library in layers code
+  * vkconfig: Fix warnings
+  * cmake: Add layer files to solution
+  * api-dump: Use layer settings library
+  * cmake: Update valijson version
+
+  [ Juan Ramos ]
+  * build: Remove VVL as a dependency
+
+  [ Charles Giessen ]
+  * apidump: Fix regression in the NoAddr setting
+  * build: Use Vulkan-Loader find_package support
+
+  [ Friedrich Vock ]
+  * apidump: Return NULL in GDPA for disabled extensions
+  * apidump: Return NULL in GIPA for disabled extensions
+
+  [ Charles Giessen ]
+  * layers: Update to new names in vk_dispatch_table.h
+  * apidump: Check for Graphics Pipeline Library properly.
+  * deps: Update to latest Vulkan-Utility-Libraries
+  * apidump: Fix regression in Environment Variable naming
+
+  [ Tony Barbour ]
+  * build: Update to 1.3.265 headers
+
+  [ Juan Ramos ]
+  * tests: Update to googletest v1.14.0
+
+  [ Tony Barbour ]
+  * build: Update to 1.3.268 headers
+
+  [ Charles Giessen ]
+  * deps: Mark Vulkan-Tools as a test dependency
+  * screenshot: Always add queues
+  * apidump: Append file extension is not present
+
+  [ Juan Ramos ]
+  * scripts: Update update_deps.py
+
+  [ Richard S. Wright Jr ]
+  * Unit test on macOS potential fix
+
+  [ Juan Ramos ]
+  * ci: Remove format check in CI
+  * ci: Cleanup CI
+  * Fix qmake build
+  * Don't build vkvia when platform is MinGW
+  * ci: Add dependabot
+  * ci: Add Ubuntu Backompat
+
+  [ dependabot[bot] ]
+  * build(deps): bump actions/checkout from 3 to 4
+  * Use jsoncpp package config support
+  * cmake: Only require the CXX compiler
+  * cmake: Cleanup scripts
+  * cmake: Cleanup Android usage
+  * ci: Delete scripts/github_ci_win.py
+  * cmake: Fix BUILD_WERROR
+  * docs: Update version tagging scheme
+  * cmake: Fix constant dirty builds
+  * scripts: Update dependencies to version 1.3.269
+  * Remove unused .pylintrc
+  * Add iOS build to CI
+  * Apply VK_ENABLE_BETA_EXTENSIONS judiciously
+  * docs: Update BUILD.md
+  * docs: Update CONTRIBUTING.md
+  * Fix vkvia regression
+  * cmake: Cleanup WSI code
+
+  [ Christophe ]
+  * vkconfig: Fix doc generator, no need for env name, it's generated
+
+  [ Juan Ramos ]
+  * Use pkg-config for jsoncpp if possible
+  * Remove highly questionable RPATH install code
+  * Remove VkLayer_utils_LIBRARY it doesn't exist anymore
+  * Remove pointless linker option
+  * Remove inconsistent CXX_STANDARD code
+  * Remove pointless if statement
+  * win32: Properly handle DEF files
+  * Remove CMake Wayland code
+  * Fix layer installation code
+  * Fix build failure
+  * Build screenshot layer for MacOS
+  * Remove unused environment variable code
+  * Fix screenshot error
+
+  [ dependabot[bot] ]
+  * build(deps): bump actions/setup-python from 4 to 5
+
+  [ Christophe ]
+  * vkconfig: automatically pick up default layer settings
+
+  [ John Zupin ]
+  * packaging: debian: update build deps
+  * packaging: debian: update patches
+
+ -- john <john@odin>  Thu, 14 Dec 2023 10:20:30 -0700
+
 lunarg-tools (1.3.261.0~rc1-1lunarg22.04-1) jammy; urgency=medium
 
   [ Pierre Moreau ]

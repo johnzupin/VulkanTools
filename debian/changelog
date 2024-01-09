@@ -1,3 +1,28 @@
+lunarg-tools (1.3.275.0~rc1-1lunarg22.04-1) jammy; urgency=medium
+
+  [ Christophe ]
+  * vkconfig: automatically pick up default layer settings
+
+  [ Juan Ramos ]
+  * Fix SDK regression
+
+  [ Charles Giessen ]
+  * apidump: Fix file setting being ignored
+
+  [ Juan Ramos ]
+  * scripts: Update dependencies to 1.3.273
+  * vkconfig: Fix MacOS icon
+
+  [ Charles Giessen ]
+  * build: Update headers to 1.3.275
+
+  [ Christophe ]
+  * vkconfig: Add load folder
+  * vkconfig: Add profiles enumeration from directory
+  * vkconfig: fix LOAD_FOLDER unit test
+
+ -- john <john@odin>  Tue, 09 Jan 2024 13:55:19 -0700
+
 lunarg-tools (1.3.273.0~rc1-1lunarg22.04-1) jammy; urgency=medium
 
   [ Charles Giessen ]

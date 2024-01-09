@@ -52,6 +52,9 @@ struct SettingDataString : public SettingData {
     bool Save(QJsonObject& json_setting) const override;
     std::string Export(ExportMode export_mode) const override;
 
+    const char* GetValue() const;
+    void SetValue(const char* value);
+
     std::string value;
 
    protected:

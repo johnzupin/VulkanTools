@@ -108,7 +108,7 @@ bool SettingDataFileLoad::Load(const QJsonObject& json_setting) {
     SettingDataString::Load(json_setting);
 
     if (this->meta->format == "PROFILE") {
-        this->profile_names = GetProfileNames(this->value);
+        this->profile_names = GetProfileNamesFromFile(this->value);
     }
     return true;
 }
@@ -141,6 +141,42 @@ void SettingDataFileSave::Copy(const SettingData* data) {
 }
 
 void SettingDataFileSave::Reset() { this->value = this->meta->default_value; }
+
+// SettingMetaFolderLoad
+
+const SettingType SettingMetaFolderLoad::TYPE(SETTING_LOAD_FOLDER);
+
+SettingMetaFolderLoad::SettingMetaFolderLoad(Layer& layer, const std::string& key) : SettingMetaFilesystem(layer, key, TYPE) {}
+
+SettingData* SettingMetaFolderLoad::Instantiate() {
+    SettingData* setting_data = new SettingDataFolderLoad(this);
+    setting_data->Reset();
+    this->instances.push_back(setting_data);
+    return setting_data;
+}
+
+// SettingDataFolderLoad
+
+SettingDataFolderLoad::SettingDataFolderLoad(const SettingMetaFolderLoad* meta)
+    : SettingDataFilesystem(meta->key, meta->type), meta(meta) {}
+
+void SettingDataFolderLoad::Copy(const SettingData* data) {
+    if (data->type != this->type) return;
+
+    const SettingDataFolderLoad* setting_data = static_cast<const SettingDataFolderLoad*>(data);
+    this->value = setting_data->value;
+}
+
+bool SettingDataFolderLoad::Load(const QJsonObject& json_setting) {
+    SettingDataString::Load(json_setting);
+
+    if (this->meta->format == "PROFILE") {
+        this->profile_names = GetProfileNamesFromDir(this->value);
+    }
+    return true;
+}
+
+void SettingDataFolderLoad::Reset() { this->value = this->meta->default_value; }
 
 // SettingMetaFolderSave
 

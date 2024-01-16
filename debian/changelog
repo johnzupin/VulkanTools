@@ -1,3 +1,16 @@
+lunarg-tools (1.3.275.0~rc2-1lunarg20.04-1) focal; urgency=medium
+
+  [ Mark Young ]
+  * VIA: Fix SDK detection
+
+  [ Christophe ]
+  * vkconfig: Update changelog
+  * vkconfig: fix date
+  * vkconfig: Fix portability built-in configuration
+  * vkconfig: Fix portability config built-in file
+
+ -- john <john@odin>  Tue, 16 Jan 2024 13:59:19 -0700
+
 lunarg-tools (1.3.275.0~rc1-1lunarg20.04-1) focal; urgency=medium
 
   [ Christophe ]

@@ -67,6 +67,16 @@
                 "name": "VK_LAYER_KHRONOS_profiles",
                 "rank": 5,
                 "settings": [
+                    {
+                        "key": "profile_dirs",
+                        "type": "LOAD_FOLDER",
+                        "value": "${VULKAN_CONTENT}/VK_LAYER_KHRONOS_profiles"
+                    },
+                    {
+                        "key": "profile_name",
+                        "type": "ENUM",
+                        "value": "VP_LUNARG_desktop_baseline_2023"
+                    }
                 ],
                 "state": "OVERRIDDEN"
             }

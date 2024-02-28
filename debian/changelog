@@ -1,3 +1,25 @@
+lunarg-tools (1.3.278.0~rc1-1lunarg20.04-1) focal; urgency=medium
+
+  [ Mark Young ]
+  * VIA: Fix SDK detection
+
+  [ Christophe ]
+  * vkconfig: Update changelog
+  * vkconfig: fix date
+  * vkconfig: Fix portability built-in configuration
+  * vkconfig: Fix portability config built-in file
+  * layers: Expose EXT_layer_settings from manifest
+  * vkconfig: Fix confusing synchronization built-in configuration
+  * vkconfig: Update synchronization built-in configuration
+
+  [ Richard S. Wright Jr ]
+  * vvl: Build as framework for ios
+
+  [ Charles Giessen ]
+  * build: Update to 1.3.278
+
+ -- john <john@odin>  Wed, 28 Feb 2024 11:00:56 -0700
+
 lunarg-tools (1.3.275.0~rc2-1lunarg20.04-1) focal; urgency=medium
 
   [ Mark Young ]

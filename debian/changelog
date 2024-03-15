@@ -1,3 +1,10 @@
+lunarg-tools (1.3.280.0~rc2-1lunarg22.04-1) jammy; urgency=medium
+
+  [ Charles Giessen ]
+  * build: Update volk to vulkan-sdk-1.3.280
+
+ -- john <john@odin>  Fri, 15 Mar 2024 11:41:07 -0600
+
 lunarg-tools (1.3.280.0~rc1-1lunarg22.04-1) jammy; urgency=medium
 
   [ Charles Giessen ]

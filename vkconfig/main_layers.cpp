@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2020-2021 Valve Corporation
- * Copyright (c) 2020-2021 LunarG, Inc.
+ * Copyright (c) 2020-2024 Valve Corporation
+ * Copyright (c) 2020-2024 LunarG, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
  */
 
 #include "main_layers.h"
+#include "configurator.h"
 
 #include "../vkconfig_core/configuration.h"
 #include "../vkconfig_core/override.h"
@@ -27,7 +28,7 @@
 #include <cassert>
 
 static int RunLayersOverride(const CommandLine& command_line) {
-    PathManager paths(command_line.command_vulkan_sdk);
+    PathManager paths(command_line.command_vulkan_sdk, SUPPORTED_CONFIG_FILES);
     Environment environment(paths);
     environment.Reset(Environment::DEFAULT);
 
@@ -42,12 +43,12 @@ static int RunLayersOverride(const CommandLine& command_line) {
     }
 
     // With command line, don't store the application list, it's always global, save and restore the setting
-    const bool use_application_list = environment.UseApplicationListOverrideMode();
-    environment.SetMode(OVERRIDE_MODE_LIST, false);
+    const bool use_application_list = environment.HasOverriddenApplications();
+    environment.SetUseApplicationList(false);
 
     const bool override_result = OverrideConfiguration(environment, layers.available_layers, configuration);
 
-    environment.SetMode(OVERRIDE_MODE_LIST, use_application_list);
+    environment.SetUseApplicationList(use_application_list);
 
     environment.Reset(Environment::SYSTEM);  // Don't change the system settings on exit
 
@@ -69,7 +70,7 @@ static int RunLayersOverride(const CommandLine& command_line) {
 }
 
 static int RunLayersSurrender(const CommandLine& command_line) {
-    PathManager paths(command_line.command_vulkan_sdk);
+    PathManager paths(command_line.command_vulkan_sdk, SUPPORTED_CONFIG_FILES);
     Environment environment(paths);
     environment.Reset(Environment::DEFAULT);
 
@@ -93,7 +94,7 @@ static int RunLayersSurrender(const CommandLine& command_line) {
 }
 
 static int RunLayersList(const CommandLine& command_line) {
-    PathManager paths(command_line.command_vulkan_sdk);
+    PathManager paths(command_line.command_vulkan_sdk, SUPPORTED_CONFIG_FILES);
     Environment environment(paths);
     environment.Reset(Environment::DEFAULT);
 
@@ -114,7 +115,7 @@ static int RunLayersList(const CommandLine& command_line) {
 }
 
 static int RunLayersVerbose(const CommandLine& command_line) {
-    PathManager paths(command_line.command_vulkan_sdk);
+    PathManager paths(command_line.command_vulkan_sdk, SUPPORTED_CONFIG_FILES);
     Environment environment(paths);
     environment.Reset(Environment::DEFAULT);
 

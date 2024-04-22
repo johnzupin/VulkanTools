@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2020-2021 Valve Corporation
- * Copyright (c) 2020-2021 LunarG, Inc.
+ * Copyright (c) 2020-2024 Valve Corporation
+ * Copyright (c) 2020-2024 LunarG, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,8 +27,6 @@
 #include <QMessageBox>
 #include <QFileInfoList>
 
-static const char *SUPPORTED_CONFIG_FILES[] = {"_2_2_3", "_2_2_2", "_2_2_1"};
-
 ConfigurationManager::ConfigurationManager(Environment &environment) : active_configuration(nullptr), environment(environment) {}
 
 ConfigurationManager::~ConfigurationManager() {}
@@ -48,10 +46,14 @@ void ConfigurationManager::LoadAllConfigurations(const std::vector<Layer> &avail
 
     const std::string base_config_path = GetPath(BUILTIN_PATH_CONFIG_REF);
 
-    for (std::size_t i = 0, n = countof(SUPPORTED_CONFIG_FILES); i < n; ++i) {
+    const std::vector<std::string> &SUPPORTED_CONFIG_FILES = environment.paths.SUPPORTED_CONFIG_FILES;
+
+    for (std::size_t i = 0, n = SUPPORTED_CONFIG_FILES.size(); i < n; ++i) {
         const std::string path = base_config_path + SUPPORTED_CONFIG_FILES[i];
         LoadConfigurationsPath(available_layers, path.c_str());
     }
+
+    this->SortConfigurations();
 
     RefreshConfiguration(available_layers);
 }
@@ -145,7 +147,9 @@ Configuration &ConfigurationManager::CreateConfiguration(const std::vector<Layer
 bool ConfigurationManager::HasFile(const Configuration &configuration) const {
     const std::string base_path = GetPath(BUILTIN_PATH_CONFIG_REF);
 
-    for (std::size_t i = 0, n = countof(SUPPORTED_CONFIG_FILES); i < n; ++i) {
+    const std::vector<std::string> &SUPPORTED_CONFIG_FILES = environment.paths.SUPPORTED_CONFIG_FILES;
+
+    for (std::size_t i = 0, n = SUPPORTED_CONFIG_FILES.size(); i < n; ++i) {
         const std::string path = base_path + SUPPORTED_CONFIG_FILES[i] + "/" + configuration.key + ".json";
 
         std::FILE *file = std::fopen(path.c_str(), "r");
@@ -160,7 +164,9 @@ bool ConfigurationManager::HasFile(const Configuration &configuration) const {
 void ConfigurationManager::RemoveConfigurationFiles() {
     const std::string base_path = GetPath(BUILTIN_PATH_CONFIG_REF);
 
-    for (std::size_t i = 0, n = countof(SUPPORTED_CONFIG_FILES); i < n; ++i) {
+    const std::vector<std::string> &SUPPORTED_CONFIG_FILES = environment.paths.SUPPORTED_CONFIG_FILES;
+
+    for (std::size_t i = 0, n = SUPPORTED_CONFIG_FILES.size(); i < n; ++i) {
         const std::string path = base_path + SUPPORTED_CONFIG_FILES[i];
 
         const QFileInfoList &configuration_files = GetJSONFiles(path.c_str());
@@ -173,7 +179,9 @@ void ConfigurationManager::RemoveConfigurationFiles() {
 void ConfigurationManager::RemoveConfigurationFile(const std::string &key) {
     const std::string base_path = GetPath(BUILTIN_PATH_CONFIG_REF);
 
-    for (std::size_t i = 0, n = countof(SUPPORTED_CONFIG_FILES); i < n; ++i) {
+    const std::vector<std::string> &SUPPORTED_CONFIG_FILES = environment.paths.SUPPORTED_CONFIG_FILES;
+
+    for (std::size_t i = 0, n = SUPPORTED_CONFIG_FILES.size(); i < n; ++i) {
         const std::string path = base_path + SUPPORTED_CONFIG_FILES[i];
 
         const QFileInfoList &configuration_files = GetJSONFiles(path.c_str());
@@ -207,8 +215,10 @@ void ConfigurationManager::RemoveConfiguration(const std::vector<Layer> &availab
     }
 
     std::swap(updated_configurations, available_configurations);
+    this->SortConfigurations();
 
     SetActiveConfiguration(available_layers, nullptr);
+    this->active_configuration = nullptr;
 }
 
 void ConfigurationManager::SetActiveConfiguration(const std::vector<Layer> &available_layers,
@@ -222,22 +232,33 @@ void ConfigurationManager::SetActiveConfiguration(const std::vector<Layer> &avai
 }
 
 void ConfigurationManager::SetActiveConfiguration(const std::vector<Layer> &available_layers, Configuration *active_configuration) {
-    this->active_configuration = active_configuration;
-
     bool surrender = false;
-    if (this->active_configuration != nullptr) {
-        assert(!this->active_configuration->key.empty());
-        environment.Set(ACTIVE_CONFIGURATION, this->active_configuration->key.c_str());
-        surrender = !this->active_configuration->HasOverride();
-    } else {
-        this->active_configuration = nullptr;
-        surrender = true;
+
+    if (environment.GetMode() != LAYERS_MODE_BY_CONFIGURATOR_ALL_DISABLED) {
+        if (active_configuration != nullptr) {
+            assert(!active_configuration->key.empty());
+            environment.Set(ACTIVE_CONFIGURATION, active_configuration->key.c_str());
+            surrender = false;  //! active_configuration->HasOverride();
+        } else {
+            surrender = true;
+        }
     }
 
-    if (surrender) {
+    if (surrender || environment.GetMode() == LAYERS_MODE_BY_APPLICATIONS) {
         SurrenderConfiguration(environment);
+    } else if (environment.GetMode() == LAYERS_MODE_BY_CONFIGURATOR_ALL_DISABLED) {
+        Configuration temp_configuration;
+        temp_configuration.key = "_TempConfiguration";
+        temp_configuration.parameters = GatherParameters(temp_configuration.parameters, available_layers);
+
+        for (std::size_t i = 0, n = temp_configuration.parameters.size(); i < n; ++i) {
+            temp_configuration.parameters[i].state = LAYER_STATE_EXCLUDED;
+        }
+
+        OverrideConfiguration(environment, available_layers, temp_configuration);
     } else {
-        assert(this->active_configuration != nullptr);
+        this->active_configuration = active_configuration;
+        assert(active_configuration != nullptr);
         OverrideConfiguration(environment, available_layers, *active_configuration);
     }
 }
@@ -245,14 +266,15 @@ void ConfigurationManager::SetActiveConfiguration(const std::vector<Layer> &avai
 void ConfigurationManager::RefreshConfiguration(const std::vector<Layer> &available_layers) {
     const std::string active_configuration_name = environment.Get(ACTIVE_CONFIGURATION);
 
-    if (!active_configuration_name.empty() && environment.UseOverride()) {
+    if (active_configuration_name.empty()) {
+        environment.Set(ACTIVE_CONFIGURATION, "");
+        SetActiveConfiguration(available_layers, nullptr);
+    } else {
         Configuration *active_configuration = FindByKey(available_configurations, active_configuration_name.c_str());
         if (active_configuration == nullptr) {
             environment.Set(ACTIVE_CONFIGURATION, "");
         }
         SetActiveConfiguration(available_layers, active_configuration);
-    } else {
-        SetActiveConfiguration(available_layers, nullptr);
     }
 }
 

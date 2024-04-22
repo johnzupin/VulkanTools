@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2020-2021 Valve Corporation
- * Copyright (c) 2020-2021 LunarG, Inc.
+ * Copyright (c) 2020-2024 Valve Corporation
+ * Copyright (c) 2020-2024 LunarG, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -211,10 +211,10 @@ void SettingsTreeManager::CleanupGUI() {
     Configurator &configurator = Configurator::Get();
 
     Configuration *configuration = configurator.configurations.GetActiveConfiguration();
-    if (configuration == nullptr) return;
-
-    configuration->setting_tree_state.clear();
-    GetTreeState(configuration->setting_tree_state, this->tree->invisibleRootItem());
+    if (configuration != nullptr) {
+        configuration->setting_tree_state.clear();
+        GetTreeState(configuration->setting_tree_state, this->tree->invisibleRootItem());
+    }
 
     this->validation.reset();
 

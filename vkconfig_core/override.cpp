@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2020-2022 Valve Corporation
- * Copyright (c) 2020-2022 LunarG, Inc.
+ * Copyright (c) 2020-2024 Valve Corporation
+ * Copyright (c) 2020-2024 LunarG, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -97,16 +97,22 @@ bool WriteLayersOverride(const Environment& environment, const std::vector<Layer
 
     QJsonArray json_overridden_layers;
     QJsonArray json_excluded_layers;
-    for (std::size_t i = 0, n = configuration.parameters.size(); i < n; ++i) {
-        const Parameter& parameter = configuration.parameters[i];
-        if (!(parameter.platform_flags & (1 << VKC_PLATFORM))) {
-            continue;
+    if (environment.GetMode() == LAYERS_MODE_BY_CONFIGURATOR_ALL_DISABLED) {
+        for (std::size_t i = 0, n = available_layers.size(); i < n; ++i) {
+            json_excluded_layers.append(available_layers[i].key.c_str());
         }
+    } else {
+        for (std::size_t i = 0, n = configuration.parameters.size(); i < n; ++i) {
+            const Parameter& parameter = configuration.parameters[i];
+            if (!(parameter.platform_flags & (1 << VKC_PLATFORM))) {
+                continue;
+            }
 
-        if (parameter.state == LAYER_STATE_OVERRIDDEN)
-            json_overridden_layers.append(parameter.key.c_str());
-        else if (parameter.state == LAYER_STATE_EXCLUDED)
-            json_excluded_layers.append(parameter.key.c_str());
+            if (parameter.state == LAYER_STATE_OVERRIDDEN)
+                json_overridden_layers.append(parameter.key.c_str());
+            else if (parameter.state == LAYER_STATE_EXCLUDED)
+                json_excluded_layers.append(parameter.key.c_str());
+        }
     }
 
     QJsonObject disable;
@@ -124,17 +130,19 @@ bool WriteLayersOverride(const Environment& environment, const std::vector<Layer
     layer.insert("disable_environment", disable);
 
     // This has to contain something, or it will apply globally!
-    if (environment.UseApplicationListOverrideMode() && environment.HasOverriddenApplications()) {
+    if (environment.GetUseApplicationList() && environment.HasOverriddenApplications()) {
         const std::vector<Application>& applications = environment.GetApplications();
 
         QJsonArray json_applist;
         for (std::size_t i = 0, n = applications.size(); i < n; ++i) {
             if (!applications[i].override_layers) continue;
 
-            const std::string& executable_path(
-                ConvertNativeSeparators(QFileInfo(applications[i].executable_path.c_str()).absoluteFilePath().toStdString()));
-            assert(QFileInfo(executable_path.c_str()).exists());
-            json_applist.append(executable_path.c_str());
+            const std::string& executable_path =
+                ConvertNativeSeparators(ReplaceBuiltInVariable(applications[i].executable_path.c_str()));
+
+            const std::string& absolute_path(QFileInfo(executable_path.c_str()).absoluteFilePath().toStdString());
+            assert(QFileInfo(absolute_path.c_str()).exists());
+            json_applist.append(absolute_path.c_str());
         }
 
         layer.insert("app_keys", json_applist);

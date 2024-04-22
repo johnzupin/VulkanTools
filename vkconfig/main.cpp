@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2020-2022 Valve Corporation
- * Copyright (c) 2020-2022 LunarG, Inc.
+ * Copyright (c) 2020-2024 Valve Corporation
+ * Copyright (c) 2020-2024 LunarG, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,9 +24,17 @@
 #include "main_doc.h"
 #include "main_signal.h"
 
+#include "../vkconfig_core/path.h"
+
 #include <cassert>
 
+#ifdef _WIN32
+#include <Windows.h>
+#endif
+
 int main(int argc, char* argv[]) {
+    ::vkconfig_version = "vkconfig";
+
     InitSignals();
 
     const CommandLine command_line(argc, argv);
@@ -36,6 +44,15 @@ int main(int argc, char* argv[]) {
         command_line.usage();
         return -1;
     }
+
+#ifdef _WIN32
+    if (command_line.command != COMMAND_GUI || command_line.command != COMMAND_VULKAN_SDK) {
+        if (AttachConsole(ATTACH_PARENT_PROCESS)) {
+            freopen("CONOUT$", "w", stdout);
+            freopen("CONOUT$", "w", stderr);
+        }
+    }
+#endif
 
     switch (command_line.command) {
         case COMMAND_SHOW_USAGE: {

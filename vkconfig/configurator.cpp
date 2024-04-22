@@ -47,14 +47,12 @@ Configurator &Configurator::Get(const std::string &VULKAN_SDK) {
 }
 
 Configurator::Configurator(const std::string &VULKAN_SDK)
-    : path(VULKAN_SDK), environment(path), layers(environment), configurations(environment), request_vulkan_status(true) {}
+    : path(VULKAN_SDK, SUPPORTED_CONFIG_FILES), environment(path), layers(environment), configurations(environment) {}
 
 Configurator::~Configurator() {
     configurations.SaveAllConfigurations(layers.available_layers);
 
-    if (!environment.UsePersistentOverrideMode()) {
-        SurrenderConfiguration(environment);
-    }
+    SurrenderConfiguration(environment);
 }
 
 bool Configurator::Init() {
@@ -123,8 +121,6 @@ void Configurator::ActivateConfiguration(const std::string &configuration_name) 
             ActivateConfiguration(configuration->key);
         }
     }
-
-    this->request_vulkan_status = true;
 }
 
 bool Configurator::SupportDifferentLayerVersions(Version *return_loader_version) const {

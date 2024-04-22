@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2020-2021 Valve Corporation
- * Copyright (c) 2020-2021 LunarG, Inc.
+ * Copyright (c) 2020-2024 Valve Corporation
+ * Copyright (c) 2020-2024 LunarG, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -97,9 +97,11 @@ void AppendString(std::vector<std::string>& list, const std::string& value);
 
 bool IsStringFound(const std::vector<std::string>& list, const std::string& value);
 
-std::vector<std::string> SplitSpace(const std::string& value);
+std::string TrimString(const std::string& str, const std::string& whitespace = " \t");
 
 std::vector<std::string> Split(const std::string& value, const std::string& delimiter);
+
+std::vector<std::string> SplitSpace(const std::string& value);
 
 std::string Merge(const std::vector<std::string>& value, const std::string& delimiter);
 

@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2020-2021 Valve Corporation
- * Copyright (c) 2020-2021 LunarG, Inc.
+ * Copyright (c) 2020-2024 Valve Corporation
+ * Copyright (c) 2020-2024 LunarG, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,19 +52,7 @@ typedef enum _pe_architecture {
     PE_ARCHITECTURE_x64 = 0x020B
 } PE_ARCHITECTURE;
 
-LPVOID GetOffsetFromRva(IMAGE_DOS_HEADER *pDos, IMAGE_NT_HEADERS *pNt, DWORD rva) {
-    IMAGE_SECTION_HEADER *pSecHd = IMAGE_FIRST_SECTION(pNt);
-    for (unsigned long i = 0; i < pNt->FileHeader.NumberOfSections; ++i, ++pSecHd) {
-        // Lookup which section contains this RVA so we can translate the VA to a file offset
-        if (rva >= pSecHd->VirtualAddress && rva < (pSecHd->VirtualAddress + pSecHd->Misc.VirtualSize)) {
-            DWORD delta = pSecHd->VirtualAddress - pSecHd->PointerToRawData;
-            return (LPVOID)MKPTR(pDos, rva - delta);
-        }
-    }
-    return NULL;
-}
-
-PE_ARCHITECTURE GetImageArchitecture(void *pImageBase) {
+static PE_ARCHITECTURE GetImageArchitecture(void *pImageBase) {
     // Parse and validate the DOS header
     IMAGE_DOS_HEADER *pDosHd = (IMAGE_DOS_HEADER *)pImageBase;
     if (IsBadReadPtr(pDosHd, sizeof(pDosHd->e_magic)) || pDosHd->e_magic != IMAGE_DOS_SIGNATURE) return PE_ARCHITECTURE_UNKNOWN;
@@ -216,7 +204,6 @@ void LayersDialog::Reload() {
     this->configuration.user_defined_paths = user_defined_paths;
 
     configurator.configurations.RefreshConfiguration(configurator.layers.available_layers);
-    configurator.request_vulkan_status = true;
 }
 
 void LayersDialog::UpdateUI() {
@@ -314,16 +301,33 @@ void LayersDialog::AddLayerItem(const Parameter &parameter) {
     WidgetTreeFriendlyComboBox *widget = new WidgetTreeFriendlyComboBox(item);
     ui->layerTree->setItemWidget(item, 1, widget);
 
-    const QFontMetrics fm = ui->layerTree->fontMetrics();
-    const QSize combo_size = fm.size(Qt::TextSingleLine, "Application-Controlled") * 1.6;
-    item->setSizeHint(1, combo_size);
+    std::string tooltip;
 
-    widget->addItem(is_implicit_layer ? "Implicitly On" : "Application-Controlled");
+    bool disable_value = false;
+    if (!layer->disable_env.empty()) {
+        disable_value = !qgetenv(layer->disable_env.c_str()).isEmpty();
+
+        tooltip += layer->disable_env + format(": %s", disable_value ? "true" : "false");
+    }
+
+    bool enable_value = false;
+    if (!layer->enable_env.empty()) {
+        enable_value = qgetenv(layer->enable_env.c_str()).toStdString() == layer->enable_value;
+
+        tooltip += "; " + layer->enable_env + format(": %s", enable_value ? "true" : "false");
+    }
+
+    const std::string implicit_string = !disable_value || (!layer->enable_env.empty() && enable_value)
+                                            ? "Env Variables Controlled: On"
+                                            : "Env Variables Controlled: Off";
+
+    widget->addItem(is_implicit_layer ? implicit_string.c_str() : "Application-Controlled");
     widget->addItem("Overridden / Forced On");
     widget->addItem("Excluded / Forced Off");
     widget->setCurrentIndex(parameter.state);
+    widget->setToolTip(tooltip.c_str());
 
-    connect(widget, SIGNAL(selectionMade(QTreeWidgetItem *, int)), this, SLOT(layerUseChanged(QTreeWidgetItem *, int)));
+    this->connect(widget, SIGNAL(selectionMade(QTreeWidgetItem *, int)), this, SLOT(layerUseChanged(QTreeWidgetItem *, int)));
 }
 
 void LayersDialog::LoadAvailableLayersUI() {
@@ -407,7 +411,7 @@ void LayersDialog::resizeEvent(QResizeEvent *event) {
     (void)event;
 
     const QFontMetrics fm = ui->layerTree->fontMetrics();
-    const int combo_width = (fm.size(Qt::TextSingleLine, "Application-Controlled").width() * 1.6);
+    const int combo_width = (fm.size(Qt::TextSingleLine, "Env Variables Controlled: Off").width() * 1.5);
     const int width = ui->layerTree->width() - combo_width;
     ui->layerTree->setColumnWidth(0, width);
 }
@@ -688,7 +692,9 @@ void LayersDialog::accept() {
         configurator.configurations.RemoveConfigurationFile(saved_configuration->key);
     }
 
-    const std::string active_configuration_name = saved_configuration->key = ui->lineEditName->text().toStdString();
+    const std::string active_configuration_name = ui->lineEditName->text().toStdString();
+
+    saved_configuration->key = active_configuration_name;
     saved_configuration->description = ui->lineEditDescription->text().toStdString();
     saved_configuration->parameters = this->configuration.parameters;
     saved_configuration->user_defined_paths = this->configuration.user_defined_paths;

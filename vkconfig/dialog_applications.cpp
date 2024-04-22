@@ -39,7 +39,7 @@ ApplicationsDialog::ApplicationsDialog(QWidget *parent)
     Configurator &configurator = Configurator::Get();
 
     // The header is hidden by default and stays hidden when no checkboxes are used.
-    if (!configurator.environment.UseApplicationListOverrideMode())
+    if (!configurator.environment.GetUseApplicationList())
         setWindowTitle("Vulkan Applications Launcher Shortcuts");
     else {
         ui->treeWidget->setHeaderHidden(false);
@@ -95,10 +95,10 @@ void ApplicationsDialog::closeEvent(QCloseEvent *event) {
     event->accept();
 
     // When we don't use overridden list only, no need to alert the user about empty list cases.
-    if (!environment.UseApplicationListOverrideMode()) return;
+    if (!environment.GetUseApplicationList()) return;
 
     if (environment.GetApplications().empty() || !environment.HasOverriddenApplications()) {
-        environment.SetMode(OVERRIDE_MODE_LIST, false);
+        environment.SetUseApplicationList(false);
 
         Alert::ApplicationListEmpty();
     }
@@ -145,7 +145,7 @@ QTreeWidgetItem *ApplicationsDialog::CreateApplicationItem(const Application &ap
     QTreeWidgetItem *item = new QTreeWidgetItem();
     ui->treeWidget->addTopLevelItem(item);
 
-    if (configurator.environment.UseApplicationListOverrideMode()) {
+    if (configurator.environment.GetUseApplicationList()) {
         QCheckBox *check_box = new QCheckBox(application.app_name.c_str());
         check_box->setChecked(application.override_layers);
         ui->treeWidget->setItemWidget(item, 0, check_box);
@@ -217,9 +217,12 @@ void ApplicationsDialog::selectedPathChanged(QTreeWidgetItem *current_item, QTre
 
     ui->lineEditAppName->setText(application.app_name.c_str());
     ui->lineEditExecutable->setText(application.executable_path.c_str());
+    ui->lineEditExecutable->setToolTip(ReplaceBuiltInVariable(application.executable_path.c_str()).c_str());
     ui->lineEditWorkingFolder->setText(application.working_folder.c_str());
+    ui->lineEditWorkingFolder->setToolTip(ReplaceBuiltInVariable(application.working_folder.c_str()).c_str());
     ui->lineEditCmdArgs->setText(application.arguments.c_str());
-    ui->lineEditLogFile->setText(ReplaceBuiltInVariable(application.log_file.c_str()).c_str());
+    ui->lineEditLogFile->setText(application.log_file.c_str());
+    ui->lineEditLogFile->setToolTip(ReplaceBuiltInVariable(application.log_file.c_str()).c_str());
 }
 
 void ApplicationsDialog::itemChanged(QTreeWidgetItem *item, int column) {
@@ -239,7 +242,7 @@ void ApplicationsDialog::itemClicked(bool clicked) {
     (void)clicked;
 
     Environment &environment = Configurator::Get().environment;
-    const bool need_checkbox = environment.UseApplicationListOverrideMode();
+    const bool need_checkbox = environment.GetUseApplicationList();
     if (!need_checkbox) return;
 
     // Loop through the whole list and reset the checkboxes

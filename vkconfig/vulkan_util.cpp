@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2020-2021 Valve Corporation
- * Copyright (c) 2020-2021 LunarG, Inc.
+ * Copyright (c) 2020-2024 Valve Corporation
+ * Copyright (c) 2020-2024 LunarG, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -88,8 +88,6 @@ static std::string GetUserDefinedLayersPathsLog(const char *label, UserDefinedLa
 }
 
 VkResult CreateInstance(QLibrary &library, VkInstance &instance, bool enumerate_portability) {
-    if (!enumerate_portability) return VK_ERROR_INCOMPATIBLE_DRIVER;
-
     PFN_vkEnumerateInstanceExtensionProperties vkEnumerateInstanceExtensionProperties =
         (PFN_vkEnumerateInstanceExtensionProperties)library.resolve("vkEnumerateInstanceExtensionProperties");
     assert(vkEnumerateInstanceExtensionProperties);
@@ -105,13 +103,15 @@ VkResult CreateInstance(QLibrary &library, VkInstance &instance, bool enumerate_
     // Handle Portability Enumeration requirements
     std::vector<const char *> instance_extensions;
 
-    for (std::size_t i = 0, n = instance_properties.size(); i < n && enumerate_portability; ++i) {
+    for (std::size_t i = 0, n = instance_properties.size(); i < n; ++i) {
         if (instance_properties[i].extensionName == std::string(VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME)) {
             instance_extensions.push_back(VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME);
         }
 #if VK_KHR_portability_enumeration
-        else if (instance_properties[i].extensionName == std::string(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME)) {
-            instance_extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+        if (enumerate_portability) {
+            if (instance_properties[i].extensionName == std::string(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME)) {
+                instance_extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+            }
         }
 #endif
     }
@@ -130,7 +130,7 @@ VkResult CreateInstance(QLibrary &library, VkInstance &instance, bool enumerate_
     VkInstanceCreateInfo inst_info = {};
     inst_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 #if VK_KHR_portability_enumeration
-    if (!instance_extensions.empty()) {
+    if (enumerate_portability) {
         inst_info.flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
     }
 #endif
@@ -150,22 +150,42 @@ VkResult CreateInstance(QLibrary &library, VkInstance &instance, bool enumerate_
 std::string GenerateVulkanStatus() {
     std::string log;
 
-    const Configurator &configurator = Configurator::Get();
+    Configurator &configurator = Configurator::Get();
 
     // Layers override configuration
-    if (configurator.configurations.HasActiveConfiguration(configurator.layers.available_layers)) {
-        log +=
-            format("- Layers override: \"%s\" configuration\n", configurator.configurations.GetActiveConfiguration()->key.c_str());
-    } else {
-        log += "- Layers override: None\n";
+    switch (configurator.environment.GetMode()) {
+        default:
+        case LAYERS_MODE_BY_APPLICATIONS:
+            log += "- Vulkan Layers Controlled by Vulkan Applications\n";
+            break;
+        case LAYERS_MODE_BY_CONFIGURATOR_RUNNING:
+            if (configurator.configurations.HasActiveConfiguration(configurator.layers.available_layers)) {
+                log += format("- Vulkan Layers Controlled by \"%s\" configuration\n",
+                              configurator.environment.GetSelectedConfiguration().c_str());
+            } else {
+                log += format("- Vulkan Layers Controlled by Vulkan Configurator but no configuration selected\n",
+                              configurator.environment.GetSelectedConfiguration().c_str());
+            }
+            break;
+        case LAYERS_MODE_BY_CONFIGURATOR_ALL_DISABLED:
+            log += "- Vulkan Layers Disabled by Vulkan Configurator\n";
+            break;
     }
+
+    log += "- Environment variables:\n";
 
     // Check Vulkan SDK path
     const std::string search_path(configurator.path.GetPath(PATH_VULKAN_SDK));
     if (!search_path.empty())
-        log += format("- VULKAN_SDK environment variable: %s\n", search_path.c_str());
+        log += format("    - VULKAN_SDK: %s\n", search_path.c_str());
     else
-        log += "- VULKAN_SDK environment variable not set\n";
+        log += "    - VULKAN_SDK not set\n";
+
+    // Check VK_LOCAL path
+    const std::string vk_local_path(GetPath(BUILTIN_PATH_LOCAL));
+    if (!vk_local_path.empty()) {
+        log += format("    - VK_LOCAL: %s\n", vk_local_path.c_str());
+    }
 
     const Version loader_version = GetVulkanLoaderVersion();
 
@@ -206,10 +226,9 @@ std::string GenerateVulkanStatus() {
         return log;
     }
 
-    Configuration *active_configuration = configurator.configurations.GetActiveConfiguration();
-    if (configurator.configurations.HasActiveConfiguration(configurator.layers.available_layers)) {
-        SurrenderConfiguration(configurator.environment);
-    }
+    LayersMode saved_mode = configurator.environment.GetMode();
+    configurator.environment.SetMode(LAYERS_MODE_BY_APPLICATIONS);
+    configurator.configurations.Configure(configurator.layers.available_layers);
 
     QLibrary library(GetVulkanLibrary());
     PFN_vkEnumerateInstanceLayerProperties vkEnumerateInstanceLayerProperties =
@@ -347,9 +366,8 @@ std::string GenerateVulkanStatus() {
 
     vkDestroyInstance(inst, NULL);
 
-    if (active_configuration != nullptr) {
-        OverrideConfiguration(configurator.environment, configurator.layers.available_layers, *active_configuration);
-    }
+    configurator.environment.SetMode(saved_mode);
+    configurator.configurations.Configure(configurator.layers.available_layers);
 
     return log;
 }

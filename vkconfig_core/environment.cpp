@@ -48,48 +48,24 @@ static const char* GetApplicationSuffix() {
     return TABLE[VKC_PLATFORM];
 }
 
-static const char* GetActiveToken(Active active) {
-    assert(active >= ACTIVE_FIRST && active <= ACTIVE_LAST);
-
-    static const char* table[] = {
-        "activeProfile",  // ACTIVE_CONFIGURATION
-        "launchApp"       // ACTIVE_EXECUTABLE
-    };
-    static_assert(countof(table) == ACTIVE_COUNT, "The tranlation table size doesn't match the enum number of elements");
-
-    return table[active];
-}
-
-static const char* GetActiveDefault(Active active) {
-    assert(active >= ACTIVE_FIRST && active <= ACTIVE_LAST);
-
-    static const char* table[] = {
-        "Validation",  // ACTIVE_CONFIGURATION
-        ""             // ACTIVE_EXECUTABLE
-    };
-    static_assert(countof(table) == ACTIVE_COUNT, "The tranlation table size doesn't match the enum number of elements");
-
-    return table[active];
-}
-
 static const char* GetLayoutStateToken(LayoutState state) {
     assert(state >= LAYOUT_FIRST && state <= LAYOUT_LAST);
 
     static const char* table[] = {
-        "geometry",                  // LAYOUT_GEOMETRY
-        "windowState",               // LAYOUT_WINDOW_STATE
-        "splitter1State",            // LAYOUT_MAIN_SPLITTER1
-        "splitter2State",            // LAYOUT_MAIN_SPLITTER2
-        "splitter3State",            // LAYOUT_MAIN_SPLITTER3
-        "vkconfig3_geometry",        // VKCONFIG3_LAYOUT_GEOMETRY
-        "vkconfig3_windowState",     // VKCONFIG3_LAYOUT_WINDOW_STATE
-        "vkconfig3_splitter1State",  // VKCONFIG3_LAYOUT_MAIN_SPLITTER1
-        "vkconfig3_splitter2State",  // VKCONFIG3_LAYOUT_MAIN_SPLITTER2
-        "vkconfig3_splitter3State",  // VKCONFIG3_LAYOUT_MAIN_SPLITTER3
-        "layerGeometry",             // LAYOUT_GEOMETRY_SPLITTER
-        "splitterLayerState",        // LAYOUT_LAYER_SPLITTER
-        "launcherCollapsed",         // LAYOUT_LAUNCHER_COLLAPSED
-        "launcherOnClear"            // LAYOUT_LAUNCHER_CLEAR_ON
+        "geometry",                    // LAYOUT_GEOMETRY
+        "windowState",                 // LAYOUT_WINDOW_STATE
+        "splitter1State",              // LAYOUT_MAIN_SPLITTER1
+        "splitter2State",              // LAYOUT_MAIN_SPLITTER2
+        "splitter3State",              // LAYOUT_MAIN_SPLITTER3
+        "vkconfig2_6_geometry",        // VKCONFIG3_LAYOUT_GEOMETRY
+        "vkconfig2_6_windowState",     // VKCONFIG3_LAYOUT_WINDOW_STATE
+        "vkconfig2_6_splitter1State",  // VKCONFIG3_LAYOUT_MAIN_SPLITTER1
+        "vkconfig2_6_splitter2State",  // VKCONFIG3_LAYOUT_MAIN_SPLITTER2
+        "vkconfig2_6_splitter3State",  // VKCONFIG3_LAYOUT_MAIN_SPLITTER3
+        "layerGeometry",               // LAYOUT_GEOMETRY_SPLITTER
+        "splitterLayerState",          // LAYOUT_LAYER_SPLITTER
+        "launcherCollapsed",           // LAYOUT_LAUNCHER_COLLAPSED
+        "launcherOnClear"              // LAYOUT_LAUNCHER_CLEAR_ON
     };
     static_assert(countof(table) == LAYOUT_COUNT, "The tranlation table size doesn't match the enum number of elements");
 
@@ -151,6 +127,7 @@ LoaderMessageType GetLoaderMessageType(const std::string& value) {
 
 Environment::Environment(PathManager& paths, const Version& api_version)
     : api_version(api_version),
+      use_system_tray(false),
       loader_message_types(::GetLoaderMessageTypes(qgetenv("VK_LOADER_DEBUG").toStdString())),
       paths_manager(paths),
       paths(paths_manager) {
@@ -171,15 +148,12 @@ void Environment::Reset(ResetMode mode) {
             this->vkconfig3_version = Version::VKCONFIG3;
             this->layers_mode = LAYERS_MODE_BY_CONFIGURATOR_RUNNING;
             this->use_application_list = false;
-            this->use_system_tray = true;
-
-            for (std::size_t i = 0; i < ACTIVE_COUNT; ++i) {
-                actives[i] = GetActiveDefault(static_cast<Active>(i));
-            }
+            this->use_system_tray = false;
+            this->selected_configuration = "Validation";
+            this->active_application.clear();
+            this->user_defined_layers_paths[USER_DEFINED_LAYERS_PATHS_GUI].clear();
 
             applications = CreateDefaultApplications();
-
-            Set(ACTIVE_CONFIGURATION, "Validation");
             break;
         }
         case CLEAR: {
@@ -192,9 +166,11 @@ void Environment::Reset(ResetMode mode) {
             settings.setValue("VKCONFIG_WARN_MISSING_LAYERS_IGNORE", false);
             settings.setValue("VKCONFIG_WARN_CORE_SHADER_IGNORE", false);
 
+            settings.setValue("vkconfig_restart", false);
             settings.setValue("overrideActive", false);
             settings.setValue("applyOnlyToList", false);
             settings.setValue("keepActiveOnExit", false);
+            settings.setValue("vkconfig_system_tray_stay_on_close", false);
 
             settings.setValue("restartWarning", false);
             settings.setValue("warnAboutShutdownState", false);
@@ -250,9 +226,11 @@ bool Environment::Load() {
     this->loader_message_types = settings.value(VKCONFIG_KEY_LOADER_MESSAGE, static_cast<int>(this->loader_message_types)).toInt();
 
     // Load active configuration
-    for (std::size_t i = 0; i < ACTIVE_COUNT; ++i) {
-        actives[i] = settings.value(GetActiveToken(static_cast<Active>(i)), actives[i].c_str()).toString().toStdString();
-    }
+    this->selected_configuration =
+        settings.value(VKCONFIG_KEY_ACTIVE_CONFIGURATION, this->selected_configuration.c_str()).toString().toStdString();
+
+    this->active_application =
+        settings.value(VKCONFIG_KEY_ACTIVE_APPLICATION, this->active_application.c_str()).toString().toStdString();
 
     // Load layout state
     for (std::size_t i = 0; i < LAYOUT_COUNT; ++i) {
@@ -360,10 +338,11 @@ bool Environment::Save() const {
     // Save 'loader_message'
     settings.setValue(VKCONFIG_KEY_LOADER_MESSAGE, static_cast<int>(this->loader_message_types));
 
-    // Save active state
-    for (std::size_t i = 0; i < ACTIVE_COUNT; ++i) {
-        settings.setValue(GetActiveToken(static_cast<Active>(i)), this->actives[i].c_str());
-    }
+    // Save active configuration
+    settings.setValue(VKCONFIG_KEY_ACTIVE_CONFIGURATION, this->selected_configuration.c_str());
+
+    // Save active application
+    settings.setValue(VKCONFIG_KEY_ACTIVE_APPLICATION, this->active_application.c_str());
 
     // Save layout state
     for (std::size_t i = 0; i < LAYOUT_COUNT; ++i) {
@@ -415,12 +394,12 @@ bool Environment::SaveApplications() const {
 void Environment::SelectActiveApplication(std::size_t application_index) {
     assert(application_index < applications.size());
 
-    Set(ACTIVE_APPLICATION, applications[application_index].app_name.c_str());
+    this->SetActiveApplication(applications[application_index].app_name);
 }
 
 int Environment::GetActiveApplicationIndex() const {
     for (std::size_t i = 0, n = applications.size(); i < n; ++i) {
-        if (applications[i].app_name.c_str() == Get(ACTIVE_APPLICATION)) {
+        if (applications[i].app_name == this->active_application) {
             return static_cast<int>(i);
         }
     }
@@ -466,7 +445,7 @@ const Application& Environment::GetActiveApplication() const {
     assert(!applications.empty());
 
     for (std::size_t i = 0, n = applications.size(); i < n; ++i) {
-        if (applications[i].app_name.c_str() == Get(ACTIVE_APPLICATION)) {
+        if (applications[i].app_name == this->active_application) {
             return applications[i];
         }
     }
@@ -505,10 +484,6 @@ const QByteArray& Environment::Get(LayoutState state) const {
     assert(state >= LAYOUT_FIRST && state <= LAYOUT_LAST);
     return layout_states[state];
 }
-
-const std::string& Environment::Get(Active active) const { return actives[active]; }
-
-void Environment::Set(Active active, const std::string& key) { actives[active] = key; }
 
 bool Environment::IsDefaultConfigurationInit(const std::string& default_configuration_filename) const {
     for (std::size_t i = 0, n = default_configuration_filenames.size(); i < n; ++i) {

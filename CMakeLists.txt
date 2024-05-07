@@ -28,6 +28,19 @@ find_package(VulkanUtilityLibraries REQUIRED CONFIG)
 
 find_package(valijson REQUIRED CONFIG)
 
+# NOTE: Our custom code generation target isn't desirable for system package managers or add_subdirectory users.
+# So this target needs to be off by default to avoid obtuse build errors or patches.
+option(VT_CODEGEN "Enable vulkantools code generation")
+if (VT_CODEGEN)
+    find_package(Python3 REQUIRED)
+    add_custom_target(vt_codegen
+        COMMAND Python3::Interpreter "${VULKAN_TOOLS_SOURCE_DIR}/scripts/generate_source.py"
+            "${VULKAN_HEADERS_INSTALL_DIR}/${CMAKE_INSTALL_DATADIR}/vulkan/registry"
+            --incremental --generated-version ${VulkanHeaders_VERSION}
+        WORKING_DIRECTORY ${VULKAN_TOOLS_SOURCE_DIR}/layersvt/generated
+    )
+endif()
+
 if (MSVC)
     add_compile_options("$<$<CONFIG:Release>:/Zi>")
     add_link_options("$<$<CONFIG:Release>:/DEBUG:FULL>")
@@ -73,7 +86,8 @@ elseif (APPLE)
 endif()
 
 option(BUILD_TESTS "Build tests")
-option(BUILD_TESTS_DEBUG "Build tests for debugging layers")
+option(BUILD_TESTS_DEBUG "Build tests for debugging layers" OFF)
+option(BUILD_EXPERIMENTAL "Build tests for debugging layers" OFF)
 
 if(BUILD_TESTS)
     enable_testing()
@@ -98,5 +112,7 @@ if(BUILD_LAYERMGR)
 
     add_subdirectory(vkconfig_core)
     add_subdirectory(vkconfig)
-    add_subdirectory(vkconfig3)
+    if(BUILD_EXPERIMENTAL)
+        add_subdirectory(vkconfig3)
+    endif()
 endif()

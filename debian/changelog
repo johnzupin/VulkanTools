@@ -1,3 +1,62 @@
+lunarg-tools (1.3.283.0~rc1-1lunarg22.04-1) jammy; urgency=medium
+
+  [ Christophe ]
+  * cmake: Hide vkconfig3 behind a cmake option
+  * vkconfig: Fix Application List
+  * vkconfig: Fix Application List unit test
+  * vkconfig: Improve UI visibility
+  * vkconfig: Streamline path selection
+  * vkconfig: VK_LOCAL can be set with an env variable
+  * vkconfig: Fix 'import' being disabled in the context menu
+  * vkconfig: Fix Qt warning emitted in the console
+  * vkconfig: Fix vulkaninfo affected by disabled all layers mode
+  * vkconfig: Fix capture config writing to read only dir
+  * vkconfig: Disable command line output redicrection on Windows
+  * vkconfig: Refactor system tray, extended menu
+  * vkconfig: Fix copyright
+  * vkconfig: Add 'Command Prompt' support with command line mode
+  * vkconfig: Treak system tray
+  * vkconfig: Fix configuration not saved
+  * vkconfig: Fix selecting config by hovering pressed mouse
+  * vkconfig: Fix display of configuration list
+  * vkconfig: Closing main window exit by default
+  * vkconfig: Fix disabled mode display on start
+  * vkconfig: Clean up configuration and UI updates
+  * vkconfig: Fix missing layer cases
+  * vkconfig: Fix crash when configurations are deleted from the store directory
+  * vkconfig: Restore from tray icon always on top
+  * vkconfig: Allow ANSI characters for configuration names
+  * vkconfig: Only display setting are not change dynamically in context
+  * vkconfig: Reset close launched application
+  * vkconfig: Layers need to be reloaded on reset
+  * vkconfig: Quicker layer loading, validation is cached
+  * vkconfig: When using custom paths, fix settings being reset on configuration switching
+
+  [ Mark Lobodzinski ]
+  * scripts: Remove VkTrace tool_helper/struct_size remnants
+  * scripts: Sort system type names for repeatable source output
+  * Added generate_source.py
+  * cmake: Add generate source cmake target
+  * api_dump: Check in generated files
+  * cmake: Remove cmake-driven code generation
+  * docs: Updated readme with codegen information
+  * ci: Add generated code source check to github CI
+
+  [ Christophe ]
+  * vkconfig: Fix cancel switching implicit layer
+  * vkconfig: Fix initialization of configuration with users-defined paths
+  * vkconfig: Enable custom build time localtion for layers
+
+  [ Charles Giessen ]
+  * build: Update to 1.3.283 headers
+  * Update Volk to 1.3.283
+
+  [ Christophe ]
+  * vkconfig: Update devices list on configuration selection
+  * vkconfig: Fix devices search
+
+ -- john <john@odin>  Tue, 07 May 2024 09:50:02 -0600
+
 lunarg-tools (1.3.282.0~rc1-1lunarg22.04-1) jammy; urgency=medium
 
   [ Christophe ]

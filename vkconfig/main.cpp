@@ -33,9 +33,15 @@
 #endif
 
 int main(int argc, char* argv[]) {
-    ::vkconfig_version = "vkconfig";
+#ifdef _WIN32
+    DWORD procId;
+    DWORD count = GetConsoleProcessList(&procId, 1);
+    if (count < 2) {
+        ::ShowWindow(::GetConsoleWindow(), SW_HIDE);  // hide console window
+    }
+#endif
 
-    InitSignals();
+    ::vkconfig_version = "vkconfig";
 
     const CommandLine command_line(argc, argv);
 
@@ -45,14 +51,7 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-#ifdef _WIN32
-    if (command_line.command != COMMAND_GUI || command_line.command != COMMAND_VULKAN_SDK) {
-        if (AttachConsole(ATTACH_PARENT_PROCESS)) {
-            freopen("CONOUT$", "w", stdout);
-            freopen("CONOUT$", "w", stderr);
-        }
-    }
-#endif
+    InitSignals();
 
     switch (command_line.command) {
         case COMMAND_SHOW_USAGE: {

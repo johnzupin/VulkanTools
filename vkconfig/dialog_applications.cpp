@@ -133,7 +133,9 @@ void ApplicationsDialog::on_pushButtonAdd_clicked()  // Pick the test applicatio
 
         QTreeWidgetItem *item = CreateApplicationItem(new_application);
 
-        configurator.configurations.RefreshConfiguration(configurator.layers.available_layers);
+        // To update the application list configuration
+        configurator.configurations.Configure(configurator.layers.available_layers);
+
         ui->treeWidget->setCurrentItem(item);
         configurator.environment.SelectActiveApplication(ui->treeWidget->indexOfTopLevelItem(item));
     }
@@ -149,7 +151,7 @@ QTreeWidgetItem *ApplicationsDialog::CreateApplicationItem(const Application &ap
         QCheckBox *check_box = new QCheckBox(application.app_name.c_str());
         check_box->setChecked(application.override_layers);
         ui->treeWidget->setItemWidget(item, 0, check_box);
-        connect(check_box, SIGNAL(clicked(bool)), this, SLOT(itemClicked(bool)));
+        connect(check_box, SIGNAL(stateChanged(int)), this, SLOT(OnStateChanged(int)));
     } else {
         item->setText(0, application.app_name.c_str());
     }
@@ -178,7 +180,9 @@ void ApplicationsDialog::on_pushButtonRemove_clicked() {
     ui->lineEditWorkingFolder->setText("");
     ui->lineEditLogFile->setText("");
 
-    configurator.configurations.RefreshConfiguration(configurator.layers.available_layers);
+    // Update the application list configuration
+    configurator.configurations.Configure(configurator.layers.available_layers);
+
     ui->treeWidget->update();
 }
 
@@ -238,9 +242,7 @@ void ApplicationsDialog::itemChanged(QTreeWidgetItem *item, int column) {
 /// all of them. There aren't that many, so KISS (keep it simple stupid)
 /// If one of them had their state flipped, that's the one that was checked, make
 /// it the currently selected one.
-void ApplicationsDialog::itemClicked(bool clicked) {
-    (void)clicked;
-
+void ApplicationsDialog::OnStateChanged(int) {
     Environment &environment = Configurator::Get().environment;
     const bool need_checkbox = environment.GetUseApplicationList();
     if (!need_checkbox) return;

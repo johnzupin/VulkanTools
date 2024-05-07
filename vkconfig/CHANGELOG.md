@@ -1,6 +1,6 @@
 <!-- markdownlint-disable MD041 -->
 <p align="left"><img src="https://vulkan.lunarg.com/img/NewLunarGLogoBlack.png" alt="LunarG" width="263" height="113" /></p>
-<p align="left">Copyright � 2015-2022 LunarG, Inc.</p>
+<p align="left">Copyright � 2015-2024 LunarG, Inc.</p>
 
 [![Creative Commons][3]][4]
 
@@ -19,7 +19,7 @@
 
 ### Improvements:
 - Add 'status' to give an explicit control to print the Vulkan status log
-- Add support for command line outputs on Windows when using 'Command Prompt'
+- Add support for 'Command Prompt' when using Vulkan Configurator with command lines
 - Add support for using Vulkan Configurator environment variables in the UI
 - Better present implicit layers, showing "Implicitly On" or "Implicitly Off" depending on the environment variable
 - Add double click on configuration name to edit a layers configuration

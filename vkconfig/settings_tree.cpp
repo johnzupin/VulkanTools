@@ -50,7 +50,7 @@
 static const char *TOOLTIP_ORDER =
     "Layers are executed between the Vulkan application and driver in the specific order represented here";
 
-SettingsTreeManager::SettingsTreeManager() : tree(nullptr) {}
+SettingsTreeManager::SettingsTreeManager() : launched_application(false), tree(nullptr) {}
 
 void SettingsTreeManager::CreateGUI(QTreeWidget *build_tree) {
     assert(build_tree);
@@ -62,8 +62,10 @@ void SettingsTreeManager::CreateGUI(QTreeWidget *build_tree) {
 
     this->tree = build_tree;
 
-    Configuration *configuration = configurator.configurations.GetActiveConfiguration();
-    assert(configuration != nullptr);
+    Configuration *configuration = configurator.configurations.FindActiveConfiguration();
+    if (configuration == nullptr) {
+        return;
+    }
 
     this->tree->blockSignals(true);
     this->tree->clear();
@@ -109,11 +111,11 @@ void SettingsTreeManager::CreateGUI(QTreeWidget *build_tree) {
             std::string layer_text = parameter.key;
             if (layer == nullptr) {
                 layer_text += " (Missing)";
-                layer_item->setDisabled(true);
             } else if (layer->status != STATUS_STABLE) {
                 layer_text += std::string(" (") + GetToken(layer->status) + ")";
             }
 
+            layer_item->setToolTip(0, parameter.key.c_str());  // Hack for the context menu to find the layer
             layer_item->setText(0, layer_text.c_str());
             layer_item->setFont(0, font_layer);
             layer_item->setSizeHint(0, QSize(0, ITEM_HEIGHT));
@@ -210,7 +212,7 @@ void SettingsTreeManager::CleanupGUI() {
 
     Configurator &configurator = Configurator::Get();
 
-    Configuration *configuration = configurator.configurations.GetActiveConfiguration();
+    Configuration *configuration = configurator.configurations.FindActiveConfiguration();
     if (configuration != nullptr) {
         configuration->setting_tree_state.clear();
         GetTreeState(configuration->setting_tree_state, this->tree->invisibleRootItem());
@@ -230,7 +232,7 @@ void SettingsTreeManager::OnExpandedChanged(const QModelIndex &index) {
 
     Configurator &configurator = Configurator::Get();
 
-    Configuration *configuration = configurator.configurations.GetActiveConfiguration();
+    Configuration *configuration = configurator.configurations.FindActiveConfiguration();
     configuration->setting_tree_state.clear();
     GetTreeState(configuration->setting_tree_state, this->tree->invisibleRootItem());
 
@@ -245,7 +247,7 @@ void SettingsTreeManager::OnCollapsedChanged(const QModelIndex &index) {
 
     Configurator &configurator = Configurator::Get();
 
-    Configuration *configuration = configurator.configurations.GetActiveConfiguration();
+    Configuration *configuration = configurator.configurations.FindActiveConfiguration();
     configuration->setting_tree_state.clear();
     GetTreeState(configuration->setting_tree_state, this->tree->invisibleRootItem());
 
@@ -298,7 +300,7 @@ void SettingsTreeManager::BuildTreeItem(QTreeWidgetItem *parent, Parameter &para
     if (!IsPlatformSupported(meta_object.platform_flags)) return;
     if (meta_object.view == SETTING_VIEW_HIDDEN) return;
     if (meta_object.view == SETTING_VIEW_ADVANCED &&
-        !Configurator::Get().configurations.GetActiveConfiguration()->view_advanced_settings)
+        !Configurator::Get().configurations.FindActiveConfiguration()->view_advanced_settings)
         return;
 
     QTreeWidgetItem *item = new QTreeWidgetItem();
@@ -468,16 +470,18 @@ void SettingsTreeManager::Refresh(RefreshAreas refresh_areas) {
 
     this->tree->blockSignals(false);
 
-    QSettings settings;
-    if (!settings.value("vkconfig_restart", false).toBool()) {
-        settings.setValue("vkconfig_restart", true);
+    if (this->launched_application) {
+        QSettings settings;
+        if (!settings.value("vkconfig_restart", false).toBool()) {
+            settings.setValue("vkconfig_restart", true);
 
-        Alert::ConfiguratorRestart();
+            Alert::ConfiguratorRestart();
+        }
     }
 
     // Refresh layer configuration
     Configurator &configurator = Configurator::Get();
-    configurator.configurations.RefreshConfiguration(configurator.layers.available_layers);
+    configurator.configurations.Configure(configurator.layers.available_layers);
 }
 
 void SettingsTreeManager::RefreshItem(RefreshAreas refresh_areas, QTreeWidgetItem *parent) {

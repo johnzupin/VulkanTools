@@ -63,7 +63,6 @@ class MainWindow : public QMainWindow {
 
     void UpdateUI();
     void UpdateApplicationUI(const Application &application);
-    void UpdateConfiguration();
 
    private:
     SettingsTreeManager _settings_tree_manager;
@@ -98,19 +97,25 @@ class MainWindow : public QMainWindow {
     QSystemTrayIcon *_tray_icon;
     QMenu *_tray_icon_menu;
     QAction *_tray_restore_action;
+    QAction *_tray_layers_controlled_by_applications;
+    QAction *_tray_layers_controlled_by_configurator;
+    QAction *_tray_layers_disabled_by_configurator;
     QAction *_tray_quit_action;
 
     void RemoveClicked(ConfigurationListItem *item);
     void ResetClicked(ConfigurationListItem *item);
     void RenameClicked(ConfigurationListItem *item);
     void EditClicked(ConfigurationListItem *item);
-    void NewClicked();
     void DuplicateClicked(ConfigurationListItem *item);
     void ExportClicked(ConfigurationListItem *item);
     void ImportClicked(ConfigurationListItem *item);
     void ReloadDefaultClicked(ConfigurationListItem *item);
 
    private slots:
+    void trayActionRestore();
+    void trayActionControlledByApplications();
+    void trayActionControlledByConfigurator();
+    void trayActionDisabledByApplications();
     void iconActivated(QSystemTrayIcon::ActivationReason reason);
 
    public Q_SLOTS:
@@ -178,6 +183,8 @@ class MainWindow : public QMainWindow {
     void StartTool(Tool tool);
     QStringList BuildEnvVariables() const;
     void UpdateStatus();
+
+    void ClearLog();
 
     std::unique_ptr<Ui::MainWindow> ui;
     bool been_warned_about_old_loader;

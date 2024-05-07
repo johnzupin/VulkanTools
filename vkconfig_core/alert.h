@@ -36,6 +36,8 @@ struct Alert {
     static QMessageBox::Button LayerImplicitExcluded(const char* layer_name);
     static QMessageBox::Button LayerProfiles();
 
+    static void PathInvalid(const char* path, const char* message);
+
     static QMessageBox::Button ConfiguratorSingleton();
     static void ConfiguratorRestart();
     static QMessageBox::Button ConfiguratorResetAll();
@@ -45,6 +47,7 @@ struct Alert {
     static void ConfigurationRenamingFailed();
     static void ConfigurationNameEmpty();
     static void ConfigurationNameInvalid();
+    static void ConfigurationNameASCII();
 
     static void LayerProperties(const Layer* layer);
     static QMessageBox::Button LayerIncompatibleVersions(const char* message, const Version& loader_version);

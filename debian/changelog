@@ -1,3 +1,16 @@
+lunarg-tools (1.3.283.0~rc3-1lunarg22.04-1) jammy; urgency=medium
+
+  [ Christophe ]
+  * Revert "vkconfig: Add 'Command Prompt' support with command line mode"
+  * vkconfig: Fix Qt console message
+  * vkconfig: Fix remove missing layer
+  * vkconfig: Fix wrong configuration applied
+  * vkconfig: Enable user paths with no layer
+  * vkconfig: Fix Excluded Layers context menu
+  * vkconfig: Clear layers override at start
+
+ -- john <john@odin>  Mon, 13 May 2024 08:52:16 -0600
+
 lunarg-tools (1.3.283.0~rc2-1lunarg22.04-1) jammy; urgency=medium
 
   [ Christophe ]

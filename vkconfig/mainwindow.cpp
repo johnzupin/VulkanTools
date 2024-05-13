@@ -186,8 +186,6 @@ void MainWindow::InitTray() {
 
         this->_tray_icon = new QSystemTrayIcon(this);
         this->_tray_icon->setContextMenu(this->_tray_icon_menu);
-        this->UpdateTray();
-        this->_tray_icon->show();
 
         this->connect(this->_tray_icon, &QSystemTrayIcon::activated, this, &MainWindow::iconActivated);
     }
@@ -237,6 +235,8 @@ void MainWindow::UpdateTray() {
             this->_tray_icon->setIcon(icon);
             this->_tray_icon->setToolTip("Layers controlled by the Vulkan Applications");
         }
+
+        this->_tray_icon->show();
     }
 }
 
@@ -674,7 +674,9 @@ void MainWindow::OnConfigurationTreeChanged(QTreeWidgetItem *current, QTreeWidge
 
 void MainWindow::OnConfigurationItemDoubleClicked(QTreeWidgetItem *item, int column) {
     ConfigurationListItem *configuration_item = dynamic_cast<ConfigurationListItem *>(item);
-    if (configuration_item == nullptr) return;
+    if (configuration_item == nullptr) {
+        return;
+    }
 
     EditClicked(configuration_item);
 }
@@ -1515,7 +1517,7 @@ bool MainWindow::eventFilter(QObject *target, QEvent *event) {
             if (setting_text == "Vulkan Drivers") {
                 return false;
             }
-            if (setting_text == "Excluded Layers") {
+            if (setting_text == "Excluded Layers:") {
                 return false;
             }
 
@@ -1557,7 +1559,14 @@ bool MainWindow::eventFilter(QObject *target, QEvent *event) {
                           "The tranlation table size doesn't match the enum number of elements");
 
             Configuration *configuration = configurator.configurations.FindActiveConfiguration();
-            Parameter *parameter = FindByKey(configuration->parameters, layer_name.c_str());
+
+            Parameter *parameter = nullptr;
+            for (std::size_t i = 0, n = configuration->parameters.size(); i < n; ++i) {
+                if (layer_name.find(configuration->parameters[i].key) != std::string::npos) {
+                    parameter = &configuration->parameters[i];
+                    break;
+                }
+            }
 
             QAction *export_settings_action = new QAction("Open Layer vk_layers_settings.txt...", nullptr);
             export_settings_action->setEnabled(layer != nullptr ? parameter->state == LAYER_STATE_OVERRIDDEN : false);
@@ -1597,6 +1606,9 @@ bool MainWindow::eventFilter(QObject *target, QEvent *event) {
                         break;
                 }
                 configuration->setting_tree_state.clear();
+
+                configurator.ActivateConfiguration(configuration->key);
+
                 require_update_ui = true;
             } else if (action == show_advanced_setting_action) {
                 configuration->view_advanced_settings = action->isChecked();

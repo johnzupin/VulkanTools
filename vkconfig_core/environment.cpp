@@ -128,6 +128,7 @@ LoaderMessageType GetLoaderMessageType(const std::string& value) {
 Environment::Environment(PathManager& paths, const Version& api_version)
     : api_version(api_version),
       use_system_tray(false),
+      use_per_application_configuration(false),
       loader_message_types(::GetLoaderMessageTypes(qgetenv("VK_LOADER_DEBUG").toStdString())),
       paths_manager(paths),
       paths(paths_manager) {
@@ -147,6 +148,7 @@ void Environment::Reset(ResetMode mode) {
             this->vkconfig2_version = Version::VKCONFIG;
             this->vkconfig3_version = Version::VKCONFIG3;
             this->layers_mode = LAYERS_MODE_BY_CONFIGURATOR_RUNNING;
+            this->use_per_application_configuration = false;
             this->use_application_list = false;
             this->use_system_tray = false;
             this->selected_configuration = "Validation";
@@ -166,11 +168,10 @@ void Environment::Reset(ResetMode mode) {
             settings.setValue("VKCONFIG_WARN_MISSING_LAYERS_IGNORE", false);
             settings.setValue("VKCONFIG_WARN_CORE_SHADER_IGNORE", false);
 
-            settings.setValue("vkconfig_restart", false);
+            settings.setValue(VKCONFIG_KEY_MESSAGE_NEED_APPLICATION_RESTART, false);
             settings.setValue("overrideActive", false);
-            settings.setValue("applyOnlyToList", false);
+            settings.setValue("applyPerApplication", false);
             settings.setValue("keepActiveOnExit", false);
-            settings.setValue("vkconfig_system_tray_stay_on_close", false);
 
             settings.setValue("restartWarning", false);
             settings.setValue("warnAboutShutdownState", false);
@@ -217,10 +218,11 @@ bool Environment::Load() {
     // Load 'override_mode"
     this->layers_mode = static_cast<LayersMode>(settings.value(VKCONFIG_KEY_LAYERS_MODE, QVariant(layers_mode)).toInt());
 
+    this->use_per_application_configuration =
+        static_cast<LayersMode>(settings.value(VKCONFIG_KEY_STATE_PER_APPLICATION, this->use_application_list).toBool());
     this->use_application_list =
-        static_cast<LayersMode>(settings.value(VKCONFIG_KEY_USE_APPLICATION_LIST, this->use_application_list).toBool());
-
-    this->use_system_tray = static_cast<LayersMode>(settings.value(VKCONFIG_KEY_USE_SYSTEM_TRAY, this->use_system_tray).toBool());
+        static_cast<LayersMode>(settings.value(VKCONFIG_KEY_STATE_APPLICATION_LIST, this->use_application_list).toBool());
+    this->use_system_tray = static_cast<LayersMode>(settings.value(VKCONFIG_KEY_STATE_SYSTEM_TRAY, this->use_system_tray).toBool());
 
     // Load loader debug message state
     this->loader_message_types = settings.value(VKCONFIG_KEY_LOADER_MESSAGE, static_cast<int>(this->loader_message_types)).toInt();
@@ -234,7 +236,7 @@ bool Environment::Load() {
 
     // Load layout state
     for (std::size_t i = 0; i < LAYOUT_COUNT; ++i) {
-        layout_states[i] = settings.value(GetLayoutStateToken(static_cast<LayoutState>(i))).toByteArray();
+        this->layout_states[i] = settings.value(GetLayoutStateToken(static_cast<LayoutState>(i))).toByteArray();
     }
 
     // Load default configuration already init
@@ -294,7 +296,8 @@ bool Environment::LoadApplications() {
                     application.app_name = app_object.value("app_name").toString().toStdString();
                     application.executable_path = app_object.value("app_path").toString().toStdString();
                     application.working_folder = app_object.value("app_folder").toString().toStdString();
-                    application.override_layers = !app_object.value("exclude_override").toBool();
+                    application.layers_mode = app_object.value("exclude_override").toBool() ? LAYERS_MODE_BY_APPLICATIONS
+                                                                                            : LAYERS_MODE_BY_CONFIGURATOR_RUNNING;
                     application.log_file = app_object.value("log_file").toString().toStdString();
                     if (application.app_name.length() == 0) {
                         std::string path = application.executable_path.c_str();
@@ -332,8 +335,9 @@ bool Environment::Save() const {
     settings.setValue(VKCONFIG_KEY_VKCONFIG_VERSION, Version::LAYER_CONFIG.str().c_str());
 
     settings.setValue(VKCONFIG_KEY_LAYERS_MODE, this->layers_mode);
-    settings.setValue(VKCONFIG_KEY_USE_APPLICATION_LIST, this->use_application_list);
-    settings.setValue(VKCONFIG_KEY_USE_SYSTEM_TRAY, this->use_system_tray);
+    settings.setValue(VKCONFIG_KEY_STATE_PER_APPLICATION, this->use_per_application_configuration);
+    settings.setValue(VKCONFIG_KEY_STATE_APPLICATION_LIST, this->use_application_list);
+    settings.setValue(VKCONFIG_KEY_STATE_SYSTEM_TRAY, this->use_system_tray);
 
     // Save 'loader_message'
     settings.setValue(VKCONFIG_KEY_LOADER_MESSAGE, static_cast<int>(this->loader_message_types));
@@ -367,7 +371,7 @@ bool Environment::SaveApplications() const {
         application_object.insert("app_name", applications[i].app_name.c_str());
         application_object.insert("app_path", applications[i].executable_path.c_str());
         application_object.insert("app_folder", applications[i].working_folder.c_str());
-        application_object.insert("exclude_override", !applications[i].override_layers);
+        application_object.insert("exclude_override", applications[i].layers_mode == LAYERS_MODE_BY_APPLICATIONS);
         application_object.insert("log_file", applications[i].log_file.c_str());
 
         // Ground work for mulitiple sets of command line arguments
@@ -392,14 +396,14 @@ bool Environment::SaveApplications() const {
 }
 
 void Environment::SelectActiveApplication(std::size_t application_index) {
-    assert(application_index < applications.size());
+    assert(application_index < this->applications.size());
 
-    this->SetActiveApplication(applications[application_index].app_name);
+    this->SetActiveApplication(this->applications[application_index].app_name);
 }
 
 int Environment::GetActiveApplicationIndex() const {
-    for (std::size_t i = 0, n = applications.size(); i < n; ++i) {
-        if (applications[i].app_name == this->active_application) {
+    for (std::size_t i = 0, n = this->applications.size(); i < n; ++i) {
+        if (this->applications[i].app_name == this->active_application) {
             return static_cast<int>(i);
         }
     }
@@ -408,62 +412,68 @@ int Environment::GetActiveApplicationIndex() const {
 }
 
 bool Environment::HasOverriddenApplications() const {
-    for (std::size_t i = 0, n = applications.size(); i < n; ++i) {
-        if (applications[i].override_layers) return true;
+    for (std::size_t i = 0, n = this->applications.size(); i < n; ++i) {
+        if (this->applications[i].layers_mode != LAYERS_MODE_BY_APPLICATIONS) {
+            return true;
+        }
     }
 
     return false;
 }
 
 bool Environment::AppendApplication(const Application& application) {
-    applications.push_back(application);
+    this->applications.push_back(application);
     return true;
 }
 
 bool Environment::RemoveApplication(std::size_t application_index) {
-    assert(!applications.empty());
-    assert(application_index < applications.size());
+    assert(!this->applications.empty());
+    assert(application_index < this->applications.size());
 
-    if (applications.size() == 1u) {
-        applications.clear();
+    if (this->applications.size() == 1u) {
+        this->applications.clear();
         return true;
     }
 
     std::vector<Application> new_applications;
-    new_applications.reserve(applications.size() - 1);
+    new_applications.reserve(this->applications.size() - 1);
 
-    for (std::size_t i = 0, n = applications.size(); i < n; ++i) {
+    for (std::size_t i = 0, n = this->applications.size(); i < n; ++i) {
         if (i == application_index) continue;
-        new_applications.push_back(applications[i]);
+        new_applications.push_back(this->applications[i]);
     }
 
-    std::swap(applications, new_applications);
+    std::swap(this->applications, new_applications);
     return true;
 }
 
 const Application& Environment::GetActiveApplication() const {
-    assert(!applications.empty());
+    assert(!this->applications.empty());
 
-    for (std::size_t i = 0, n = applications.size(); i < n; ++i) {
-        if (applications[i].app_name == this->active_application) {
-            return applications[i];
+    for (std::size_t i = 0, n = this->applications.size(); i < n; ++i) {
+        if (this->applications[i].app_name == this->active_application) {
+            return this->applications[i];
         }
     }
 
-    return applications[0];  // Not found, but the list is present, so return the first item.
+    return this->applications[0];  // Not found, but the list is present, so return the first item.
 }
 
 const Application& Environment::GetApplication(std::size_t application_index) const {
-    assert(application_index < applications.size());
+    assert(application_index < this->applications.size());
 
-    return applications[application_index];
+    return this->applications[application_index];
 }
 
 Application& Environment::GetApplication(std::size_t application_index) {
-    assert(application_index < applications.size());
+    assert(application_index < this->applications.size());
 
-    return applications[application_index];
+    return this->applications[application_index];
 }
+
+bool Environment::GetPerApplicationConfig() const { return this->use_per_application_configuration; }
+
+void Environment::SetPerApplicationConfig(bool enable) { this->use_per_application_configuration = enable; }
 
 bool Environment::GetUseApplicationList() const {
     return this->use_application_list && this->layers_mode != LAYERS_MODE_BY_APPLICATIONS;
@@ -477,17 +487,19 @@ void Environment::SetMode(LayersMode mode) { this->layers_mode = mode; }
 
 void Environment::Set(LayoutState state, const QByteArray& data) {
     assert(state >= LAYOUT_FIRST && state <= LAYOUT_LAST);
-    layout_states[state] = data;
+    this->layout_states[state] = data;
 }
 
 const QByteArray& Environment::Get(LayoutState state) const {
     assert(state >= LAYOUT_FIRST && state <= LAYOUT_LAST);
-    return layout_states[state];
+    return this->layout_states[state];
 }
 
 bool Environment::IsDefaultConfigurationInit(const std::string& default_configuration_filename) const {
-    for (std::size_t i = 0, n = default_configuration_filenames.size(); i < n; ++i) {
-        if (default_configuration_filenames[i] == default_configuration_filename) return true;
+    for (std::size_t i = 0, n = this->default_configuration_filenames.size(); i < n; ++i) {
+        if (this->default_configuration_filenames[i] == default_configuration_filename) {
+            return true;
+        }
     }
 
     return false;

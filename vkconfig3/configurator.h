@@ -29,7 +29,7 @@
 #include "../vkconfig_core/configuration_manager.h"
 #include "../vkconfig_core/platform.h"
 
-static const std::vector<std::string> SUPPORTED_CONFIG_FILES = {"_3_0_0"};
+static const std::vector<std::string> SUPPORTED_CONFIG_FILES = {"_2_2_3"};
 
 class Configurator {
    public:
@@ -38,19 +38,11 @@ class Configurator {
 
     // The list of applications affected
    public:
-    bool SupportDifferentLayerVersions(Version* return_loader_version = nullptr) const;
-
-    // If return_loader_version is not null, the function will return the loader version
-    // If quiet is false, message box will be generate
-    bool SupportApplicationList(Version* return_loader_version = nullptr) const;
-
-    bool HasActiveOverrideOnApplicationListOnly() const { return SupportApplicationList() && environment.GetUseApplicationList(); }
+    bool SupportLoaderSettings(Version* return_loader_version = nullptr) const;
 
     void ActivateConfiguration(const std::string& configuration_name);
 
     void ResetToDefault(bool hard);
-
-    std::string profile_file;
 
     std::vector<std::string> GetDeviceNames() const;
 
@@ -61,7 +53,7 @@ class Configurator {
     Configurator(const Configurator&) = delete;
     Configurator& operator=(const Configurator&) = delete;
 
-    void CopyResourceFiles();
+    void UpdateDevices();
 
    public:
     PathManager path;
@@ -69,5 +61,4 @@ class Configurator {
     LayerManager layers;
     ConfigurationManager configurations;
     std::vector<std::string> device_names;
-    bool request_vulkan_status;
 };

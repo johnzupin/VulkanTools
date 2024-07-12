@@ -46,6 +46,9 @@ class ConfigurationListItem : public QTreeWidgetItem {
     ConfigurationListItem(const std::string &configuration_name) : configuration_name(configuration_name) {}
     std::string configuration_name;
     QRadioButton *radio_button;
+    QPushButton *push_button_reset;
+    QPushButton *push_button_duplicate;
+    QPushButton *push_button_remove;
 
    private:
     ConfigurationListItem(const ConfigurationListItem &) = delete;
@@ -56,38 +59,46 @@ class LayerWidget : public QLabel {
     Q_OBJECT
 
    public:
-    LayerWidget(const Layer *layer, const Parameter &parameter, QListWidget *list, QListWidgetItem *item) : item(item) {
-        const bool is_implicit_layer = layer->type == LAYER_TYPE_IMPLICIT;
+    LayerWidget(const std::vector<const Layer *> layers, const Parameter &parameter, QListWidget *list, QListWidgetItem *item)
+        : item(item), layer_version(nullptr), layer_state(nullptr) {
+        const bool is_implicit_layer = layers.empty() ? false : layers[0]->type == LAYER_TYPE_IMPLICIT;
 
-        const QFontMetrics fm = list->fontMetrics();
-        const QSize combo_version_size = fm.size(Qt::TextSingleLine, layer->api_version.str().c_str());
+        if (parameter.control != LAYER_CONTROL_APPLICATIONS && parameter.control != LAYER_CONTROL_UNORDERED) {
+            this->layer_version = new QComboBox(this);
+            this->layer_version->addItem(layers.empty() ? "0.0.000" : layers[0]->api_version.str().c_str());
+            if (!layers.empty()) {
+                this->layer_version->setToolTip(layers[0]->manifest_path.c_str());
+            }
+            // this->layer_version->setEnabled(layers.size() > 1);
+            this->layer_version->installEventFilter(this);
 
-        this->layer_version = new QComboBox(this);
-        this->layer_version->show();
-        this->layer_version->addItem(layer->api_version.str().c_str());
-        this->layer_state = new QComboBox(this);
-        this->layer_state->addItem(is_implicit_layer ? "Implicitly On" : "Application-Controlled");
-        this->layer_state->addItem("Forced On");
-        this->layer_state->addItem("Forced Off");
-        this->layer_state->setCurrentIndex(parameter.state);
-        this->layer_state->show();
+            this->layer_state = new QComboBox(this);
+            this->layer_state->addItem("Auto");
+            this->layer_state->addItem("On");
+            this->layer_state->addItem("Off");
+            this->layer_state->setEnabled(!layers.empty());
+            this->layer_state->setCurrentIndex(parameter.state);
+            this->layer_state->installEventFilter(this);
+        }
 
-        std::string decorated_name(layer->key);
+        std::string decorated_name(layers.empty() ? parameter.key : layers[0]->key);
 
-        if (layer != nullptr) {
-            if (layer->status != STATUS_STABLE) {
-                decorated_name += format(" (%s)", GetToken(layer->status));
+        if (layers.empty()) {
+            // A layers configuration may have excluded layer that are misssing because they are not available on this platform
+            // We simply hide these layers to avoid confusing the Vulkan developers
+            if (parameter.state == LAYER_STATE_EXCLUDED) return;
+
+            if (parameter.control != LAYER_CONTROL_APPLICATIONS && parameter.control != LAYER_CONTROL_UNORDERED) {
+                decorated_name += " (Missing)";
+            }
+        } else {
+            if (layers[0]->status != STATUS_STABLE) {
+                decorated_name += format(" (%s)", GetToken(layers[0]->status));
             }
 
             // if (IsDLL32Bit(layer->manifest_path)) {
             //    decorated_name += " (32-bit)";
             //}
-        } else {
-            // A layers configuration may have excluded layer that are misssing because they are not available on this platform
-            // We simply hide these layers to avoid confusing the Vulkan developers
-            if (parameter.state == LAYER_STATE_EXCLUDED) return;
-
-            decorated_name += " (Missing)";
         }
         this->setText(decorated_name.c_str());
 
@@ -97,26 +108,37 @@ class LayerWidget : public QLabel {
         // list->setItemWidget(item, this);
     }
 
-    QComboBox *layer_version;
-    QComboBox *layer_state;
-
    protected:
+    bool eventFilter(QObject *target, QEvent *event) {
+        if (event->type() == QEvent::Wheel) {
+            return true;
+        }
+
+        return false;
+    }
+
     void resizeEvent(QResizeEvent *event) override {
         QSize size = event->size();
 
-        const QFontMetrics fm = this->layer_state->fontMetrics();
-        const int width_state = std::max(HorizontalAdvance(fm, "Application-Controlled 000"), 80);
-        const int width_version = std::max(HorizontalAdvance(fm, "1.2.199 000"), 80);
+        if (this->layer_state != nullptr) {
+            const QFontMetrics fm = this->layer_state->fontMetrics();
+            const int width_state = std::max(HorizontalAdvance(fm, "Auto 000"), 80);
+            const int width_version = std::max(HorizontalAdvance(fm, "1.2.199 000"), 80);
 
-        const QRect state_button_rect = QRect(size.width() - width_state, 0, width_state, size.height());
-        this->layer_state->setGeometry(state_button_rect);
+            const QRect state_button_rect = QRect(size.width() - width_state, 0, width_state, size.height());
+            this->layer_state->setGeometry(state_button_rect);
 
-        const QRect version_button_rect = QRect(size.width() - width_state - width_version, 0, width_version, size.height());
-        this->layer_version->setGeometry(version_button_rect);
+            const QRect version_button_rect = QRect(size.width() - width_state - width_version, 0, width_version, size.height());
+            this->layer_version->setGeometry(version_button_rect);
+        }
     }
 
    public:
     QListWidgetItem *item;
+
+   private:
+    QComboBox *layer_version;
+    QComboBox *layer_state;
 };
 
 class LayerPathWidget : public QLabel {
@@ -160,9 +182,10 @@ class LayerPathWidget : public QLabel {
 
 class TreeWidgetItemParameter : public QListWidgetItem {
    public:
-    TreeWidgetItemParameter(const char *layer_name) : widget(nullptr) { assert(layer_name != nullptr); }
+    TreeWidgetItemParameter(const char *layer_name) : widget(nullptr), layer_name(layer_name) { assert(layer_name != nullptr); }
 
     QWidget *widget;
+    std::string layer_name;
 };
 
 enum Tool { TOOL_VULKAN_INFO, TOOL_VULKAN_INSTALL };
@@ -176,7 +199,6 @@ class MainWindow : public QMainWindow {
 
     void InitUI();
     void UpdateUI();
-    void UpdateConfiguration();
 
    private:
     SettingsTreeManager _settings_tree_manager;
@@ -211,12 +233,14 @@ class MainWindow : public QMainWindow {
     QSystemTrayIcon *_tray_icon;
     QMenu *_tray_icon_menu;
     QAction *_tray_restore_action;
+    QAction *_tray_layers_controlled_by_applications;
+    QAction *_tray_layers_controlled_by_configurator;
+    QAction *_tray_layers_disabled_by_configurator;
     QAction *_tray_quit_action;
 
     void RemoveClicked(ConfigurationListItem *item);
     void ResetClicked(ConfigurationListItem *item);
     void RenameClicked(ConfigurationListItem *item);
-    void EditClicked(ConfigurationListItem *item);
     void NewClicked();
     void DuplicateClicked(ConfigurationListItem *item);
     void ExportClicked(ConfigurationListItem *item);
@@ -227,6 +251,10 @@ class MainWindow : public QMainWindow {
     void AddLayerItem(const Parameter &parameter);
 
    private slots:
+    void trayActionRestore();
+    void trayActionControlledByApplications(bool checked);
+    void trayActionControlledByConfigurator(bool checked);
+    void trayActionDisabledByApplications(bool checked);
     void iconActivated(QSystemTrayIcon::ActivationReason reason);
 
    public Q_SLOTS:
@@ -254,19 +282,21 @@ class MainWindow : public QMainWindow {
     void launchChangeWorkingFolder(const QString &new_text);
     void launchArgsEdited(const QString &new_text);
 
+    void on_tab_widget_currentChanged(int index);
+
     void on_push_button_launcher_clicked();
     void on_push_button_clear_log_clicked();
-    void on_radio_vulkan_applications_clicked();
-    void on_radio_vulkan_configurator_clicked();
-    void on_check_box_apply_list_clicked();
+    // void on_check_box_apply_list_clicked();
     void on_check_box_clear_on_launch_clicked();
     void on_push_button_applications_clicked();
-    void on_push_button_edit_clicked();
     void on_push_button_new_clicked();
+    void on_push_button_rename_clicked();
     void on_push_button_remove_clicked();
     void on_push_button_duplicate_clicked();
 
-    void OnComboBoxModeChanged(int index);
+    void on_check_box_per_application_toggled(bool checked);
+    void on_combo_box_mode_currentIndexChanged(int index);
+    void on_combo_box_applications_currentIndexChanged(int index);
 
     void OnConfigurationItemExpanded(QTreeWidgetItem *item);
     void OnConfigurationItemClicked(bool checked);
@@ -285,9 +315,9 @@ class MainWindow : public QMainWindow {
     MainWindow &operator=(const MainWindow &) = delete;
 
     void InitTray();
+    void UpdateTray();
 
     void RemoveConfiguration(const std::string &configuration_name);
-    bool SelectConfigurationItem(const std::string &configuration_name);
     void ResetLaunchApplication();
     void StartTool(Tool tool);
     QStringList BuildEnvVariables() const;

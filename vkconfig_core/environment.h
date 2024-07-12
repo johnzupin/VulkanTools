@@ -31,8 +31,6 @@
 #include <vector>
 #include <string>
 
-enum LayersMode { LAYERS_MODE_BY_APPLICATIONS = 0, LAYERS_MODE_BY_CONFIGURATOR_RUNNING, LAYERS_MODE_BY_CONFIGURATOR_ALL_DISABLED };
-
 enum LayoutState {
     VKCONFIG2_LAYOUT_MAIN_GEOMETRY = 0,
     VKCONFIG2_LAYOUT_MAIN_WINDOW_STATE,
@@ -176,6 +174,9 @@ class Environment {
     const QByteArray& Get(LayoutState state) const;
     void Set(LayoutState state, const QByteArray& data);
 
+    bool GetPerApplicationConfig() const;
+    void SetPerApplicationConfig(bool enable);
+
     bool GetUseApplicationList() const;
     void SetUseApplicationList(bool enable);
 
@@ -218,6 +219,7 @@ class Environment {
     LayersMode layers_mode;
     bool use_application_list;
     bool use_system_tray;
+    bool use_per_application_configuration;
     int loader_message_types;
 
     std::string selected_configuration;

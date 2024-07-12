@@ -133,7 +133,9 @@ void ApplicationsDialog::on_pushButtonAdd_clicked()  // Pick the test applicatio
 
         QTreeWidgetItem *item = CreateApplicationItem(new_application);
 
-        configurator.configurations.RefreshConfiguration(configurator.layers.available_layers);
+        // To update the application list configuration
+        configurator.configurations.Configure(configurator.layers.selected_layers);
+
         ui->treeWidget->setCurrentItem(item);
         configurator.environment.SelectActiveApplication(ui->treeWidget->indexOfTopLevelItem(item));
     }
@@ -147,7 +149,7 @@ QTreeWidgetItem *ApplicationsDialog::CreateApplicationItem(const Application &ap
 
     if (configurator.environment.GetUseApplicationList()) {
         QCheckBox *check_box = new QCheckBox(application.app_name.c_str());
-        check_box->setChecked(application.override_layers);
+        check_box->setChecked(application.layers_mode != LAYERS_MODE_BY_APPLICATIONS);
         ui->treeWidget->setItemWidget(item, 0, check_box);
         connect(check_box, SIGNAL(clicked(bool)), this, SLOT(itemClicked(bool)));
     } else {
@@ -178,7 +180,9 @@ void ApplicationsDialog::on_pushButtonRemove_clicked() {
     ui->lineEditWorkingFolder->setText("");
     ui->lineEditLogFile->setText("");
 
-    configurator.configurations.RefreshConfiguration(configurator.layers.available_layers);
+    // Update the application list configuration
+    configurator.configurations.Configure(configurator.layers.selected_layers);
+
     ui->treeWidget->update();
 }
 
@@ -217,16 +221,20 @@ void ApplicationsDialog::selectedPathChanged(QTreeWidgetItem *current_item, QTre
 
     ui->lineEditAppName->setText(application.app_name.c_str());
     ui->lineEditExecutable->setText(application.executable_path.c_str());
+    ui->lineEditExecutable->setToolTip(ReplaceBuiltInVariable(application.executable_path.c_str()).c_str());
     ui->lineEditWorkingFolder->setText(application.working_folder.c_str());
+    ui->lineEditWorkingFolder->setToolTip(ReplaceBuiltInVariable(application.working_folder.c_str()).c_str());
     ui->lineEditCmdArgs->setText(application.arguments.c_str());
-    ui->lineEditLogFile->setText(ReplaceBuiltInVariable(application.log_file.c_str()).c_str());
+    ui->lineEditLogFile->setText(application.log_file.c_str());
+    ui->lineEditLogFile->setToolTip(ReplaceBuiltInVariable(application.log_file.c_str()).c_str());
 }
 
 void ApplicationsDialog::itemChanged(QTreeWidgetItem *item, int column) {
     _last_selected_application_index = ui->treeWidget->indexOfTopLevelItem(item);
     QCheckBox *check_box = dynamic_cast<QCheckBox *>(ui->treeWidget->itemWidget(item, column));
     if (check_box != nullptr) {
-        Configurator::Get().environment.GetApplication(_last_selected_application_index).override_layers = check_box->isChecked();
+        Configurator::Get().environment.GetApplication(_last_selected_application_index).layers_mode =
+            check_box->isChecked() ? LAYERS_MODE_BY_CONFIGURATOR_RUNNING : LAYERS_MODE_BY_APPLICATIONS;
     }
 }
 
@@ -247,7 +255,8 @@ void ApplicationsDialog::itemClicked(bool clicked) {
         QTreeWidgetItem *item = ui->treeWidget->topLevelItem(i);
         QCheckBox *check_box = dynamic_cast<QCheckBox *>(ui->treeWidget->itemWidget(item, 0));
         assert(check_box != nullptr);
-        environment.GetApplication(i).override_layers = check_box->isChecked();
+        environment.GetApplication(i).layers_mode =
+            check_box->isChecked() ? LAYERS_MODE_BY_CONFIGURATOR_RUNNING : LAYERS_MODE_BY_APPLICATIONS;
     }
 }
 

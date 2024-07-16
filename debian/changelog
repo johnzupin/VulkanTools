@@ -1,3 +1,68 @@
+lunarg-tools (1.3.290.0~rc1-1lunarg24.04-1) noble; urgency=medium
+
+  [ Christophe ]
+  * vkconfig: Update devices list on configuration selection
+  * vkconfig: Fix VULKAN_SDK caching
+  * vkconfig: Fix devices search
+
+  [ Mark Lobodzinski ]
+  * build: Add VulkanTools apidump GN build
+  * ci: Add chromium CI step for the api dump GN build
+
+  [ Christophe ]
+  * vkconfig: Fix copyright date
+  * vkconfig: Clean up setting context menu
+  * Revert "vkconfig: Add 'Command Prompt' support with command line mode"
+  * vkconfig: Fix Qt console message
+  * vkconfig: Fix remove missing layer
+  * vkconfig: Fix wrong configuration applied
+  * vkconfig: Change focus on dialog window
+  * vkconfig: Enable user paths with no layer
+  * vkconfig: Fix Excluded Layers context menu
+  * vkconfig: Clear layers override at start
+  * vkconfig: Fix invalid layer location on macOS
+  * vkconfig: Clean up browse directory and handling of previous dir
+  * vkconfig3: Per-application configuration
+  * vkconfig: Initial loader settings implementation
+
+  [ Charles Giessen ]
+  * apidump: Add wayland support
+
+  [ Mark Lobodzinski ]
+  * apidump: Change gn json file generator filename output
+
+  [ Christophe ]
+  * layer: Update Android layer settings doc
+  * vkconfig: Clean up
+  * tests: Run layer tests on interval C.I.
+  * vkconfig: Add Crash Diagnostics built-in layers configuration
+  * vkconfig: Add Crash Diagnostics built-in layers configuration
+
+  [ Charles Giessen ]
+  * tests: Fix missing <algorithm> include
+  * git: Add .cache to .gitignore
+
+  [ Niko Pavlicek ]
+  * VkConfig: Fix tray combo-box signal method
+  * VkConfig: Fix tray combo-box signal method
+
+  [ Christophe ]
+  * vkconfig: Changelog update #2046
+
+  [ Charles Giessen ]
+  * build: Update to 1.3.290 headers
+
+  [ Christophe ]
+  * vkconfig: Fix user-path duplication on reset
+
+  [ unknown ]
+  * via: Escape backslashes in json output
+
+  [ Charles Giessen ]
+  * deps: Update volk to vulkan-sdk-1.3.290
+
+ -- john <john@odin>  Tue, 16 Jul 2024 12:18:16 -0600
+
 lunarg-tools (1.3.283.0~rc4-1lunarg22.04-1) jammy; urgency=medium
 
   [ Christophe ]

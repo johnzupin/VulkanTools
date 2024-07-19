@@ -1,3 +1,12 @@
+lunarg-tools (1.3.290.0~rc2-1lunarg24.04-1) noble; urgency=medium
+
+  [ Christophe ]
+  * Update Crash Diagnostic.json
+  * vkconfig: Clean up
+  * vkconfig: Fix macOS crash diagnotics
+
+ -- john <john@odin>  Fri, 19 Jul 2024 14:43:25 -0600
+
 lunarg-tools (1.3.290.0~rc1-1lunarg24.04-1) noble; urgency=medium
 
   [ Christophe ]

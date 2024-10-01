@@ -35,9 +35,9 @@
 # Currently, the API dump layer generates the following files from the following strings:
 #   * api_dump.cpp: COMMON_CODEGEN - Provides all entrypoints for functions and dispatches the calls
 #       to the proper back end
-#   * api_dump_text.h: TEXT_CODEGEN - Provides the back end for dumping to a text file
-#   * api_dump_html.h: HTML_CODEGEN - Provides the back end for dumping to a html document
-#   * api_dump_json.h: JSON_CODEGEN - Provides the back end for dumping to a JSON file
+#   * api_dump_text.h/.cpp: TEXT_CODEGEN_HEADER/IMPLEMENTATION - Provides the back end for dumping to a text file
+#   * api_dump_html.h/.cpp: HTML_CODEGEN_HEADER/IMPLEMENTATION - Provides the back end for dumping to a html document
+#   * api_dump_json.h/.cpp: JSON_CODEGEN_HEADER/IMPLEMENTATION - Provides the back end for dumping to a JSON file
 #
 
 import os,re,sys,string
@@ -96,7 +96,7 @@ COMMON_CODEGEN = """
 
 VKAPI_ATTR VkResult VKAPI_CALL vkCreateInstance(const VkInstanceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkInstance* pInstance)
 {{
-    ApiDumpInstance::current().outputMutex()->lock();
+    std::lock_guard<std::mutex> lg(ApiDumpInstance::current().outputMutex());
     ApiDumpInstance::current().initLayerSettings(pCreateInfo, pAllocator);
     dump_function_head(ApiDumpInstance::current(), "vkCreateInstance", "pCreateInfo, pAllocator, pInstance", "VkResult");
 
@@ -132,13 +132,12 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateInstance(const VkInstanceCreateInfo* pCre
                 break;
         }}
     }}
-    ApiDumpInstance::current().outputMutex()->unlock();
     return result;
 }}
 
 VKAPI_ATTR VkResult VKAPI_CALL vkCreateDevice(VkPhysicalDevice physicalDevice, const VkDeviceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDevice* pDevice)
 {{
-    ApiDumpInstance::current().outputMutex()->lock();
+    std::lock_guard<std::mutex> lg(ApiDumpInstance::current().outputMutex());
     dump_function_head(ApiDumpInstance::current(), "vkCreateDevice", "physicalDevice, pCreateInfo, pAllocator, pDevice", "VkResult");
 
     // Get the function pointer
@@ -174,7 +173,6 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateDevice(VkPhysicalDevice physicalDevice, c
                 break;
         }}
     }}
-    ApiDumpInstance::current().outputMutex()->unlock();
     return result;
 }}
 
@@ -217,7 +215,7 @@ EXPORT_FUNCTION VKAPI_ATTR VkResult VKAPI_CALL vkEnumerateDeviceLayerProperties(
 VKAPI_ATTR {funcReturn} VKAPI_CALL {funcName}({funcTypedParams})
 {{
     @if('{funcName}' not in BLOCKING_API_CALLS)
-    ApiDumpInstance::current().outputMutex()->lock();
+    std::lock_guard<std::mutex> lg(ApiDumpInstance::current().outputMutex());
     dump_function_head(ApiDumpInstance::current(), "{funcName}", "{funcNamedParams}", "{funcReturn}");
     @end if
 
@@ -246,7 +244,7 @@ VKAPI_ATTR {funcReturn} VKAPI_CALL {funcName}({funcTypedParams})
     instance_dispatch_table({funcDispatchParam})->{funcShortName}({funcNamedParams});
     @end if
     @if('{funcName}' in BLOCKING_API_CALLS)
-    ApiDumpInstance::current().outputMutex()->lock();
+    std::lock_guard<std::mutex> lg(ApiDumpInstance::current().outputMutex());
     dump_function_head(ApiDumpInstance::current(), "{funcName}", "{funcNamedParams}", "{funcReturn}");
     @end if
     {funcStateTrackingCode}
@@ -296,7 +294,6 @@ VKAPI_ATTR {funcReturn} VKAPI_CALL {funcName}({funcTypedParams})
             @end if
         }}
     }}
-    ApiDumpInstance::current().outputMutex()->unlock();
     @if('{funcReturn}' != 'void')
     return result;
     @end if
@@ -309,7 +306,7 @@ VKAPI_ATTR {funcReturn} VKAPI_CALL {funcName}({funcTypedParams})
 VKAPI_ATTR {funcReturn} VKAPI_CALL {funcName}({funcTypedParams})
 {{
     @if('{funcName}' not in BLOCKING_API_CALLS)
-    ApiDumpInstance::current().outputMutex()->lock();
+    std::lock_guard<std::mutex> lg(ApiDumpInstance::current().outputMutex());
     @if('{funcName}' in ['vkDebugMarkerSetObjectNameEXT', 'vkSetDebugUtilsObjectNameEXT'])
     ApiDumpInstance::current().update_object_name_map(pNameInfo);
     @end if
@@ -323,7 +320,7 @@ VKAPI_ATTR {funcReturn} VKAPI_CALL {funcName}({funcTypedParams})
     device_dispatch_table({funcDispatchParam})->{funcShortName}({funcNamedParams});
     @end if
     @if('{funcName}' in BLOCKING_API_CALLS)
-    ApiDumpInstance::current().outputMutex()->lock();
+    std::lock_guard<std::mutex> lg(ApiDumpInstance::current().outputMutex());
     dump_function_head(ApiDumpInstance::current(), "{funcName}", "{funcNamedParams}", "{funcReturn}");
     @end if
     {funcStateTrackingCode}
@@ -358,7 +355,6 @@ VKAPI_ATTR {funcReturn} VKAPI_CALL {funcName}({funcTypedParams})
             @end if
         }}
     }}
-    ApiDumpInstance::current().outputMutex()->unlock();
     @if('{funcName}' == 'vkQueuePresentKHR')
     ApiDumpInstance::current().nextFrame();
     @end if
@@ -420,7 +416,7 @@ EXPORT_FUNCTION VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL vkGetDeviceProcAddr(VkD
 }}
 """
 
-TEXT_CODEGEN = """
+TEXT_CODEGEN_HEADER = """
 /* Copyright (c) 2015-2023 Valve Corporation
  * Copyright (c) 2015-2023 LunarG, Inc.
  * Copyright (c) 2015-2016, 2019 Google Inc.
@@ -449,7 +445,7 @@ TEXT_CODEGEN = """
 #pragma once
 
 #include "api_dump.h"
-#include "api_dump_video_text.h"
+
 @if(not {isVideoGeneration})
 void dump_text_pNext_struct_name(const void* object, const ApiDumpSettings& settings, int indents, const char* pnext_type);
 void dump_text_pNext_trampoline(const void* object, const ApiDumpSettings& settings, int indents);
@@ -458,6 +454,138 @@ void dump_text_pNext_trampoline(const void* object, const ApiDumpSettings& setti
 void dump_text_{unName}(const {unName}& object, const ApiDumpSettings& settings, int indents);
 @end union
 
+//=========================== Type Implementations ==========================//
+
+@foreach type where('{etyName}' != 'void')
+void dump_text_{etyName}({etyName} object, const ApiDumpSettings& settings, int indents);
+@end type
+
+//========================= Basetype Implementations ========================//
+
+@foreach basetype where(not '{baseName}' in ['ANativeWindow', 'AHardwareBuffer', 'CAMetalLayer'])
+void dump_text_{baseName}({baseName} object, const ApiDumpSettings& settings, int indents);
+@end basetype
+@foreach basetype where('{baseName}' in ['ANativeWindow', 'AHardwareBuffer'])
+#if defined(VK_USE_PLATFORM_ANDROID_KHR)
+void dump_text_{baseName}(const {baseName}* object, const ApiDumpSettings& settings, int indents);
+#endif
+@end basetype
+@foreach basetype where('{baseName}' in ['CAMetalLayer'])
+#if defined(VK_USE_PLATFORM_METAL_EXT)
+void dump_text_{baseName}({baseName} object, const ApiDumpSettings& settings, int indents);
+#endif
+@end basetype
+
+//======================= System Type Implementations =======================//
+
+@foreach systype
+void dump_text_{sysName}(const {sysType} object, const ApiDumpSettings& settings, int indents);
+@end systype
+
+//========================== Handle Implementations =========================//
+
+@foreach handle
+void dump_text_{hdlName}(const {hdlName} object, const ApiDumpSettings& settings, int indents);
+@end handle
+
+//=========================== Enum Implementations ==========================//
+
+@foreach enum
+void dump_text_{enumName}({enumName} object, const ApiDumpSettings& settings, int indents);
+@end enum
+
+//========================= Bitmask Implementations =========================//
+
+@foreach bitmask
+@if('{bitWidth}' == '64')
+// 64 bit bitmasks don't have an enum of bit values.
+// NOTE: Because all of the api_dump_*.h files are only included in api_dump.cpp, this typedef
+// only needs to be generated by the first .h file.
+typedef VkFlags64 {bitName};
+@end if
+void dump_text_{bitName}({bitName} object, const ApiDumpSettings& settings, int indents);
+@end bitmask
+
+//=========================== Flag Implementations ==========================//
+
+@foreach flag where('{flagEnum}' != 'None')
+void dump_text_{flagName}({flagName} object, const ApiDumpSettings& settings, int indents);
+@end flag
+@foreach flag where('{flagEnum}' == 'None')
+void dump_text_{flagName}({flagName} object, const ApiDumpSettings& settings, int indents);
+@end flag
+
+//======================= Func Pointer Implementations ======================//
+
+@foreach funcpointer
+void dump_text_{pfnName}({pfnName} object, const ApiDumpSettings& settings, int indents);
+@end funcpointer
+
+//========================== Struct Implementations =========================//
+
+@foreach struct
+void dump_text_{sctName}(const {sctName}& object, const ApiDumpSettings& settings, int indents);
+@end struct
+
+//========================== Union Implementations ==========================//
+
+@foreach union
+void dump_text_{unName}(const {unName}& object, const ApiDumpSettings& settings, int indents);
+@end union
+
+//======================== pNext Chain Implementation =======================//
+@if(not {isVideoGeneration})
+void dump_text_pNext_struct_name(const void* object, const ApiDumpSettings& settings, int indents, const char* pnext_type);
+
+void dump_text_pNext_trampoline(const void* object, const ApiDumpSettings& settings, int indents);
+@end if
+//========================= Function Implementations ========================//
+
+@foreach function where('{funcName}' not in ['vkGetDeviceProcAddr', 'vkGetInstanceProcAddr'])
+@if('{funcReturn}' != 'void')
+void dump_text_{funcName}(ApiDumpInstance& dump_inst, {funcReturn} result, {funcTypedParams});
+@end if
+@if('{funcReturn}' == 'void')
+void dump_text_{funcName}(ApiDumpInstance& dump_inst, {funcTypedParams});
+@end if
+@end function
+
+"""
+
+TEXT_CODEGEN_IMPLEMENTATION = """
+/* Copyright (c) 2015-2023 Valve Corporation
+ * Copyright (c) 2015-2023 LunarG, Inc.
+ * Copyright (c) 2015-2016, 2019 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Author: Lenny Komow <lenny@lunarg.com>
+ * Author: Shannon McPherson <shannon@lunarg.com>
+ * Author: Charles Giessen <charles@lunarg.com>
+ */
+
+/*
+ * This file is generated from the Khronos Vulkan XML API Registry.
+ */
+
+@if({isVideoGeneration})
+#pragma once
+@end if
+
+#include "api_dump_text.h"
+@if(not {isVideoGeneration})
+#include "api_dump_video_text.h"
+@end if
 //=========================== Type Implementations ==========================//
 
 @foreach type where('{etyName}' != 'void')
@@ -816,7 +944,7 @@ void dump_text_{funcName}(ApiDumpInstance& dump_inst, {funcTypedParams})
 # Due to the way some of the functions have been organized, some of the HTML tags
 # that are opened are closed in another function. See api_dump.h. This may need refactoring.
 
-HTML_CODEGEN = """
+HTML_CODEGEN_HEADER = """
 /* Copyright (c) 2015-2023 Valve Corporation
  * Copyright (c) 2015-2023 LunarG, Inc.
  * Copyright (c) 2015-2017, 2019 Google Inc.
@@ -846,7 +974,7 @@ HTML_CODEGEN = """
 #pragma once
 
 #include "api_dump.h"
-#include "api_dump_video_html.h"
+
 @if(not {isVideoGeneration})
 void dump_html_pNext_trampoline(const void* object, const ApiDumpSettings& settings, int indents);
 @end if
@@ -854,6 +982,130 @@ void dump_html_pNext_trampoline(const void* object, const ApiDumpSettings& setti
 void dump_html_{unName}(const {unName}& object, const ApiDumpSettings& settings, int indents);
 @end union
 
+//=========================== Type Implementations ==========================//
+
+@foreach type where('{etyName}' != 'void')
+void dump_html_{etyName}({etyName} object, const ApiDumpSettings& settings, int indents);
+@end type
+
+//========================= Basetype Implementations ========================//
+
+@foreach basetype where(not '{baseName}' in ['ANativeWindow', 'AHardwareBuffer', 'CAMetalLayer'])
+void dump_html_{baseName}({baseName} object, const ApiDumpSettings& settings, int indents);
+@end basetype
+@foreach basetype where('{baseName}' in ['ANativeWindow', 'AHardwareBuffer'])
+#if defined(VK_USE_PLATFORM_ANDROID_KHR)
+void dump_html_{baseName}(const {baseName}* object, const ApiDumpSettings& settings, int indents);
+#endif
+@end basetype
+@foreach basetype where('{baseName}' in ['CAMetalLayer'])
+#if defined(VK_USE_PLATFORM_METAL_EXT)
+void dump_html_{baseName}({baseName} object, const ApiDumpSettings& settings, int indents);
+#endif
+@end basetype
+
+//======================= System Type Implementations =======================//
+
+@foreach systype
+void dump_html_{sysName}(const {sysType} object, const ApiDumpSettings& settings, int indents);
+@end systype
+
+//========================== Handle Implementations =========================//
+
+@foreach handle
+void dump_html_{hdlName}(const {hdlName} object, const ApiDumpSettings& settings, int indents);
+@end handle
+
+//=========================== Enum Implementations ==========================//
+
+@foreach enum
+void dump_html_{enumName}({enumName} object, const ApiDumpSettings& settings, int indents);
+@end enum
+
+//========================= Bitmask Implementations =========================//
+
+@foreach bitmask
+void dump_html_{bitName}({bitName} object, const ApiDumpSettings& settings, int indents);
+@end bitmask
+
+//=========================== Flag Implementations ==========================//
+
+@foreach flag where('{flagEnum}' != 'None')
+void dump_html_{flagName}({flagName} object, const ApiDumpSettings& settings, int indents);
+@end flag
+@foreach flag where('{flagEnum}' == 'None')
+void dump_html_{flagName}({flagName} object, const ApiDumpSettings& settings, int indents);
+@end flag
+
+//======================= Func Pointer Implementations ======================//
+
+@foreach funcpointer
+void dump_html_{pfnName}({pfnName} object, const ApiDumpSettings& settings, int indents);
+@end funcpointer
+
+//========================== Struct Implementations =========================//
+
+@foreach struct
+void dump_html_{sctName}(const {sctName}& object, const ApiDumpSettings& settings, int indents);
+@end struct
+
+//========================== Union Implementations ==========================//
+
+@foreach union
+void dump_html_{unName}(const {unName}& object, const ApiDumpSettings& settings, int indents);
+@end union
+
+//======================== pNext Chain Implementation =======================//
+@if(not {isVideoGeneration})
+void dump_html_pNext_trampoline(const void* object, const ApiDumpSettings& settings, int indents);
+@end if
+//========================= Function Implementations ========================//
+
+@foreach function where('{funcName}' not in ['vkGetDeviceProcAddr', 'vkGetInstanceProcAddr'])
+@if('{funcReturn}' != 'void')
+void dump_html_{funcName}(ApiDumpInstance& dump_inst, {funcReturn} result, {funcTypedParams});
+@end if
+@if('{funcReturn}' == 'void')
+void dump_html_{funcName}(ApiDumpInstance& dump_inst, {funcTypedParams});
+@end if
+@end function
+"""
+
+HTML_CODEGEN_IMPLEMENTATION = """
+/* Copyright (c) 2015-2023 Valve Corporation
+ * Copyright (c) 2015-2023 LunarG, Inc.
+ * Copyright (c) 2015-2017, 2019 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Author: Lenny Komow <lenny@lunarg.com>
+ * Author: Joey Bzdek <joey@lunarg.com>
+ * Author: Shannon McPherson <shannon@lunarg.com>
+ * Author: Charles Giessen <charles@lunarg.com>
+ */
+
+/*
+ * This file is generated from the Khronos Vulkan XML API Registry.
+ */
+
+@if({isVideoGeneration})
+#pragma once
+@end if
+
+#include "api_dump_html.h"
+@if(not {isVideoGeneration})
+#include "api_dump_video_html.h"
+@end if
 //=========================== Type Implementations ==========================//
 
 @foreach type where('{etyName}' != 'void')
@@ -1185,9 +1437,10 @@ void dump_html_{funcName}(ApiDumpInstance& dump_inst, {funcTypedParams})
 @end function
 """
 
+
 # This JSON Codegen is essentially copied from the HTML section above.
 
-JSON_CODEGEN = """
+JSON_CODEGEN_HEADER = """
 /* Copyright (c) 2015-2023 Valve Corporation
  * Copyright (c) 2015-2023 LunarG, Inc.
  * Copyright (c) 2015-2017, 2019 Google Inc.
@@ -1218,7 +1471,7 @@ JSON_CODEGEN = """
 #pragma once
 
 #include "api_dump.h"
-#include "api_dump_video_json.h"
+
 @if(not {isVideoGeneration})
 void dump_json_pNext_trampoline(const void* object, const ApiDumpSettings& settings, int indents);
 @end if
@@ -1226,6 +1479,130 @@ void dump_json_pNext_trampoline(const void* object, const ApiDumpSettings& setti
 void dump_json_{unName}(const {unName}& object, const ApiDumpSettings& settings, int indents);
 @end union
 
+//=========================== Type Implementations ==========================//
+
+@foreach type where('{etyName}' != 'void')
+void dump_json_{etyName}({etyName} object, const ApiDumpSettings& settings, int indents);
+@end type
+
+//========================= Basetype Implementations ========================//
+
+@foreach basetype where(not '{baseName}' in ['ANativeWindow', 'AHardwareBuffer', 'CAMetalLayer'])
+void dump_json_{baseName}({baseName} object, const ApiDumpSettings& settings, int indents);
+@end basetype
+@foreach basetype where('{baseName}' in ['ANativeWindow', 'AHardwareBuffer'])
+#if defined(VK_USE_PLATFORM_ANDROID_KHR)
+void dump_json_{baseName}(const {baseName}* object, const ApiDumpSettings& settings, int indents);
+#endif
+@end basetype
+@foreach basetype where('{baseName}' in ['CAMetalLayer'])
+#if defined(VK_USE_PLATFORM_METAL_EXT)
+void dump_json_{baseName}({baseName} object, const ApiDumpSettings& settings, int indents);
+#endif
+@end basetype
+
+//======================= System Type Implementations =======================//
+
+@foreach systype
+void dump_json_{sysName}(const {sysType} object, const ApiDumpSettings& settings, int indents);
+@end systype
+
+//========================== Handle Implementations =========================//
+
+@foreach handle
+void dump_json_{hdlName}(const {hdlName} object, const ApiDumpSettings& settings, int indents);
+@end handle
+
+//=========================== Enum Implementations ==========================//
+
+@foreach enum
+void dump_json_{enumName}({enumName} object, const ApiDumpSettings& settings, int indents);
+@end enum
+
+//========================= Bitmask Implementations =========================//
+
+@foreach bitmask
+void dump_json_{bitName}({bitName} object, const ApiDumpSettings& settings, int indents);
+@end bitmask
+
+//=========================== Flag Implementations ==========================//
+
+@foreach flag where('{flagEnum}' != 'None')
+void dump_json_{flagName}({flagName} object, const ApiDumpSettings& settings, int indents);
+@end flag
+@foreach flag where('{flagEnum}' == 'None')
+void dump_json_{flagName}({flagName} object, const ApiDumpSettings& settings, int indents);
+@end flag
+
+//======================= Func Pointer Implementations ======================//
+
+@foreach funcpointer
+void dump_json_{pfnName}({pfnName} object, const ApiDumpSettings& settings, int indents);
+@end funcpointer
+
+//========================== Struct Implementations =========================//
+
+@foreach struct
+void dump_json_{sctName}(const {sctName}& object, const ApiDumpSettings& settings, int indents);
+@end struct
+
+//========================== Union Implementations ==========================//
+@foreach union
+void dump_json_{unName}(const {unName}& object, const ApiDumpSettings& settings, int indents);
+@end union
+
+//======================== pNext Chain Implementation =======================//
+@if(not {isVideoGeneration})
+void dump_json_pNext_trampoline(const void* object, const ApiDumpSettings& settings, int indents);
+@end if
+//========================= Function Implementations ========================//
+
+@foreach function where(not '{funcName}' in ['vkGetDeviceProcAddr', 'vkGetInstanceProcAddr'])
+@if('{funcReturn}' != 'void')
+void dump_json_{funcName}(ApiDumpInstance& dump_inst, {funcReturn} result, {funcTypedParams});
+@end if
+@if('{funcReturn}' == 'void')
+void dump_json_{funcName}(ApiDumpInstance& dump_inst, {funcTypedParams});
+@end if
+@end function
+"""
+
+JSON_CODEGEN_IMPLEMENTATION = """
+/* Copyright (c) 2015-2023 Valve Corporation
+ * Copyright (c) 2015-2023 LunarG, Inc.
+ * Copyright (c) 2015-2017, 2019 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Author: Lenny Komow <lenny@lunarg.com>
+ * Author: Joey Bzdek <joey@lunarg.com>
+ * Author: Shannon McPherson <shannon@lunarg.com>
+ * Author: David Pinedo <david@lunarg.com>
+ * Author: Charles Giessen <charles@lunarg.com>
+ */
+
+/*
+ * This file is generated from the Khronos Vulkan XML API Registry.
+ */
+
+@if({isVideoGeneration})
+#pragma once
+@end if
+
+#include "api_dump_json.h"
+@if(not {isVideoGeneration})
+#include "api_dump_video_json.h"
+@end if
 //=========================== Type Implementations ==========================//
 
 @foreach type where('{etyName}' != 'void')
@@ -1604,6 +1981,14 @@ PARAMETER_STATE = {
     'VkDescriptorDataEXT': {
         'VkDescriptorGetInfoEXT':
             'ApiDumpInstance::current().setDescriptorType(object.type);',
+    },
+    'VkIndirectExecutionSetInfoEXT':{
+        'VkIndirectExecutionSetInfoEXT':
+            'ApiDumpInstance::current().setIndirectExecutionSetInfoType(object.type);',
+    },
+    'VkIndirectCommandsTokenDataEXT':{
+        'VkIndirectCommandsLayoutTokenEXT':
+            'ApiDumpInstance::current().setIndirectCommandsLayoutToken(object.type);',
     }
 }
 
@@ -1663,6 +2048,17 @@ VALIDITY_CHECKS = {
         'pColorAttachmentFormats': '!ApiDumpInstance::current().getIsGPLPreRasterOrFragmentShader()',
         'depthAttachmentFormat': '!ApiDumpInstance::current().getIsGPLPreRasterOrFragmentShader()',
         'stencilAttachmentFormat': '!ApiDumpInstance::current().getIsGPLPreRasterOrFragmentShader()',
+    },
+    'VkIndirectExecutionSetInfoEXT':{
+        'pPipelineInfo': 'ApiDumpInstance::current().getIndirectExecutionSetInfoType() == VK_INDIRECT_EXECUTION_SET_INFO_TYPE_PIPELINES_EXT',
+        'pShaderInfo': 'ApiDumpInstance::current().getIndirectExecutionSetInfoType() == VK_INDIRECT_EXECUTION_SET_INFO_TYPE_SHADER_OBJECTS_EXT',
+    },
+    'VkIndirectCommandsTokenDataEXT':{
+        'pPushConstant': 'ApiDumpInstance::current().getIndirectCommandsLayoutToken() == VK_INDIRECT_COMMANDS_TOKEN_TYPE_PUSH_CONSTANT_EXT || ApiDumpInstance::current().getIndirectCommandsLayoutToken() == VK_INDIRECT_COMMANDS_TOKEN_TYPE_SEQUENCE_INDEX_EXT',
+        'pVertexBuffer': 'ApiDumpInstance::current().getIndirectCommandsLayoutToken() == VK_INDIRECT_COMMANDS_TOKEN_TYPE_VERTEX_BUFFER_EXT',
+        'pIndexBuffer': 'ApiDumpInstance::current().getIndirectCommandsLayoutToken() == VK_INDIRECT_COMMANDS_TOKEN_TYPE_INDEX_BUFFER_EXT',
+        'pExecutionSet': 'ApiDumpInstance::current().getIndirectCommandsLayoutToken() == VK_INDIRECT_COMMANDS_TOKEN_TYPE_EXECUTION_SET_EXT',
+
     }
 }
 

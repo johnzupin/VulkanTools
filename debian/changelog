@@ -1,3 +1,45 @@
+lunarg-tools (1.3.296.0~rc1-1lunarg22.04-1) jammy; urgency=medium
+
+  [ unknown ]
+  * via: Escape backslashes in json output
+
+  [ Christophe ]
+  * vkconfig: Fix user-path duplication on reset
+
+  [ unknown ]
+  * apidump: Fix tests looking in wrong output folder
+
+  [ Charles Giessen ]
+  * deps: Update volk to vulkan-sdk-1.3.290
+
+  [ unknown ]
+  * Look for api dump test output in current directory
+
+  [ Christophe ]
+  * Update Crash Diagnostic.json
+  * vkconfig: Clean up
+  * vkconfig: Fix macOS crash diagnotics
+
+  [ Charles Giessen ]
+  * apidump: Split compilation into multiple files
+  * build: Update known_good.json to 1.3.292
+  * apidump: Use regular mutex & lock guards
+
+  [ Christophe ]
+  * vkconfig: Notify risk when overriding implicit layer
+  * vkconfig: Fix flags settings dependencies
+  * vkconfig: Fix filesystem text changed
+  * vkconfig: Fix implicit layer ordering
+
+  [ Charles Giessen ]
+  * build: Update known_good to 1.3.296
+
+  [ Christophe ]
+  * vkconfig: Avoid duplicated paths
+  * vkconfig2: SDK 296 bugfixing
+
+ -- john <john@odin>  Tue, 01 Oct 2024 10:42:36 -0600
+
 lunarg-tools (1.3.290.0~rc2-1lunarg22.04-1) jammy; urgency=medium
 
   [ Christophe ]

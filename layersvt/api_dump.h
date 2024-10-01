@@ -466,8 +466,7 @@ class ApiDumpSettings {
             if (use_spaces)
                 output_stream << std::left << std::setw(type_size) << type << " = ";
             else
-                output_stream << type << std::setw((type_size - (int)strlen(type) - 1 + tab_size) / tab_size) << ""
-                              << " = ";
+                output_stream << type << std::setw((type_size - (int)strlen(type) - 1 + tab_size) / tab_size) << "" << " = ";
         } else {
             output_stream << " = ";
         }
@@ -822,13 +821,13 @@ class ApiDumpInstance {
     }
 
     uint64_t frameCount() {
-        std::lock_guard<std::recursive_mutex> lg(frame_mutex);
+        std::lock_guard<std::mutex> lg(frame_mutex);
         uint64_t count = frame_count;
         return count;
     }
 
     void nextFrame() {
-        std::lock_guard<std::recursive_mutex> lg(frame_mutex);
+        std::lock_guard<std::mutex> lg(frame_mutex);
         ++frame_count;
 
         should_dump_output = settings().isFrameInRange(frame_count);
@@ -852,13 +851,13 @@ class ApiDumpInstance {
         return false;
     }
 
-    std::recursive_mutex *outputMutex() { return &output_mutex; }
+    std::mutex &outputMutex() { return output_mutex; }
 
     ApiDumpSettings &settings() { return dump_settings; }
 
     uint64_t threadID() {
         std::thread::id this_id = std::this_thread::get_id();
-        std::lock_guard<std::recursive_mutex> lg(thread_mutex);
+        std::lock_guard<std::mutex> lg(thread_mutex);
 
         auto it = thread_map.find(this_id);
         if (it != thread_map.end()) {
@@ -872,7 +871,7 @@ class ApiDumpInstance {
     void setCmdBuffer(VkCommandBuffer cmd_buffer) { this->cmd_buffer = cmd_buffer; }
 
     VkCommandBufferLevel getCmdBufferLevel() {
-        std::lock_guard<std::recursive_mutex> lg(cmd_buffer_state_mutex);
+        std::lock_guard<std::mutex> lg(cmd_buffer_state_mutex);
         const auto level_iter = cmd_buffer_level.find(cmd_buffer);
         assert(level_iter != cmd_buffer_level.end());
         const auto level = level_iter->second;
@@ -882,7 +881,7 @@ class ApiDumpInstance {
     void eraseCmdBuffers(VkDevice device, VkCommandPool cmd_pool, std::vector<VkCommandBuffer> cmd_buffers) {
         cmd_buffers.erase(std::remove(cmd_buffers.begin(), cmd_buffers.end(), nullptr), cmd_buffers.end());
         if (!cmd_buffers.empty()) {
-            std::lock_guard<std::recursive_mutex> lg(cmd_buffer_state_mutex);
+            std::lock_guard<std::mutex> lg(cmd_buffer_state_mutex);
 
             const auto pool_cmd_buffers_iter = cmd_buffer_pools.find(std::make_pair(device, cmd_pool));
             assert(pool_cmd_buffers_iter != cmd_buffer_pools.end());
@@ -898,7 +897,7 @@ class ApiDumpInstance {
 
     void addCmdBuffers(VkDevice device, VkCommandPool cmd_pool, std::vector<VkCommandBuffer> cmd_buffers,
                        VkCommandBufferLevel level) {
-        std::lock_guard<std::recursive_mutex> lg(cmd_buffer_state_mutex);
+        std::lock_guard<std::mutex> lg(cmd_buffer_state_mutex);
         auto &pool_cmd_buffers = cmd_buffer_pools[std::make_pair(device, cmd_pool)];
         pool_cmd_buffers.insert(cmd_buffers.begin(), cmd_buffers.end());
 
@@ -910,7 +909,7 @@ class ApiDumpInstance {
 
     void eraseCmdBufferPool(VkDevice device, VkCommandPool cmd_pool) {
         if (cmd_pool != VK_NULL_HANDLE) {
-            std::lock_guard<std::recursive_mutex> lg(cmd_buffer_state_mutex);
+            std::lock_guard<std::mutex> lg(cmd_buffer_state_mutex);
 
             const auto cmd_buffers_iter = cmd_buffer_pools.find(std::make_pair(device, cmd_pool));
             if (cmd_buffers_iter != cmd_buffer_pools.end()) {
@@ -933,6 +932,10 @@ class ApiDumpInstance {
     VkDescriptorType getDescriptorType() { return this->descriptor_type; }
     void setIsGPLPreRasterOrFragmentShader(bool in) { this->GPLPreRasterOrFragmentShader = in; }
     bool getIsGPLPreRasterOrFragmentShader() { return this->GPLPreRasterOrFragmentShader; }
+    void setIndirectExecutionSetInfoType(VkIndirectExecutionSetInfoTypeEXT type) { this->indirectExecutionSetInfoType = type; }
+    VkIndirectExecutionSetInfoTypeEXT getIndirectExecutionSetInfoType() { return this->indirectExecutionSetInfoType; }
+    void setIndirectCommandsLayoutToken(VkIndirectCommandsTokenTypeEXT type) { this->indirectCommandsLayoutToken = type; }
+    VkIndirectCommandsTokenTypeEXT getIndirectCommandsLayoutToken() { return this->indirectCommandsLayoutToken; }
 
     std::chrono::microseconds current_time_since_start() {
         std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
@@ -969,14 +972,14 @@ class ApiDumpInstance {
 
    private:
     ApiDumpSettings dump_settings;
-    std::recursive_mutex output_mutex;
-    std::recursive_mutex frame_mutex;
+    std::mutex output_mutex;
+    std::mutex frame_mutex;
     uint64_t frame_count;
 
-    std::recursive_mutex thread_mutex;
+    std::mutex thread_mutex;
     std::unordered_map<std::thread::id, uint64_t> thread_map;
 
-    std::recursive_mutex cmd_buffer_state_mutex;
+    std::mutex cmd_buffer_state_mutex;
     std::map<std::pair<VkDevice, VkCommandPool>, std::unordered_set<VkCommandBuffer>> cmd_buffer_pools;
     std::unordered_map<VkCommandBuffer, VkCommandBufferLevel> cmd_buffer_level;
 
@@ -1008,10 +1011,16 @@ class ApiDumpInstance {
     // True when creating a graphics pipeline library with VK_GRAPHICS_PIPELINE_LIBRARY_PRE_RASTERIZATION_SHADERS_BIT_EXT or
     // VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_SHADER_BIT_EXT set in the VkGraphicsPipelineLibraryCreateInfoEXT struct.
     bool GPLPreRasterOrFragmentShader;
+
+    // Storage for the VkIndirectExecutionSetInfoEXT union to know which is the active element
+    VkIndirectExecutionSetInfoTypeEXT indirectExecutionSetInfoType;
+
+    // Storage for the VkIndirectCommandsTokenDataEXT union to know which is the active element
+    VkIndirectCommandsTokenTypeEXT indirectCommandsLayoutToken;
 };
 
 // Helper function to determine the value of GPLPreRasterOrFragmentShader;
-bool checkForGPLPreRasterOrFragmentShader(const VkGraphicsPipelineCreateInfo &object) {
+inline bool checkForGPLPreRasterOrFragmentShader(const VkGraphicsPipelineCreateInfo &object) {
     VkGraphicsPipelineLibraryFlagsEXT flags{};
     const VkBaseInStructure *pNext_chain = reinterpret_cast<const VkBaseInStructure *>(object.pNext);
     while (pNext_chain) {
@@ -1028,7 +1037,7 @@ bool checkForGPLPreRasterOrFragmentShader(const VkGraphicsPipelineCreateInfo &ob
 // Utility to output an address.
 // If the quotes arg is true, the address is encloded in quotes.
 // Used for text, html, and json output.
-void OutputAddress(const ApiDumpSettings &settings, const void *addr) {
+inline void OutputAddress(const ApiDumpSettings &settings, const void *addr) {
     if (settings.showAddress())
         if (addr == NULL)
             settings.stream() << "NULL";
@@ -1038,7 +1047,7 @@ void OutputAddress(const ApiDumpSettings &settings, const void *addr) {
         settings.stream() << "address";
 }
 
-void OutputAddressJSON(const ApiDumpSettings &settings, const void *addr) {
+inline void OutputAddressJSON(const ApiDumpSettings &settings, const void *addr) {
     settings.stream() << "\"";
     OutputAddress(settings, addr);
     settings.stream() << "\"";
@@ -1046,8 +1055,8 @@ void OutputAddressJSON(const ApiDumpSettings &settings, const void *addr) {
 
 //==================================== Text Backend Helpers ======================================//
 
-void dump_text_function_head(ApiDumpInstance &dump_inst, const char *funcName, const char *funcNamedParams,
-                             const char *funcReturn) {
+inline void dump_text_function_head(ApiDumpInstance &dump_inst, const char *funcName, const char *funcNamedParams,
+                                    const char *funcReturn) {
     const ApiDumpSettings &settings(dump_inst.settings());
     if (settings.showThreadAndFrame()) {
         settings.stream() << "Thread " << dump_inst.threadID() << ", Frame " << dump_inst.frameCount();
@@ -1139,19 +1148,20 @@ void dump_text_value(const T &object, const ApiDumpSettings &settings, const cha
     dump(object, settings, indents);
 }
 
-void dump_text_special(const char *text, const ApiDumpSettings &settings, const char *type_string, const char *name, int indents) {
+inline void dump_text_special(const char *text, const ApiDumpSettings &settings, const char *type_string, const char *name,
+                              int indents) {
     settings.formatNameType(indents, name, type_string);
     settings.stream() << text << "\n";
 }
 
-void dump_text_cstring(const char *object, const ApiDumpSettings &settings, int indents) {
+inline void dump_text_cstring(const char *object, const ApiDumpSettings &settings, int indents) {
     if (object == NULL)
         settings.stream() << "NULL";
     else
         settings.stream() << "\"" << object << "\"";
 }
 
-void dump_text_void(const void *object, const ApiDumpSettings &settings, int indents) {
+inline void dump_text_void(const void *object, const ApiDumpSettings &settings, int indents) {
     if (object == NULL) {
         settings.stream() << "NULL";
         return;
@@ -1159,7 +1169,7 @@ void dump_text_void(const void *object, const ApiDumpSettings &settings, int ind
     OutputAddress(settings, object);
 }
 
-void dump_text_int(int object, const ApiDumpSettings &settings, int indents) { settings.stream() << object; }
+inline void dump_text_int(int object, const ApiDumpSettings &settings, int indents) { settings.stream() << object; }
 
 template <typename T>
 void dump_text_pNext(const T *object, const ApiDumpSettings &settings, const char *type_string, int indents,
@@ -1174,15 +1184,15 @@ void dump_text_pNext(const T *object, const ApiDumpSettings &settings, const cha
 
 //==================================== Html Backend Helpers ======================================//
 
-void dump_html_nametype(std::ostream &stream, bool showType, const char *name, const char *type) {
+inline void dump_html_nametype(std::ostream &stream, bool showType, const char *name, const char *type) {
     stream << "<div class='var'>" << name << "</div>";
     if (showType) {
         stream << "<div class='type'>" << type << "</div>";
     }
 }
 
-void dump_html_function_head(ApiDumpInstance &dump_inst, const char *funcName, const char *funcNamedParams,
-                             const char *funcReturn) {
+inline void dump_html_function_head(ApiDumpInstance &dump_inst, const char *funcName, const char *funcNamedParams,
+                                    const char *funcReturn) {
     const ApiDumpSettings &settings(dump_inst.settings());
     if (settings.showThreadAndFrame()) {
         settings.stream() << "<div class='thd'>Thread: " << dump_inst.threadID() << "</div>";
@@ -1287,13 +1297,14 @@ void dump_html_value(const T &object, const ApiDumpSettings &settings, const cha
     settings.stream() << "</details>";
 }
 
-void dump_html_special(const char *text, const ApiDumpSettings &settings, const char *type_string, const char *name, int indents) {
+inline void dump_html_special(const char *text, const ApiDumpSettings &settings, const char *type_string, const char *name,
+                              int indents) {
     settings.stream() << "<details class='data'><summary>";
     dump_html_nametype(settings.stream(), settings.showType(), name, type_string);
     settings.stream() << "<div class='val'>" << text << "</div></summary></details>";
 }
 
-void dump_html_cstring(const char *object, const ApiDumpSettings &settings, int indents) {
+inline void dump_html_cstring(const char *object, const ApiDumpSettings &settings, int indents) {
     settings.stream() << "<div class='val'>";
     if (object == NULL)
         settings.stream() << "NULL";
@@ -1302,13 +1313,13 @@ void dump_html_cstring(const char *object, const ApiDumpSettings &settings, int 
     settings.stream() << "</div>";
 }
 
-void dump_html_void(const void *object, const ApiDumpSettings &settings, int indents) {
+inline void dump_html_void(const void *object, const ApiDumpSettings &settings, int indents) {
     settings.stream() << "<div class='val'>";
     OutputAddress(settings, object);
     settings.stream() << "</div>";
 }
 
-void dump_html_int(int object, const ApiDumpSettings &settings, int indents) {
+inline void dump_html_int(int object, const ApiDumpSettings &settings, int indents) {
     settings.stream() << "<div class='val'>";
     settings.stream() << object;
     settings.stream() << "</div>";
@@ -1328,7 +1339,7 @@ void dump_html_pNext(const T *object, const ApiDumpSettings &settings, const cha
 
 //==================================== Json Backend Helpers ======================================//
 
-void dump_json_function_head(ApiDumpInstance &dump_inst, const char *funcName, const char *funcReturn) {
+inline void dump_json_function_head(ApiDumpInstance &dump_inst, const char *funcName, const char *funcReturn) {
     const ApiDumpSettings &settings(dump_inst.settings());
 
     if (!dump_inst.firstFunctionCallOnFrame()) settings.stream() << ",\n";
@@ -1520,7 +1531,8 @@ void dump_json_value(const T &object, const void *pObject, const ApiDumpSettings
     settings.stream() << settings.indentation(indents) << "}";
 }
 
-void dump_json_special(const char *text, const ApiDumpSettings &settings, const char *type_string, const char *name, int indents) {
+inline void dump_json_special(const char *text, const ApiDumpSettings &settings, const char *type_string, const char *name,
+                              int indents) {
     settings.stream() << settings.indentation(indents) << "{\n";
     settings.stream() << settings.indentation(indents + 1) << "\"type\" : \"" << type_string << "\",\n";
     settings.stream() << settings.indentation(indents + 1) << "\"name\" : \"" << name << "\",\n";
@@ -1532,7 +1544,7 @@ void dump_json_special(const char *text, const ApiDumpSettings &settings, const 
     settings.stream() << settings.indentation(indents) << "}";
 }
 
-void dump_json_UNUSED(const ApiDumpSettings &settings, const char *type_string, const char *name, int indents) {
+inline void dump_json_UNUSED(const ApiDumpSettings &settings, const char *type_string, const char *name, int indents) {
     settings.stream() << settings.indentation(indents) << "{\n";
     settings.stream() << settings.indentation(indents + 1) << "\"type\" : \"" << type_string << "\",\n";
     settings.stream() << settings.indentation(indents + 1) << "\"name\" : \"" << name << "\",\n";
@@ -1541,19 +1553,19 @@ void dump_json_UNUSED(const ApiDumpSettings &settings, const char *type_string, 
     settings.stream() << settings.indentation(indents) << "}";
 }
 
-void dump_json_cstring(const char *object, const ApiDumpSettings &settings, int indents) {
+inline void dump_json_cstring(const char *object, const ApiDumpSettings &settings, int indents) {
     if (object == NULL)
         settings.stream() << "\"\"";
     else
         settings.stream() << "\"" << object << "\"";
 }
 
-void dump_json_void(const void *object, const ApiDumpSettings &settings, int indents) {
+inline void dump_json_void(const void *object, const ApiDumpSettings &settings, int indents) {
     OutputAddressJSON(settings, object);
     settings.stream() << "\n";
 }
 
-void dump_json_int(int object, const ApiDumpSettings &settings, int indents) {
+inline void dump_json_int(int object, const ApiDumpSettings &settings, int indents) {
     settings.stream() << settings.indentation(indents) << "\"value\" : " << '"' << object << "\"";
     settings.stream() << '"' << object << "\"";
 }
@@ -1588,7 +1600,8 @@ void dump_json_pNext(const T *object, const ApiDumpSettings &settings, const cha
 
 //==================================== Common Helpers ======================================//
 
-void dump_function_head(ApiDumpInstance &dump_inst, const char *funcName, const char *funcNamedParams, const char *funcReturn) {
+inline void dump_function_head(ApiDumpInstance &dump_inst, const char *funcName, const char *funcNamedParams,
+                               const char *funcReturn) {
     if (dump_inst.shouldDumpOutput()) {
         switch (dump_inst.settings().format()) {
             case ApiDumpFormat::Text:

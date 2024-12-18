@@ -7,46 +7,35 @@ Copyright: 2022, LunarG Inc
            2015-2021, LunarG, Inc
            Public Domain
            2015-2016, Valve Corporation
-           after any existing copyrights
 License: Apache-2.0
 
 Files: .github/*
+       BUILD.gn
        LICENSE.txt
-       build-android/android-generate.bat
-       build-android/android-generate.sh
-       build-android/build_all.sh
-       build-android/install_all.sh
-       build-android/jni/Android.mk
-       build-android/jni/Application.mk
-       build-android/res/*
-       build-android/test_APK.sh
-       build-android/update_external_sources_android.bat
-       build-android/update_external_sources_android.sh
-       layer_factory/demo_layer/*
-       layer_factory/starter_layer/*
        layersvt/FixApidumpJson.sh
        layersvt/VKLayer_monitor.def
        layersvt/VkLayer_api_dump.def
-       layersvt/VkLayer_basic.def
        layersvt/VkLayer_screenshot.def
        layersvt/api_dump.h
+       layersvt/generated/*
        layersvt/monitor.cpp
        layersvt/screenshot.cpp
        layersvt/screenshot_parsing.cpp
        layersvt/screenshot_parsing.h
+       layersvt/test/*
        layersvt/vk_layer_table.cpp
        layersvt/vk_layer_table.h
+       scripts/CMakeLists.txt
+       scripts/android.py
        scripts/api_dump_generator.py
-       scripts/check_code_format.sh
        scripts/common_codegen.py
-       scripts/determine_vs_version.py
-       scripts/github_ci_android.py
+       scripts/generate_source.py
        scripts/github_ci_linux.py
-       scripts/github_ci_win.py
-       scripts/layer_factory_generator.py
-       scripts/tool_helper_file_generator.py
+       scripts/gn/generate_vulkantools_layers_json.py
+       scripts/gn/gn.py
+       scripts/gn/secondary/*
+       scripts/gn/update_deps.sh
        scripts/update_deps.py
-       scripts/vlf_makefile_generator.py
        scripts/vt_genvk.py
        via/via.cpp
        via/via_system.cpp
@@ -118,6 +107,59 @@ Files: .github/*
        vkconfig/widget_setting_string.h
        vkconfig/widget_tree_friendly_combobox.cpp
        vkconfig/widget_tree_friendly_combobox.h
+       vkconfig3/combo_box.h
+       vkconfig3/configurator.cpp
+       vkconfig3/configurator.h
+       vkconfig3/dialog_applications.cpp
+       vkconfig3/dialog_applications.h
+       vkconfig3/dialog_vulkan_analysis.cpp
+       vkconfig3/dialog_vulkan_analysis.h
+       vkconfig3/dialog_vulkan_info.cpp
+       vkconfig3/dialog_vulkan_info.h
+       vkconfig3/macOS/vkconfig.cmake
+       vkconfig3/main.cpp
+       vkconfig3/main_doc.cpp
+       vkconfig3/main_doc.h
+       vkconfig3/main_gui.cpp
+       vkconfig3/main_gui.h
+       vkconfig3/main_layers.cpp
+       vkconfig3/main_layers.h
+       vkconfig3/main_reset.cpp
+       vkconfig3/main_reset.h
+       vkconfig3/main_signal.cpp
+       vkconfig3/main_signal.h
+       vkconfig3/mainwindow.cpp
+       vkconfig3/mainwindow.h
+       vkconfig3/settings_tree.cpp
+       vkconfig3/settings_tree.h
+       vkconfig3/vulkan_util.cpp
+       vkconfig3/vulkan_util.h
+       vkconfig3/widget_preset.cpp
+       vkconfig3/widget_preset.h
+       vkconfig3/widget_setting.cpp
+       vkconfig3/widget_setting.h
+       vkconfig3/widget_setting_bool.cpp
+       vkconfig3/widget_setting_bool.h
+       vkconfig3/widget_setting_enum.cpp
+       vkconfig3/widget_setting_enum.h
+       vkconfig3/widget_setting_filesystem.cpp
+       vkconfig3/widget_setting_filesystem.h
+       vkconfig3/widget_setting_flags.cpp
+       vkconfig3/widget_setting_flags.h
+       vkconfig3/widget_setting_float.cpp
+       vkconfig3/widget_setting_float.h
+       vkconfig3/widget_setting_frames.cpp
+       vkconfig3/widget_setting_frames.h
+       vkconfig3/widget_setting_int.cpp
+       vkconfig3/widget_setting_int.h
+       vkconfig3/widget_setting_list.cpp
+       vkconfig3/widget_setting_list.h
+       vkconfig3/widget_setting_list_element.cpp
+       vkconfig3/widget_setting_list_element.h
+       vkconfig3/widget_setting_string.cpp
+       vkconfig3/widget_setting_string.h
+       vkconfig3/widget_tree_friendly_combobox.cpp
+       vkconfig3/widget_tree_friendly_combobox.h
        vkconfig_core/alert.cpp
        vkconfig_core/alert.h
        vkconfig_core/application.cpp
@@ -136,6 +178,7 @@ Files: .github/*
        vkconfig_core/doc.h
        vkconfig_core/environment.cpp
        vkconfig_core/environment.h
+       vkconfig_core/environment_key.h
        vkconfig_core/header.cpp
        vkconfig_core/header.h
        vkconfig_core/help.cpp
@@ -227,79 +270,35 @@ Files: .github/*
        vkconfig_core/util.h
        vkconfig_core/version.cpp
        vkconfig_core/version.h
-       vku/*
 Copyright: 2016, Advanced Micro Devices, Inc
-           2015-2022, Google Inc
+           2015-2024, Google Inc
            2015-2021, Google, Inc
-           2015-2022, LunarG, Inc
+           2015-2024, LunarG, Inc
+           2023, RasterGrid Kft
+           2016-2024, The ANGLE Project Authors
            2015-2019, The Android Open Source Project
            2017, The Glslang Authors
-           2013-2021, The Khronos Group Inc
-           2015-2022, Valve Corporation
+           2013-2024, The Khronos Group Inc
+           2015-2024, Valve Corporation
 License: Apache-2
 
-Files: external/googletest/*
-Copyright: 2005-2021, Google Inc
-           2018-2019, Google LLC
-License: BSD-3-clause
-Comment: No explicit license found, using license(s) from:
- external/googletest/LICENSE
-
-Files: layer_factory/README.md
-       layersvt/api_dump_layer.md
+Files: layersvt/api_dump_layer.md
        layersvt/monitor_layer.md
        layersvt/screenshot_layer.md
        via/README.md
        vkconfig/CHANGELOG.md
        vkconfig/README.md
-Copyright: 2015-2022, LunarG, Inc
+       vkconfig3/CHANGELOG.md
+       vkconfig3/README.md
+Copyright: 2015-2024, LunarG, Inc
 License: CC-BY-ND-4
 
-Files: cmake/Copyright_cmake.txt
-       cmake/FindWayland.cmake
-       cmake/FindX11_XCB.cmake
-Copyright: 2011, Fredrik Höglund <fredrik@kde.org>
-           2008, Helio Chissini de Castro <helio@kde.org>
-           2000-2009, Kitware, Inc., Insight Software Consortium
-           2013, Martin Gräßlin <mgraesslin@kde.org>
-           2007, Matthias Kretz <kretz@kde.org>
-License: BSD-3-clause
-
-Files: external/googletest/googlemock/scripts/generator/*
-Copyright: 2007-2009, Google Inc
-           2007-2009, Neal Norwitz
-License: Apache-2
-Comment: No explicit license found, using license(s) from:
- external/googletest/googlemock/scripts/generator/LICENSE
-
-Files: external/valijson/*
-Copyright: 2016, Akamai Technolgies, Inc
-           2016, Tristan Penman
-License: BSD-2-clause
-
-Files: external/compat/*
-Copyright: 2011-2012, Andrzej Krzemienski
-License: BSL-1
-
 Files: vkconfig/dialog_about.ui
+       vkconfig3/mainwindow.ui
 License: LGPL-3
 
-Files: submodules/*
-Copyright: 2007-2011, Baptiste Lepilleur
-           2016, InfoTeCS JSC
-License: Expat or public-domain
-Comment: No explicit license found, using license(s) from:
- submodules/jsoncpp/LICENSE
-
-Files: submodules/jsoncpp/LICENSE
-       submodules/jsoncpp/dist/*
-Copyright: 2007-2011, Baptiste Lepilleur
-           2007-2010, Baptiste Lepilleur, and is
-           2016, InfoTeCS JSC
-License: Expat or public-domain
-
 Files: debian/*
-Copyright: 2023, LunarG Inc <johnz@lunarg.com>
+Copyright: 2024, LunarG Inc <johnz@lunarg.com>
 License: BSD-3-clause or GPL-3 or MIT
 
 License: Apache-2
@@ -707,9 +706,6 @@ License: Apache-2.0
  See the License for the specific language governing permissions and
  limitations under the License.
 
-License: BSD-2-clause
-Comment: Add the corresponding license text here
-
 License: BSD-3-clause
  Copyright <YEAR> <COPYRIGHT HOLDER>
  .
@@ -723,22 +719,8 @@ License: BSD-3-clause
  .
  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-License: BSL-1
- Permission is hereby granted, free of charge, to any person or organization obtaining a copy of the software and accompanying documentation covered by this license (the "Software") to use, reproduce, display, distribute, execute, and transmit the Software, and to prepare derivative works of the Software, and to permit third-parties to whom the Software is furnished to do so, all subject to the following:
- .
- The copyright notices in the Software and this entire statement, including the above license grant, this restriction and the following disclaimer, must be included in all copies of the Software, in whole or in part, and all derivative works of the Software, unless such copies or derivative works are solely in the form of machine-executable object code generated by a source language processor.
- .
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR ANYONE DISTRIBUTING THE SOFTWARE BE LIABLE FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
 License: CC-BY-ND-4
 Comment: Add the corresponding license text here
-
-License: Expat
- Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
- .
- The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
- .
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. 
 
 License: GPL-3
  GNU GENERAL PUBLIC LICENSE
@@ -1591,6 +1573,3 @@ License: MIT
  The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
  .
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-License: public-domain
-Comment: Add the corresponding license text here

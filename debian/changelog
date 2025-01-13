@@ -1,3 +1,13 @@
+lunarg-tools (1.4.304.0~rc2-1lunarg22.04-1) jammy; urgency=medium
+
+  [ Christophe ]
+  * vkconfig: Final build
+
+  [ Charles Giessen ]
+  * vkvia: Initialize char arrays on windows
+
+ -- john <john@odin>  Mon, 13 Jan 2025 11:52:32 -0700
+
 lunarg-tools (1.4.304.0~rc1-1lunarg22.04-1) jammy; urgency=medium
 
   [ Christophe ]

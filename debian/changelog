@@ -1,3 +1,140 @@
+lunarg-tools (1.4.304.1~rc1-1lunarg22.04-1) jammy; urgency=medium
+
+  [ Christophe ]
+  * vkconfig: Final build
+
+  [ Charles Giessen ]
+  * vkvia: Initialize char arrays on windows
+
+  [ Christophe ]
+  * vkconfig3: UI for new Vulkan Loader settings
+  * vkconfig3: Improve SDK upgrade
+  * vkconfig3: Full ordering of layers
+  * vkconfig3: Add layer manifest validation caching
+  * vkconfig3: Add full layer ordering support
+  * vkconfig3: Configuration tab UI
+  * vkconfig3: Add settings tree state load and store
+  * vkconfig3: Add configuration context menu
+  * vkconfig3: Only update changed system files
+  * vkconfig3: Save and load mainwindow geometry between sessions
+  * vkconfig3: Improve UI update
+  * vkconfig3: No need for builtin settings manual hiding
+  * vkconfig3: Add loader messages types per configuration
+  * vkconfig3: Infrastructure to handle per tab UI update
+  * vkconfig3: Disable settings UI when layer is off
+  * vkconfig3: Extract layer preset from settings
+  * vkconfig3: Signal are handled by each tab
+  * vkconfig3: Implement layers paths tab
+  * vkconfig3: Add Layer manager unit tests
+  * vkconfig3: Layers Paths tab UI
+  * vkconfig3: Implement layer version switching
+  * vkconfig3: Various clean up
+  * vkconfig: Fix switching of missing layer
+
+  [ Charles Giessen ]
+  * Replace "implem" with "driver" loader log level
+
+  [ Christophe ]
+  * vkconfig3: Add applications tab
+  * vkconfig3: Add applications tab
+  * vkconfig3: Implement application launcher
+  * vkconfig3: Implement applications options
+  * vkconfig3: Don't allow implicit layer forced on
+  * vkconfig3: Add unit tests for layer paths
+  * vkconfig3: Fix new configuration and add unit tests
+  * vkconfig3: Add more unit tests
+  * vkconfig3: Prepare Alpha build for internal testing
+  * vkconfig3: Update UI clean up
+  * vkconfig3: Command line stitching
+  * vkconfig3: Implement command line layers override
+  * vkconfig3: Preparing Alpha build
+  * vkconfig3: Fix macOS build
+  * vkconfig3: Layer tabs UI improvements
+  * vkconfig3: Fix macOS cmd tool
+  * vkconfig3: Allow skipping layer manifest validation
+  * vkconfig3: Notify no 32bit support
+  * vkconfig3: Fix macOS GUI app
+  * vkconfig3: Add help doc to run vkconfig UI
+  * vkconfig3: Refactor active configuration and executable code
+  * vkconfig3: Tab reordering and ui improvements from alpha reviews
+  * vkconfig3: Add all enabled executables mode and layout improvements
+  * vkconfig3: Improve loader management tab list item
+  * vkconfig3: Add checkbox to chose to control layers individual or not
+  * vkconfig3: Add Log Loader Messages built-in configuration
+  * vkconfig3: Add disabled all layers configuration
+  * vkconfig3: Add back advanced configuration
+  * vkconfig3: Fix loading of layers from Windows Registry
+  * vkconfig3: Multiple layer versions only when multiple loaded
+  * vkconfig: Fix system configuration update
+  * vkconfig3: Fix implict layer path UI
+  * vkconfig3: Add 'Discard' layer control
+  * vkconfig3: Support multiple layers of the same api version
+  * vkconfig3: Fix layer ordering and layer path enabling
+  * vkconfig3: Loader workaround for disables layers
+  * vkconfig3: Implement diagnostic tab
+  * vkconfig3: Updated documentation tab
+  * vkconfig3: Implement diagnostic tab and update documentation tab
+  * vkconfig3: Clean up Diagnostics tab
+  * vkconfig3: Fix layer control env var handling
+  * vkconfig3: Enable GUI launch from command line
+  * vkconfig3: Add layer manifests reloading
+  * vkconfig3: Only a single slot for unordered layers
+  * vkconfig3: Various fixes
+  * vkconfig3: Fix configuration tab enable/disable areas
+  * vkconfig3: launch tab bugfix, clean up and tests
+  * vkconfig3: Requires Vulkan Loader 301
+  * vkconfig3: Fix crash when no loader was found
+  * vkconfig3: Unordered layers has only 'auto' and 'discard' control
+  * vkconfig3: Clean up Per and all enabled executables scope
+  * vkconfig3: Update system tray to match executable scopes
+  * vkconfig3: Clean up for BETA SDK build
+  * vkconfig3: Fix preset label UI in the layer settings section
+  * vkconfig3: Fix SetExpanded and add support for different settings per layer
+  * vkconfig3: beta fixes
+  * vkconfig3: Redesign reset to default
+  * vkconfig3: beta bugfixing
+  * vkconfig3: Fix manifest stored validated when it's not validated
+  * vkconfig3: Require loader 302
+  * vkconfig3: Fix layer settings export chechbox
+  * vkconfig3: Add remove executables button in config tab
+  * vkconfig3: Fix corner cases config UI enabling
+  * vkconfig3: Fix launcher log scrolling to the end
+  * vkconfig3: Fix adding new layers
+  * vkconfig3: Fix config UI broken when toggling loader or layers sections
+  * vkconfig3: Add mode unit tests
+  * vkconfig3: Test home path
+  * vkconfig3: cleanup dead code
+  * vkconfig3: Add tests for setting presets
+  * vkconfig3: Add tests for GetActualControl, when a layer is set to auto
+  * vkconfig3: Add missing layer tests
+  * vkconfig3: Add manual ordering of layers tests
+  * vkconfig3: Add mode unit tests
+  * vkconfig3: Updated copyrights, clean up, bugfixing and added units tests
+  * vkconfig3: Add more configuration manager tests and clean up
+  * vkconfig3: Add missing layers tests
+  * vkconfig3: Add gfxreconst on macOS
+  * vkconfig3: Clean up diagnostic tab buttons
+  * vkconfig3: Updated release build
+  * vkconfig3: Update spec links
+  * vkconfig3: Clean up
+  * vkconfig3: Fix build
+  * vkconfig: refactor system tray message box
+  * vkconfig: Workaround loader message bug requiring layers override
+  * vkconfig: Update loader messages and default
+  * vkconfig: Fix context menu crash
+  * vkconfig: Fix miss match of selected layer version and display of layer settings
+  * vkconfig: Fix layer paths rebuild on enabling/disabling path
+  * vkconfig: fix blank unordered layers combobox
+  * vkconfig: Select the new configuration when it is created
+  * vkconfig: Clean up layer tab
+  * vkconfig: Fix layers paths updates
+  * vkconfig: add renaming configuration using double click
+
+  [ John Zupin ]
+  * packaging: debian: add vkconfig-gui to the package
+
+ -- john <john@odin>  Tue, 28 Jan 2025 15:54:59 -0700
+
 lunarg-tools (1.4.304.0~rc2-1lunarg22.04-1) jammy; urgency=medium
 
   [ Christophe ]

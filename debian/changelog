@@ -1,3 +1,16 @@
+lunarg-tools (1.4.304.1~rc2-1lunarg22.04-1) jammy; urgency=medium
+
+  [ Christophe ]
+  * vkconfig: SDK 1.4.304.1 bugfixing
+  * vkconfig: Replace specification link
+  * vkconfig3: Updated documentation
+  * vkconfig: SDK 304 bugfixing
+  * vkconfig: Fix warnings
+  * vkconfig: Clean up
+  * vkconfig: Fix missing icon in application launcher
+
+ -- john <john@odin>  Tue, 04 Feb 2025 15:14:26 -0700
+
 lunarg-tools (1.4.304.1~rc1-1lunarg22.04-1) jammy; urgency=medium
 
   [ Christophe ]

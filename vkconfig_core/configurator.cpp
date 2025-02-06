@@ -48,8 +48,6 @@ Configurator& Configurator::Get() {
 Configurator::Configurator() {}
 
 Configurator::~Configurator() {
-    this->Surrender(OVERRIDE_AREA_ALL);
-
     if (this->reset_hard) {
         return;
     }
@@ -59,7 +57,11 @@ Configurator::~Configurator() {
 }
 
 bool Configurator::Init() {
-    this->Load();
+    const bool result = this->Load();
+    if (!result) {
+        return false;
+    }
+
     if (this->has_crashed) {
         if (Alert::ConfiguratorCrashed() == QMessageBox::Yes) {
             this->Reset(true);
@@ -495,7 +497,10 @@ void Configurator::SetActiveConfigurationName(const std::string& configuration_n
     }
 }
 
-void Configurator::GatherParameters() { this->configurations.GatherConfigurationsParameters(this->layers); }
+void Configurator::UpdateConfigurations() {
+    this->configurations.UpdateConfigurations(this->layers);
+    return;
+}
 
 Configuration* Configurator::GetActiveConfiguration() {
     if (this->executable_scope == EXECUTABLE_PER) {
@@ -778,7 +783,9 @@ bool Configurator::Load() {
 
         const Version file_format_version = Version(json_root_object.value("file_format_version").toString().toStdString());
         if (file_format_version > Version::VKCONFIG) {
-            return false;  // Vulkan Configurator needs to be updated
+            if (Alert::ConfiguratorOlderVersion(file_format_version) == QMessageBox::Cancel) {
+                return false;  // Vulkan Configurator is reset to default
+            }
         }
 
         // interface json object

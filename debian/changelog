@@ -1,3 +1,15 @@
+lunarg-tools (1.4.304.1~rc4-1lunarg24.04-1) noble; urgency=medium
+
+  [ John Zupin ]
+  * vkconfig: update url to point to LunarG's latest public antora spec
+
+  [ Christophe ]
+  * vkconfig: SDK 304.1 test build bug fixes
+  * vkconfig: Notify running older version of vkconfig
+  * vkconfig: Fix version check
+
+ -- john <john@odin>  Thu, 06 Feb 2025 10:04:23 -0700
+
 lunarg-tools (1.4.304.1~rc3-1lunarg24.04-1) noble; urgency=medium
 
   [ Christophe ]

@@ -25,7 +25,6 @@
 #include "dialog_vulkan_info.h"
 
 #include "../vkconfig_core/configurator.h"
-#include "../vkconfig_core/alert.h"
 #include "../vkconfig_core/util.h"
 #include "../vkconfig_core/ui.h"
 #include "../vkconfig_core/version.h"
@@ -64,7 +63,7 @@ MainWindow::MainWindow(QWidget *parent)
     this->tabs[TAB_LAYERS].reset(new TabLayers(*this, ui));
     this->tabs[TAB_CONFIGURATIONS].reset(new TabConfigurations(*this, ui));
     this->tabs[TAB_DOCUMENTATION].reset(new TabDocumentation(*this, ui));
-    this->tabs[TAB_SETTINGS].reset(new TabSettings(*this, ui));
+    this->tabs[TAB_PREFERENCES].reset(new TabPreferences(*this, ui));
     this->tabs[TAB_ABOUT].reset(new TabAbout(*this, ui));
 
     this->connect(qApp, &QGuiApplication::commitDataRequest, this, &MainWindow::commitDataRequest);
@@ -230,7 +229,17 @@ void MainWindow::on_tray_per(bool checked) {
 void MainWindow::toolsResetToDefault(bool checked) {
     (void)checked;
 
-    if (Alert::ConfiguratorResetAll() == QMessageBox::No) {
+    QMessageBox alert;
+    alert.QDialog::setWindowTitle("Restoring and Resetting all Layers Configurations to default");
+    alert.setText(
+        "You are about to delete all the user-defined configurations and resetting all default configurations to their default "
+        "state.");
+    alert.setInformativeText("Do you want to continue?");
+    alert.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+    alert.setDefaultButton(QMessageBox::Yes);
+    alert.setIcon(QMessageBox::Warning);
+
+    if (alert.exec() == QMessageBox::No) {
         return;
     }
 
@@ -288,18 +297,18 @@ void MainWindow::closeEvent(QCloseEvent *event) {
             alert.setDefaultButton(QMessageBox::Ok);
             alert.setCheckBox(new QCheckBox("Do not show again."));
 
-            QPalette palette, palette_saved = this->ui->settings_keep_running->palette();
+            QPalette palette, palette_saved = this->ui->preferences_keep_running->palette();
             palette.setColor(QPalette::WindowText, QColor(Qt::red));
-            this->ui->settings_keep_running->setPalette(palette);
+            this->ui->preferences_keep_running->setPalette(palette);
 
-            this->ui->tab_widget->setCurrentIndex(TAB_SETTINGS);
+            this->ui->tab_widget->setCurrentIndex(TAB_PREFERENCES);
 
             int ret_val = alert.exec();
             if (alert.checkBox()->isChecked()) {
                 configurator.Set(HIDE_MESSAGE_USE_SYSTEM_TRAY);
             }
 
-            this->ui->settings_keep_running->setPalette(palette_saved);
+            this->ui->preferences_keep_running->setPalette(palette_saved);
 
             if (ret_val == QMessageBox::Cancel) {
                 event->ignore();  // Not closing the window

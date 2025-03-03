@@ -21,12 +21,14 @@
 #include "tab_diagnostics.h"
 #include "mainwindow.h"
 #include "widget_resize_button.h"
+#include "style.h"
 
 #include "../vkconfig_core/configurator.h"
 
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QMenu>
+#include <QDesktopServices>
 
 TabDiagnostics::TabDiagnostics(MainWindow &window, std::shared_ptr<Ui::MainWindow> ui) : Tab(TAB_DIAGNOSTIC, window, ui) {
     this->ui->diagnostic_status_text->installEventFilter(&window);
@@ -55,8 +57,6 @@ void TabDiagnostics::UpdateUI(UpdateUIMode mode) {
     (void)mode;
 
     this->UpdateStatus();
-
-    Configurator &configurator = Configurator::Get();
 }
 
 void TabDiagnostics::CleanUI() {}
@@ -117,6 +117,8 @@ void TabDiagnostics::on_customContextMenuRequested(const QPoint &pos) {
             file.close();
 
             configurator.last_path_status = selected_path.toStdString();
+
+            QDesktopServices::openUrl(QUrl::fromLocalFile(selected_path.toStdString().c_str()));
         }
     }
 

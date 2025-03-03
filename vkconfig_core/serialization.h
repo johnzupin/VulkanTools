@@ -20,10 +20,12 @@
 
 #pragma once
 
+#include "type_configurator_mode.h"
+
 #include <QJsonObject>
 
 struct Serialize {
-    virtual bool Load(const QJsonObject& json_root_object) = 0;
+    virtual bool Load(const QJsonObject& json_root_object, ConfiguratorMode configurator_mode) = 0;
     virtual bool Save(QJsonObject& json_root_object) const = 0;
     virtual std::string Log() const = 0;
 };

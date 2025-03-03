@@ -24,7 +24,6 @@
 #include "registry.h"
 #include "util.h"
 #include "path.h"
-#include "alert.h"
 #include "date.h"
 
 #include <QDir>
@@ -45,7 +44,7 @@ Configurator& Configurator::Get() {
     return configurator;
 }
 
-Configurator::Configurator() {}
+Configurator::Configurator() : mode(init_mode) {}
 
 Configurator::~Configurator() {
     if (this->reset_hard) {
@@ -56,16 +55,39 @@ Configurator::~Configurator() {
     this->Save();
 }
 
-bool Configurator::Init() {
+bool Configurator::Init(ConfiguratorMode configurator_mode) {
+    this->init_mode = configurator_mode;
+
     const bool result = this->Load();
     if (!result) {
         return false;
     }
 
     if (this->has_crashed) {
-        if (Alert::ConfiguratorCrashed() == QMessageBox::Yes) {
-            this->Reset(true);
-            return false;
+        switch (this->mode) {
+            default:
+            case CONFIGURATOR_MODE_NONE: {
+            } break;
+            case CONFIGURATOR_MODE_GUI: {
+                QMessageBox alert;
+                alert.setWindowTitle(format("%s crashed during last run...", VKCONFIG_NAME).c_str());
+                alert.setText("Do you want to reset to default resolve the issue?");
+                alert.setInformativeText("All layers configurations will be lost...");
+                alert.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+                alert.setDefaultButton(QMessageBox::No);
+                alert.setIcon(QMessageBox::Critical);
+                int result = alert.exec();
+
+                if (result == QMessageBox::Yes) {
+                    this->Reset(true);
+                    return false;
+                }
+            } break;
+            case CONFIGURATOR_MODE_CMD: {
+                fprintf(stderr, "%s: [ERROR] crashed during last run...\n", VKCONFIG_SHORT_NAME);
+                fprintf(stderr, "\n  (Run \"%s reset --hard\" to reset to default %s if the problem continue)\n",
+                        VKCONFIG_SHORT_NAME, VKCONFIG_NAME);
+            } break;
         }
     }
 
@@ -783,8 +805,30 @@ bool Configurator::Load() {
 
         const Version file_format_version = Version(json_root_object.value("file_format_version").toString().toStdString());
         if (file_format_version > Version::VKCONFIG) {
-            if (Alert::ConfiguratorOlderVersion(file_format_version) == QMessageBox::Cancel) {
-                return false;  // Vulkan Configurator is reset to default
+            switch (this->mode) {
+                default:
+                case CONFIGURATOR_MODE_NONE:
+                    break;
+                case CONFIGURATOR_MODE_GUI: {
+                    QMessageBox alert;
+                    alert.setWindowTitle(format("Launching an older version of %s...", VKCONFIG_NAME).c_str());
+                    alert.setText(format("Running a Vulkan Configurator %s but a newer %s version was previously launched.",
+                                         Version::VKCONFIG.str().c_str(), file_format_version.str().c_str())
+                                      .c_str());
+                    alert.setInformativeText("Do you want to continue? This may cause crashes...");
+                    alert.setStandardButtons(QMessageBox::Cancel | QMessageBox::Ok);
+                    alert.setDefaultButton(QMessageBox::Cancel);
+                    alert.setIcon(QMessageBox::Critical);
+                    if (alert.exec() == QMessageBox::Cancel) {
+                        return false;  // Vulkan Configurator is reset to default
+                    }
+                } break;
+                case CONFIGURATOR_MODE_CMD: {
+                    fprintf(stderr, "vkconfig: [WARNING] Launching an older version %s of %s...\n", Version::VKCONFIG.str().c_str(),
+                            VKCONFIG_NAME);
+                    fprintf(stderr, "\n  (Run \"%s reset --hard\" to reset to default %s if the problem continue)\n",
+                            VKCONFIG_SHORT_NAME, VKCONFIG_NAME);
+                } break;
             }
         }
 
@@ -804,10 +848,6 @@ bool Configurator::Load() {
         // TAB_CONFIGURATIONS
         if (json_interface_object.value(GetToken(TAB_CONFIGURATIONS)) != QJsonValue::Undefined) {
             const QJsonObject& json_object = json_interface_object.value(GetToken(TAB_CONFIGURATIONS)).toObject();
-            this->use_system_tray = json_object.value("use_system_tray").toBool();
-            if (json_object.value("use_layer_dev_mode") != QJsonValue::Undefined) {
-                this->use_layer_dev_mode = json_object.value("use_layer_dev_mode").toBool();
-            }
             this->advanced = json_object.value("advanced").toBool();
             this->executable_scope = ::GetExecutableScope(json_object.value("executable_scope").toString().toStdString().c_str());
             this->selected_global_configuration = json_object.value("selected_global_configuration").toString().toStdString();
@@ -823,21 +863,30 @@ bool Configurator::Load() {
             const QJsonObject& json_object = json_interface_object.value(GetToken(TAB_APPLICATIONS)).toObject();
         }
 
-        // TAB_DIAGNOSTIC
-        if (json_interface_object.value(GetToken(TAB_DIAGNOSTIC)) != QJsonValue::Undefined) {
-            const QJsonObject& json_object = json_interface_object.value(GetToken(TAB_DIAGNOSTIC)).toObject();
+        // TAB_PREFERENCES
+        if (json_interface_object.value(GetToken(TAB_PREFERENCES)) != QJsonValue::Undefined) {
+            const QJsonObject& json_object = json_interface_object.value(GetToken(TAB_PREFERENCES)).toObject();
 
-            if (json_object.value("VK_HOME") != QJsonValue::Undefined) {
-                ::SetHomePath(json_object.value("VK_HOME").toString().toStdString());
+            this->use_layer_dev_mode = json_object.value("use_layer_dev_mode").toBool();
+            this->latest_sdk_version = Version(json_object.value("latest_sdk_version").toString().toStdString().c_str());
+
+            if (json_object.value("use_notify_releases") != QJsonValue::Undefined) {
+                this->use_notify_releases = json_object.value("use_notify_releases").toBool();
+            }
+
+            this->use_system_tray = json_object.value("use_system_tray").toBool();
+            ::SetHomePath(json_object.value("VK_HOME").toString().toStdString());
+            if (json_object.value("VK_DOWNLOAD") != QJsonValue::Undefined) {
+                ::SetDownloadPath(json_object.value("VK_DOWNLOAD").toString().toStdString());
             }
         }
 
-        this->executables.Load(json_root_object);
-        this->layers.Load(json_root_object);
-        this->configurations.Load(json_root_object);
+        this->executables.Load(json_root_object, this->mode);
+        this->layers.Load(json_root_object, this->mode);
+        this->configurations.Load(json_root_object, this->mode);
     } else {
         this->executables.Reset();
-        this->layers.LoadAllInstalledLayers();
+        this->layers.LoadAllInstalledLayers(this->mode);
     }
 
     this->configurations.LoadAllConfigurations(this->layers);
@@ -854,8 +903,6 @@ bool Configurator::Save() const {
     // TAB_CONFIGURATIONS
     {
         QJsonObject json_object;
-        json_object.insert("use_system_tray", this->use_system_tray);
-        json_object.insert("use_layer_dev_mode", this->use_layer_dev_mode);
         json_object.insert("advanced", this->advanced);
         json_object.insert("executable_scope", ::GetToken(this->executable_scope));
         json_object.insert("selected_global_configuration", this->selected_global_configuration.c_str());
@@ -874,11 +921,16 @@ bool Configurator::Save() const {
         json_interface_object.insert(GetToken(TAB_APPLICATIONS), json_object);
     }
 
-    // TAB_DIAGNOSTIC
+    // TAB_PREFERENCES
     {
         QJsonObject json_object;
+        json_object.insert("use_system_tray", this->use_system_tray);
+        json_object.insert("use_layer_dev_mode", this->use_layer_dev_mode);
+        json_object.insert("use_notify_releases", this->use_notify_releases);
+        json_object.insert("latest_sdk_version", this->latest_sdk_version.str().c_str());
         json_object.insert("VK_HOME", ::Path(Path::HOME).RelativePath().c_str());
-        json_interface_object.insert(GetToken(TAB_DIAGNOSTIC), json_object);
+        json_object.insert("VK_DOWNLOAD", ::Path(Path::DOWNLOAD).RelativePath().c_str());
+        json_interface_object.insert(GetToken(TAB_PREFERENCES), json_object);
     }
 
     // interface json object
@@ -936,6 +988,10 @@ void Configurator::SetUseSystemTray(bool enabled) { this->use_system_tray = enab
 bool Configurator::GetUseLayerDevMode() const { return this->use_layer_dev_mode; }
 
 void Configurator::SetUseLayerDevMode(bool enabled) { this->use_layer_dev_mode = enabled; }
+
+bool Configurator::GetUseNotifyReleases() const { return this->use_notify_releases; }
+
+void Configurator::SetUseNotifyReleases(bool enabled) { this->use_notify_releases = enabled; }
 
 bool Configurator::HasActiveSettings() const {
     switch (this->executable_scope) {

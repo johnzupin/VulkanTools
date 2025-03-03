@@ -1,3 +1,24 @@
+## Vulkan Configurator 3.1.0 - March 2025
+[Vulkan SDK 1.4.3XX.0](https://github.com/LunarG/VulkanTools/tree/main)
+
+### Features:
+- Add dark mode support, automatically matching the OS mode
+- Add `vkconfig loader` commands to import, export, delete and use stored loader configurations
+- Add new Vulkan SDK notification and download
+
+### Improvements:
+- Add button to remove missing layers
+- Add loader messages only configuration
+- Open created files on export
+- Add button to open launcher log file
+- Add `vulkaninfo` as default application on macOS
+- Enable text editing the executable path
+
+### Fixes:
+- Fix application arguments and environment variables splitting
+- Fix layer settings crash when reordering layers
+
+---
 ## Vulkan Configurator 3.0.0 - February 2025
 [Vulkan SDK 1.4.304.1](https://github.com/LunarG/VulkanTools/tree/vulkan-sdk-1.4.304.1)
 
@@ -29,9 +50,19 @@
 - Fix upgrade of built-in configuration that got updated using layers configuration versioning
 - Add the list of all availalble environment variables for each settings in documentation generation
 
+### Deprecation:
+- Requires Vulkan Loader 1.4.304 or newer
+
 ---
 ## Vulkan Configurator 2.6.3 - January 2025
 [Vulkan SDK 1.4.304.0](https://github.com/LunarG/VulkanTools/tree/vulkan-sdk-1.4.304.0)
+- Final build
+
+---
+## Vulkan Configurator 2.6.3 - January 2025
+[Vulkan SDK 1.4.304.0](https://github.com/LunarG/VulkanTools/tree/vulkan-sdk-1.4.304.0)
+
+### Deprecation:
 - Final build
 
 ---

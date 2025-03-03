@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2022-2024 Valve Corporation
- * Copyright (c) 2022-2024 LunarG, Inc.
+ * Copyright (c) 2022-2025 Valve Corporation
+ * Copyright (c) 2022-2025 LunarG, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -82,7 +82,7 @@ int run_doc(const CommandLine& command_line) {
     assert(command_line.error == ERROR_NONE);
 
     Configurator& configurator = Configurator::Get();
-    configurator.Init();
+    configurator.Init(CONFIGURATOR_MODE_CMD);
 
     switch (command_line.command_doc_arg) {
         case COMMAND_DOC_HTML: {

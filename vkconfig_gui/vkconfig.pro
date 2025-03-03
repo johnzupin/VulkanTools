@@ -28,7 +28,6 @@ Release: DEFINES += QT_NO_DEBUG_OUTPUT QT_NO_WARNING_OUTPUT
 linux: QMAKE_CXXFLAGS += -Wunused-variable
 
 SOURCES += \
-    ../vkconfig_core/alert.cpp \
     ../vkconfig_core/is_dll_32.cpp \
     ../vkconfig_core/application_singleton.cpp \
     ../vkconfig_core/bitfield.cpp \
@@ -61,6 +60,7 @@ SOURCES += \
     ../vkconfig_core/setting_int.cpp \
     ../vkconfig_core/setting_list.cpp \
     ../vkconfig_core/setting_string.cpp \
+    ../vkconfig_core/type_configurator_mode.cpp \
     ../vkconfig_core/type_executable_mode.cpp \
     ../vkconfig_core/type_hide_message.cpp \
     ../vkconfig_core/type_layer_builtin.cpp \
@@ -104,12 +104,12 @@ SOURCES += \
     tab_configurations.cpp \
     tab_diagnostics.cpp \
     tab_documentation.cpp \
-    tab_settings.cpp \
+    tab_preferences.cpp \
     tab_layers.cpp \
-    settings_tree.cpp
+    settings_tree.cpp \
+    style.cpp
 
 HEADERS += \
-    ../vkconfig_core/alert.h \
     ../vkconfig_core/is_dll_32.h \
     ../vkconfig_core/application_singleton.h \
     ../vkconfig_core/bitfield.h \
@@ -142,6 +142,7 @@ HEADERS += \
     ../vkconfig_core/setting_int.h \
     ../vkconfig_core/setting_list.h \
     ../vkconfig_core/setting_string.h \
+    ../vkconfig_core/type_configurator_mode.h \
     ../vkconfig_core/type_executable_mode.h \
     ../vkconfig_core/type_hide_message.h \
     ../vkconfig_core/type_layer_builtin.h \
@@ -184,9 +185,10 @@ HEADERS += \
     tab_configurations.h \
     tab_diagnostics.h \
     tab_documentation.h \
-    tab_settings.h \
+    tab_preferences.h \
     tab_layers.h \
-    settings_tree.h
+    settings_tree.h \
+    style.h
 
 FORMS += \
     dialog_vulkan_analysis.ui \

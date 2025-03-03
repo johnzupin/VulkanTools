@@ -20,14 +20,36 @@
 
 #include "tab_applications.h"
 #include "mainwindow.h"
+#include "style.h"
 
 #include "../vkconfig_core/configurator.h"
-#include "../vkconfig_core/alert.h"
 
 #include <QFileDialog>
+#include <QDesktopServices>
+#include <QMessageBox>
+
+static void PathInvalid(const Path &path, const char *message) {
+    const std::string text = format("'%s' is not a valid path.", path.AbsolutePath().c_str());
+
+    QMessageBox alert;
+    alert.QDialog::setWindowTitle("The select path doesn't exist...");
+    alert.setText(text.c_str());
+    alert.setInformativeText(message);
+    alert.setIcon(QMessageBox::Critical);
+    alert.exec();
+}
 
 TabApplications::TabApplications(MainWindow &window, std::shared_ptr<Ui::MainWindow> ui)
     : Tab(TAB_APPLICATIONS, window, ui), _launch_application(nullptr) {
+    this->ui->launch_executable_search->setIcon(::Get(::ICON_FILE_SEARCH));
+    this->ui->launch_executable_append->setIcon(::Get(::ICON_FILE_APPEND));
+    this->ui->launch_executable_remove->setIcon(::Get(::ICON_FILE_REMOVE));
+    this->ui->launch_options_append->setIcon(::Get(::ICON_OPTIONS_COPY));
+    this->ui->launch_options_remove->setIcon(::Get(::ICON_OPTIONS_REMOVE));
+    this->ui->launch_options_dir_button->setIcon(::Get(::ICON_FOLDER_SEARCH));
+    this->ui->launch_options_log_button->setIcon(::Get(::ICON_FILE_SEARCH));
+    this->ui->launch_options_log_open->setIcon(::Get(::ICON_FILE_EXPORT));
+
     this->connect(this->ui->launch_executable_list, SIGNAL(currentIndexChanged(int)), this,
                   SLOT(on_launch_executable_list_activated(int)));
     this->connect(this->ui->launch_executable_list->lineEdit(), SIGNAL(textEdited(QString)), this,
@@ -53,6 +75,7 @@ TabApplications::TabApplications(MainWindow &window, std::shared_ptr<Ui::MainWin
     this->connect(this->ui->launch_options_log_edit, SIGNAL(textEdited(QString)), this,
                   SLOT(on_launch_options_log_textEdited(QString)));
     this->connect(this->ui->launch_options_log_button, SIGNAL(clicked()), this, SLOT(on_launch_options_log_pressed()));
+    this->connect(this->ui->launch_options_log_open, SIGNAL(clicked()), this, SLOT(on_launch_options_log_open_pressed()));
 
     this->connect(this->ui->launch_clear_at_launch, SIGNAL(toggled(bool)), this, SLOT(on_launch_clear_at_launch_toggled(bool)));
     this->connect(this->ui->launch_clear_log, SIGNAL(clicked()), this, SLOT(on_launch_clear_log_pressed()));
@@ -65,9 +88,8 @@ TabApplications::TabApplications(MainWindow &window, std::shared_ptr<Ui::MainWin
     this->ui->launch_log_text->document()->setMaximumBlockCount(65536);
     this->ui->launch_log_text->moveCursor(QTextCursor::End);
 
-    this->ui->launch_options_args_edit->setToolTip("Eg: '--argA --argB'");
-    this->ui->launch_options_envs_edit->setToolTip(VKC_ENV == VKC_ENV_WIN32 ? "Eg: 'ENV_A=ValueA;ENV_B=ValueB;ENV_C='"
-                                                                            : "Eg: 'ENV_A=ValueA:ENV_B=ValueB:ENV_C='");
+    this->ui->launch_options_args_edit->setToolTip("Eg: '--argA --argB=valueB \"--argC=value C\" --argD=\"value D\"'");
+    this->ui->launch_options_envs_edit->setToolTip("Eg: 'ENV_A= ENV_B=ValueB \"ENV_C=Value C\" ENV_D=\"Value D\"'");
 }
 
 TabApplications::~TabApplications() { this->ResetLaunchApplication(); }
@@ -80,6 +102,9 @@ void TabApplications::UpdateUI(UpdateUIMode mode) {
     this->ui->launch_executable_search->setEnabled(!configurator.executables.Empty());
     this->ui->launch_executable_remove->setEnabled(!configurator.executables.Empty());
     this->ui->launch_button->setEnabled(!configurator.executables.Empty());
+
+    const Executable *executable = configurator.executables.GetActiveExecutable();
+    const ExecutableOptions *options = executable->GetActiveOptions();
 
     if (mode == UPDATE_REBUILD_UI) {
         // Rebuild list of applications
@@ -201,6 +226,8 @@ void TabApplications::on_launch_executable_list_textEdited(const QString &text) 
         executable->path = text.toStdString();
     }
 
+    this->ui->launch_executable_list->setCurrentIndex(configurator.executables.GetActiveExecutableIndex());
+
     this->UpdateUI(UPDATE_REBUILD_UI);
 }
 
@@ -220,7 +247,7 @@ void TabApplications::on_launch_options_list_activated(int index) {
     ui->launch_options_dir_edit->setText(options->working_folder.RelativePath().c_str());
     ui->launch_options_dir_edit->setToolTip(options->working_folder.AbsolutePath().c_str());
     ui->launch_options_args_edit->setText(Merge(options->args, " ").c_str());
-    ui->launch_options_envs_edit->setText(Merge(options->envs, GetToken(PARSE_ENV_VAR)).c_str());
+    ui->launch_options_envs_edit->setText(Merge(options->envs, " ").c_str());
     ui->launch_options_log_edit->setText(options->log_file.RelativePath().c_str());
     ui->launch_options_log_edit->setToolTip(options->log_file.AbsolutePath().c_str());
 }
@@ -311,7 +338,7 @@ void TabApplications::on_launch_options_args_textEdited(const QString &text) {
     Executable *executable = configurator.executables.GetActiveExecutable();
     ExecutableOptions *options = executable->GetActiveOptions();
 
-    options->args = Split(text.toStdString(), " ");
+    options->args = SplitSpace(text.toStdString());
 }
 
 void TabApplications::on_launch_options_envs_textEdited(const QString &text) {
@@ -320,7 +347,7 @@ void TabApplications::on_launch_options_envs_textEdited(const QString &text) {
     Executable *executable = configurator.executables.GetActiveExecutable();
     ExecutableOptions *options = executable->GetActiveOptions();
 
-    options->envs = Split(text.toStdString(), ::GetToken(PARSE_ENV_VAR));
+    options->envs = SplitSpace(text.toStdString());
 }
 
 void TabApplications::on_launch_options_log_textEdited(const QString &text) {
@@ -346,6 +373,19 @@ void TabApplications::on_launch_options_log_pressed() {
         options->log_file = selected_path.toStdString();
         this->ui->launch_options_log_edit->setText(options->log_file.RelativePath().c_str());
     }
+}
+
+void TabApplications::on_launch_options_log_open_pressed() {
+    Configurator &configurator = Configurator::Get();
+
+    Executable *executable = configurator.executables.GetActiveExecutable();
+    ExecutableOptions *options = executable->GetActiveOptions();
+
+    if (!options->log_file.Exists()) {
+        options->log_file.Create(true);
+    }
+
+    QDesktopServices::openUrl(QUrl::fromLocalFile(options->log_file.AbsolutePath().c_str()));
 }
 
 void TabApplications::on_launch_clear_at_launch_toggled(bool checked) {
@@ -376,18 +416,16 @@ void TabApplications::on_launch_button_pressed() {
     assert(!active_executable->path.Empty());
     launch_log += format("- Executable: %s\n", active_executable->path.AbsolutePath().c_str());
     if (!active_executable->path.Exists()) {
-        Alert::PathInvalid(
-            active_executable->path,
-            format("The '%s' application will fail to launch.", active_executable->path.AbsolutePath().c_str()).c_str());
+        ::PathInvalid(active_executable->path,
+                      format("The '%s' application will fail to launch.", active_executable->path.AbsolutePath().c_str()).c_str());
     }
 
     const ExecutableOptions *options = active_executable->GetActiveOptions();
 
     launch_log += format("- Working Directory: %s\n", options->working_folder.AbsolutePath().c_str());
     if (!options->working_folder.Exists()) {
-        Alert::PathInvalid(
-            options->working_folder,
-            format("The '%s' application will fail to launch.", active_executable->path.AbsolutePath().c_str()).c_str());
+        ::PathInvalid(options->working_folder,
+                      format("The '%s' application will fail to launch.", active_executable->path.AbsolutePath().c_str()).c_str());
     }
 
     if (!options->args.empty()) {
@@ -422,7 +460,11 @@ void TabApplications::on_launch_button_pressed() {
             }
 
             if (!this->_log_file.open(mode)) {
-                Alert::LogFileFailed();
+                QMessageBox alert;
+                alert.setWindowTitle("Cannot open log file");
+                alert.setText(format("Cannot open %s...", options->log_file.AbsolutePath().c_str()).c_str());
+                alert.setIcon(QMessageBox::Warning);
+                alert.exec();
             }
         }
     }
@@ -443,8 +485,6 @@ void TabApplications::on_launch_button_pressed() {
 
     this->_launch_application->setProgram(active_executable->path.AbsolutePath().c_str());
     this->_launch_application->setWorkingDirectory(options->working_folder.AbsolutePath().c_str());
-
-    Configuration *configuration = configurator.configurations.FindConfiguration(active_executable->configuration);
 
     QStringList env = QProcess::systemEnvironment();
     if (!options->envs.empty()) {

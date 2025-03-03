@@ -24,20 +24,6 @@
 
 #include <QTextStream>
 
-static const char* GetExecutableSuffix() {
-    static const char* TABLE[] = {
-        ".exe",  // PLATFORM_WINDOWS_X86
-        ".exe",  // PLATFORM_WINDOWS_ARM
-        "",      // PLATFORM_LINUX
-        ".app",  // PLATFORM_MACOS
-        "N/A",   // PLATFORM_ANDROID
-        "N/A"    // PLATFORM_IOS
-    };
-    static_assert(std::size(TABLE) == PLATFORM_COUNT, "The tranlation table size doesn't match the enum number of elements");
-
-    return TABLE[VKC_PLATFORM];
-}
-
 ///////////////////////////////////////////////////////////////////////////
 /// This is only used on macOS to extract the executable from the bundle.
 /// You have to look at the plist.info file, you can't just assume whatever
@@ -95,34 +81,42 @@ static bool ExactExecutableFromAppBundle(Path& app_path) {
     return true;
 }
 
-DefaultPath GetDefaultExecutablePath(const std::string& executable_key) {
-    static const std::string DEFAULT_PATH = VKC_PLATFORM == PLATFORM_MACOS ? "/../.." : "";
+DefaultPath GetDefaultExecutablePath(const std::string& executable_name) {
+    const bool is_app = ::EndsWith(executable_name, ".app");
 
-    const std::string& executable_name = executable_key + GetExecutableSuffix();
-    DefaultPath default_path{"." + executable_name, "."};
+    DefaultPath default_path{executable_name, ""};
 
     // Using VULKAN_SDK environement variable
-    const Path env(Path::BIN);
-    if (!env.Empty()) {
-        const Path search_path(env.RelativePath() + DEFAULT_PATH + executable_name);
-        if (search_path.Exists()) {
-            default_path.executable_path = search_path.AbsolutePath();
-            default_path.working_folder = search_path.AbsoluteDir();
-            return default_path;
+    const Path vulkan_sdk_bin_path(Path::BIN);
+    if (!vulkan_sdk_bin_path.Empty()) {
+        if (is_app) {
+            Path search_path(vulkan_sdk_bin_path.RelativePath() + std::string("../Applications/") + executable_name);
+            if (search_path.Exists() && ExactExecutableFromAppBundle(search_path)) {
+                default_path.executable_path = search_path.AbsolutePath();
+                default_path.working_folder = search_path.AbsoluteDir();
+                return default_path;
+            }
+        } else {
+            const Path search_path(vulkan_sdk_bin_path.RelativePath() + "/" + executable_name);
+            if (search_path.Exists()) {
+                default_path.executable_path = search_path.AbsolutePath();
+                default_path.working_folder = search_path.AbsoluteDir();
+                return default_path;
+            }
         }
     }
 
     // Search the default applications from package installation (Linux)
-    if (VKC_PLATFORM == PLATFORM_LINUX) {
-        const Path search_path(std::string("/usr/bin") + DEFAULT_PATH + executable_name);
-        if (search_path.Exists()) {
+    if (is_app) {
+        Path search_path(std::string("/Applications") + executable_name);
+        if (search_path.Exists() && ExactExecutableFromAppBundle(search_path)) {
             default_path.executable_path = search_path.AbsolutePath();
             default_path.working_folder = search_path.AbsoluteDir();
             return default_path;
         }
-    } else if (VKC_PLATFORM == PLATFORM_MACOS) {
-        Path search_path(std::string("/Applications") + executable_name);
-        if (search_path.Exists() && ExactExecutableFromAppBundle(search_path)) {
+    } else {
+        const Path search_path(std::string("/usr/bin/") + executable_name);
+        if (search_path.Exists()) {
             default_path.executable_path = search_path.AbsolutePath();
             default_path.working_folder = search_path.AbsoluteDir();
             return default_path;
@@ -131,14 +125,23 @@ DefaultPath GetDefaultExecutablePath(const std::string& executable_key) {
 
     // Using relative path to vkconfig in case SDK is not "installed"
     if (VKC_PLATFORM == PLATFORM_MACOS) {
-        Path search_path(std::string("..") + DEFAULT_PATH + executable_name);
-        if (search_path.Exists() && ExactExecutableFromAppBundle(search_path)) {
-            default_path.executable_path = search_path.AbsolutePath();
-            default_path.working_folder = search_path.AbsoluteDir();
-            return default_path;
+        if (is_app) {
+            Path search_path(std::string("../../") + executable_name);
+            if (search_path.Exists() && ExactExecutableFromAppBundle(search_path)) {
+                default_path.executable_path = search_path.AbsolutePath();
+                default_path.working_folder = search_path.AbsoluteDir();
+                return default_path;
+            }
+        } else {
+            Path search_path(std::string("../../../../macOS/bin/") + executable_name);
+            if (search_path.Exists()) {
+                default_path.executable_path = search_path.AbsolutePath();
+                default_path.working_folder = search_path.AbsoluteDir();
+                return default_path;
+            }
         }
     } else {
-        Path search_path(std::string(".") + DEFAULT_PATH + executable_name);
+        Path search_path(std::string("./") + executable_name);
         if (search_path.Exists()) {
             default_path.executable_path = search_path.AbsolutePath();
             default_path.working_folder = search_path.AbsoluteDir();
@@ -167,7 +170,7 @@ Executable::Executable(const DefaultExecutable& default_executable) {
     // initially will be set to the users home folder across all OS's. This is highly visible
     // in the application launcher and should not present a usability issue. The developer can
     // easily change this later to anywhere they like.
-    options.log_file = std::string("${VK_HOME}") + default_executable.key + ".txt";
+    options.log_file = std::string("${VK_HOME}/") + default_executable.name + ".txt";
 
     this->path = default_paths.executable_path;
     this->options_list.push_back(options);

@@ -10,10 +10,11 @@
 
 ## Requirements
 
-1. CMake >= 3.17.2
+1. CMake >= 3.22.1
 1. C++17 compatible toolchain
 1. Git
 1. Python >= 3.10
+1. Qt 6.5
 
 ## Optional software packages:
 
@@ -85,7 +86,7 @@ sudo apt-get install git build-essential python3 cmake
 sudo apt-get install libwayland-dev xorg-dev
 
 # Qt5 for vkconfig
-sudo apt-get install qt5-default
+sudo apt-get install qt6-default
 ```
 
 ## Building On Windows
@@ -135,7 +136,7 @@ See the [CMake documentation](https://cmake.org/cmake/help/latest/generator/Xcod
 
 ## Building For Android
 
-- CMake 3.21+
+- CMake >= 3.22.1
 - NDK r25+
 - Ninja 1.10+
 

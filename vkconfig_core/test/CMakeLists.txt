@@ -1,11 +1,35 @@
+# ~~~
+# Copyright (c) 2020-2025 LunarG, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ~~~
+
 set(CMAKE_AUTORCC ON)
 
 if (NOT DEFINED CMAKE_INSTALL_BINDIR)
     include(GNUInstallDirs)
 endif()
 
+if(WIN32)
+    # Use the static runtime library? This is for special builds of Vulkan Configurator only
+    if(USE_STATIC_RT_VKCONFIG)
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+        message(STATUS "vkconfig-core will link against static runtime")
+    endif()    
+endif()
+
 function(vkConfigTest NAME)
-	set(TEST_FILE ./${NAME}.cpp)
+    set(TEST_FILE ./${NAME}.cpp)
     set(TEST_NAME vkconfig_${NAME})
 
     file(GLOB FILES_LAYER_JSON ./layers/*.json)
@@ -19,12 +43,18 @@ function(vkConfigTest NAME)
         Vulkan::LayerSettings
         GTest::gtest
         GTest::gtest_main
-        Qt5::Core
-        Qt5::Gui
-        Qt5::Widgets
-        Qt5::Network
+        Qt6::Core
+        Qt6::Gui
+        Qt6::Widgets
+        Qt6::Network
     )
     if(WIN32)
+	# Use the static runtime library?
+	if(USE_STATIC_CRT_VKFG)
+ 	    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+	    message(STATUS "vkconfig tests will link against static runtime")
+	endif()
+
         target_link_libraries(${TEST_NAME} Cfgmgr32)
     endif()
     if (RUN_ON_GITHUB)

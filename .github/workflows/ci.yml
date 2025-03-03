@@ -24,16 +24,19 @@ on:
 jobs:
   # Ensure we can build on an older Ubuntu distro with an older version of CMake.
   linux_back_compat:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
     name: "Ubuntu Backcompat"
     steps:
       - uses: actions/checkout@v4
       - name: Install Qt
-        uses: jurplel/install-qt-action@v3
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.5.3'
       - name: Test Minimum CMake Version
         uses: lukka/get-cmake@latest
         with:
-          cmakeVersion: 3.17.2
+          cmakeVersion: 3.22.1
       - uses: hendrikmuhs/ccache-action@v1.2
         with:
           key: linux_back_compat
@@ -49,9 +52,12 @@ jobs:
 
   linux:
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
     steps:
     - name: Install Qt
-      uses: jurplel/install-qt-action@v3
+      uses: jurplel/install-qt-action@v4
+      with:
+        version: '6.2.*'
     - name: Clone repository
       uses: actions/checkout@v4
     - run: sudo apt-get -qq update && sudo apt-get install -y libwayland-dev xorg-dev
@@ -60,10 +66,14 @@ jobs:
 
   windows:
     runs-on: windows-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
     steps:
       - uses: actions/checkout@v4
       - uses: ilammy/msvc-dev-cmd@v1
-      - uses: jurplel/install-qt-action@v3
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.5.3'
       - run: cmake -S . -B build -D UPDATE_DEPS=ON -D BUILD_TESTS=ON -D RUN_ON_GITHUB=ON -D CMAKE_BUILD_TYPE=Debug -G Ninja
       - run: cmake --build build
       - run: ctest --output-on-failure --test-dir build
@@ -71,6 +81,7 @@ jobs:
 
   android:
     runs-on: macos-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
     steps:
       - uses: actions/checkout@v4
       - uses: lukka/get-cmake@latest
@@ -89,8 +100,13 @@ jobs:
 
   macos:
     runs-on: macos-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
     steps:
       - uses: actions/checkout@v4
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.5.3'
       - uses: lukka/get-cmake@latest
       - name: Configure
         run: |
@@ -105,6 +121,7 @@ jobs:
   apple-cross-compile:
     name: iOS
     runs-on: macos-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
     steps:
         - uses: actions/checkout@v4
         - uses: actions/setup-python@v5
@@ -130,6 +147,7 @@ jobs:
 
   mingw:
     runs-on: windows-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
     defaults:
       run:
         shell: bash
@@ -157,6 +175,7 @@ jobs:
 
   chromium:
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt-get -qq update && sudo apt-get install -y libwayland-dev xorg-dev

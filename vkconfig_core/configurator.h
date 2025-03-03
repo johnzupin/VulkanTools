@@ -32,6 +32,7 @@
 #include "type_hide_message.h"
 #include "type_tab.h"
 #include "type_executable_mode.h"
+#include "type_configurator_mode.h"
 #include "serialization.h"
 
 enum EnabledUI {
@@ -66,7 +67,7 @@ class Configurator {
     };
 
     static Configurator& Get();
-    bool Init();
+    bool Init(ConfiguratorMode mode);
 
    public:
     bool Load();
@@ -109,6 +110,9 @@ class Configurator {
     bool GetUseLayerDevMode() const;
     void SetUseLayerDevMode(bool enabled);
 
+    bool GetUseNotifyReleases() const;
+    void SetUseNotifyReleases(bool enabled);
+
     bool HasActiveSettings() const;
     bool HasEnabledUI(EnabledUI enabled_ui) const;
 
@@ -125,22 +129,29 @@ class Configurator {
     void BuildLoaderSettings(const std::string& configuration_key, const std::string& executable_path,
                              std::vector<LoaderSettings>& loader_settings_array) const;
 
+    ConfiguratorMode init_mode = CONFIGURATOR_MODE_NONE;
+
    public:
     LayerManager layers;
     ConfigurationManager configurations;
     ExecutableManager executables;
     VulkanSystemInfo vulkan_system_info;
 
+    const ConfiguratorMode& mode;
+
     bool reset_hard = false;
     bool has_crashed = false;
     TabType active_tab = TAB_CONFIGURATIONS;
     bool advanced = true;
     Path last_path_status = Path(Path::HOME).RelativePath() + "/vkconfig.txt";
+    Version latest_sdk_version = Version::VKHEADER;
+    Version online_sdk_version = Version::NONE;
 
    private:
     int hide_message_boxes_flags = 0;
     bool use_system_tray = false;
     bool use_layer_dev_mode = false;
+    bool use_notify_releases = true;
     ExecutableScope executable_scope = EXECUTABLE_ANY;
     std::string selected_global_configuration = "Validation";
 };

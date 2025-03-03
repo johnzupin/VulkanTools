@@ -35,7 +35,7 @@
 #include <gtest/gtest.h>
 
 TEST(test_command_line, execute_mode) {
-    static char* argv[] = {"vkconfig"};
+    static char* argv[] = {(char*)"vkconfig"};
     int argc = static_cast<int>(std::size(argv));
 
     CommandLine command_line(argc, argv);
@@ -43,11 +43,11 @@ TEST(test_command_line, execute_mode) {
     EXPECT_EQ(ERROR_NONE, command_line.error);
     EXPECT_TRUE(command_line.error_args.empty());
     EXPECT_EQ(COMMAND_LAYERS_NONE, command_line.command_layers_arg);
-    EXPECT_TRUE(command_line.layers_configuration_path.empty());
+    EXPECT_TRUE(command_line.layers_configuration_path.Empty());
 }
 
 TEST(test_command_line, usage_mode_help) {
-    static char* argv[] = {"vkconfig", "--help"};
+    static char* argv[] = {(char*)"vkconfig", (char*)"--help"};
     int argc = static_cast<int>(std::size(argv));
 
     CommandLine command_line(argc, argv);
@@ -56,11 +56,11 @@ TEST(test_command_line, usage_mode_help) {
     EXPECT_TRUE(command_line.error_args.empty());
     EXPECT_EQ(COMMAND_SHOW_USAGE, command_line.command);
     EXPECT_EQ(COMMAND_LAYERS_NONE, command_line.command_layers_arg);
-    EXPECT_TRUE(command_line.layers_configuration_path.empty());
+    EXPECT_TRUE(command_line.layers_configuration_path.Empty());
 }
 
 TEST(test_command_line, usage_mode_h) {
-    static char* argv[] = {"vkconfig", "-h"};
+    static char* argv[] = {(char*)"vkconfig", (char*)"-h"};
     int argc = static_cast<int>(std::size(argv));
 
     CommandLine command_line(argc, argv);
@@ -69,11 +69,11 @@ TEST(test_command_line, usage_mode_h) {
     EXPECT_TRUE(command_line.error_args.empty());
     EXPECT_EQ(COMMAND_SHOW_USAGE, command_line.command);
     EXPECT_EQ(COMMAND_LAYERS_NONE, command_line.command_layers_arg);
-    EXPECT_TRUE(command_line.layers_configuration_path.empty());
+    EXPECT_TRUE(command_line.layers_configuration_path.Empty());
 }
 
 TEST(test_command_line, usage_mode_version) {
-    static char* argv[] = {"vkconfig", "--version"};
+    static char* argv[] = {(char*)"vkconfig", (char*)"--version"};
     int argc = static_cast<int>(std::size(argv));
 
     CommandLine command_line(argc, argv);
@@ -82,11 +82,11 @@ TEST(test_command_line, usage_mode_version) {
     EXPECT_TRUE(command_line.error_args.empty());
     EXPECT_EQ(COMMAND_VERSION, command_line.command);
     EXPECT_EQ(COMMAND_LAYERS_NONE, command_line.command_layers_arg);
-    EXPECT_TRUE(command_line.layers_configuration_path.empty());
+    EXPECT_TRUE(command_line.layers_configuration_path.Empty());
 }
 
 TEST(test_command_line, usage_mode_invalid) {
-    static char* argv[] = {"vkconfig", "--dfhsjfgasjkgf"};
+    static char* argv[] = {(char*)"vkconfig", (char*)"--dfhsjfgasjkgf"};
     int argc = static_cast<int>(std::size(argv));
 
     CommandLine command_line(argc, argv);
@@ -95,11 +95,11 @@ TEST(test_command_line, usage_mode_invalid) {
     EXPECT_EQ(1, command_line.error_args.size());
     EXPECT_EQ(COMMAND_NONE, command_line.command);
     EXPECT_EQ(COMMAND_LAYERS_NONE, command_line.command_layers_arg);
-    EXPECT_TRUE(command_line.layers_configuration_path.empty());
+    EXPECT_TRUE(command_line.layers_configuration_path.Empty());
 }
 
 TEST(test_command_line, usage_mode_layers_missing_argv) {
-    static char* argv[] = {"vkconfig", "layers"};
+    static char* argv[] = {(char*)"vkconfig", (char*)"layers"};
     int argc = static_cast<int>(std::size(argv));
 
     CommandLine command_line(argc, argv);
@@ -108,11 +108,11 @@ TEST(test_command_line, usage_mode_layers_missing_argv) {
     EXPECT_EQ(1, command_line.error_args.size());
     EXPECT_EQ(COMMAND_LAYERS, command_line.command);
     EXPECT_EQ(COMMAND_LAYERS_NONE, command_line.command_layers_arg);
-    EXPECT_TRUE(command_line.layers_configuration_path.empty());
+    EXPECT_TRUE(command_line.layers_configuration_path.Empty());
 }
 
 TEST(test_command_line, usage_mode_layers_invalid_argv) {
-    static char* argv[] = {"vkconfig", "layers", "--pouet"};
+    static char* argv[] = {(char*)"vkconfig", (char*)"layers", (char*)"--pouet"};
     int argc = static_cast<int>(std::size(argv));
 
     CommandLine command_line(argc, argv);
@@ -121,11 +121,11 @@ TEST(test_command_line, usage_mode_layers_invalid_argv) {
     EXPECT_EQ(2, command_line.error_args.size());
     EXPECT_EQ(COMMAND_LAYERS, command_line.command);
     EXPECT_EQ(COMMAND_LAYERS_NONE, command_line.command_layers_arg);
-    EXPECT_TRUE(command_line.layers_configuration_path.empty());
+    EXPECT_TRUE(command_line.layers_configuration_path.Empty());
 }
 
 TEST(test_command_line, usage_mode_layers_list) {
-    static char* argv[] = {"vkconfig", "layers", "--list"};
+    static char* argv[] = {(char*)"vkconfig", (char*)"layers", (char*)"--list"};
     int argc = static_cast<int>(std::size(argv));
 
     CommandLine command_line(argc, argv);
@@ -134,11 +134,11 @@ TEST(test_command_line, usage_mode_layers_list) {
     EXPECT_TRUE(command_line.error_args.empty());
     EXPECT_EQ(COMMAND_LAYERS, command_line.command);
     EXPECT_EQ(COMMAND_LAYERS_LIST, command_line.command_layers_arg);
-    EXPECT_TRUE(command_line.layers_configuration_path.empty());
+    EXPECT_TRUE(command_line.layers_configuration_path.Empty());
 }
 
 TEST(test_command_line, usage_mode_layers_surrender) {
-    static char* argv[] = {"vkconfig", "layers", "--surrender"};
+    static char* argv[] = {(char*)"vkconfig", (char*)"layers", (char*)"--surrender"};
     int argc = static_cast<int>(std::size(argv));
 
     CommandLine command_line(argc, argv);
@@ -147,11 +147,11 @@ TEST(test_command_line, usage_mode_layers_surrender) {
     EXPECT_TRUE(command_line.error_args.empty());
     EXPECT_EQ(COMMAND_LAYERS, command_line.command);
     EXPECT_EQ(COMMAND_LAYERS_SURRENDER, command_line.command_layers_arg);
-    EXPECT_TRUE(command_line.layers_configuration_path.empty());
+    EXPECT_TRUE(command_line.layers_configuration_path.Empty());
 }
 
 TEST(test_command_line, usage_mode_layers_surrender_invalid) {
-    static char* argv[] = {"vkconfig", "layers", "--surrender", "file.json"};
+    static char* argv[] = {(char*)"vkconfig", (char*)"layers", (char*)"--surrender", (char*)"file.json"};
     int argc = static_cast<int>(std::size(argv));
 
     CommandLine command_line(argc, argv);
@@ -160,11 +160,11 @@ TEST(test_command_line, usage_mode_layers_surrender_invalid) {
     EXPECT_EQ(1, command_line.error_args.size());
     EXPECT_EQ(COMMAND_LAYERS, command_line.command);
     EXPECT_EQ(COMMAND_LAYERS_SURRENDER, command_line.command_layers_arg);
-    EXPECT_TRUE(command_line.layers_configuration_path.empty());
+    EXPECT_TRUE(command_line.layers_configuration_path.Empty());
 }
 
 TEST(test_command_line, usage_mode_layers_override) {
-    static char* argv[] = {"vkconfig", "layers", "--override", ":/test/Configuration 3.0.0.json"};
+    static char* argv[] = {(char*)"vkconfig", (char*)"layers", (char*)"--override", (char*)":/test/reference_configuration.json"};
     int argc = static_cast<int>(std::size(argv));
 
     CommandLine command_line(argc, argv);
@@ -173,11 +173,11 @@ TEST(test_command_line, usage_mode_layers_override) {
     EXPECT_TRUE(command_line.error_args.empty());
     EXPECT_EQ(COMMAND_LAYERS, command_line.command);
     EXPECT_EQ(COMMAND_LAYERS_OVERRIDE, command_line.command_layers_arg);
-    EXPECT_TRUE(!command_line.layers_configuration_path.empty());
+    EXPECT_TRUE(!command_line.layers_configuration_path.Empty());
 }
 
 TEST(test_command_line, usage_mode_layers_override_invalid) {
-    static char* argv[] = {"vkconfig", "layers", "--override"};
+    static char* argv[] = {(char*)"vkconfig", (char*)"layers", (char*)"--override"};
     int argc = static_cast<int>(std::size(argv));
 
     CommandLine command_line(argc, argv);
@@ -186,11 +186,11 @@ TEST(test_command_line, usage_mode_layers_override_invalid) {
     EXPECT_EQ(1, command_line.error_args.size());
     EXPECT_EQ(COMMAND_LAYERS, command_line.command);
     EXPECT_EQ(COMMAND_LAYERS_OVERRIDE, command_line.command_layers_arg);
-    EXPECT_TRUE(command_line.layers_configuration_path.empty());
+    EXPECT_TRUE(command_line.layers_configuration_path.Empty());
 }
 
 TEST(test_command_line, usage_mode_layers_override_invalid_args) {
-    static char* argv[] = {"vkconfig", "layers", "--override", "bla", "blo"};
+    static char* argv[] = {(char*)"vkconfig", (char*)"layers", (char*)"--override", (char*)"bla", (char*)"blo"};
     int argc = static_cast<int>(std::size(argv));
 
     CommandLine command_line(argc, argv);
@@ -199,7 +199,7 @@ TEST(test_command_line, usage_mode_layers_override_invalid_args) {
     EXPECT_EQ(1, command_line.error_args.size());
     EXPECT_EQ(COMMAND_LAYERS, command_line.command);
     EXPECT_EQ(COMMAND_LAYERS_OVERRIDE, command_line.command_layers_arg);
-    EXPECT_TRUE(command_line.layers_configuration_path.empty());
+    EXPECT_TRUE(command_line.layers_configuration_path.Empty());
 }
 
 #if VKC_ENV == VKC_ENV_UNIX

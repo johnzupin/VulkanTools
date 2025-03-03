@@ -1,4 +1,20 @@
-cmake_minimum_required(VERSION 3.17.2)
+# ~~~
+# Copyright (c) 2020-2025 LunarG, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ~~~
+
+cmake_minimum_required(VERSION 3.22.1)
 
 project(VULKAN_TOOLS LANGUAGES CXX)
 
@@ -21,15 +37,14 @@ if (BUILD_WERROR)
 endif()
 
 find_package(VulkanHeaders REQUIRED CONFIG)
-
 find_package(VulkanLoader CONFIG)
-
 find_package(VulkanUtilityLibraries REQUIRED CONFIG)
-
 find_package(valijson REQUIRED CONFIG)
+find_package(Qt6 COMPONENTS Core Gui Widgets Network QUIET)
 
 option(BUILD_TESTS "Build tests")
 option(RUN_ON_GITHUB "Build only tests that can run on Github" OFF)
+option(USE_STATIC_RT_VKCONFIG "Use static C runtime for VkConfig when linking against static Qt libraires")
 
 if(BUILD_TESTS)
     enable_testing()
@@ -64,11 +79,6 @@ if (CMAKE_SYSTEM_NAME MATCHES "Windows|Linux|BSD")
     option(BUILD_LAYERMGR "Build Vulkan Configurator" ON)
 
 elseif(ANDROID)
-    # https://gitlab.kitware.com/cmake/cmake/issues/18787
-    # https://github.com/android-ndk/ndk/issues/463
-    if (CMAKE_VERSION VERSION_LESS "3.21")
-        message(FATAL_ERROR "Android build requires at least CMake 3.21!")
-    endif()
 
     # Currently the Android build only build the API dump and screen shot layer.
     # - libVkLayer_api_dump.so
@@ -107,14 +117,21 @@ if(BUILD_APIDUMP OR BUILD_MONITOR OR BUILD_SCREENSHOT)
 endif()
 
 if(BUILD_LAYERMGR)
-    message(STATUS "INFO: Building Vulkan Configurator")
+    if(NOT Qt6_FOUND)
+        message("WARNING: Vulkan Configurator will be excluded from the build because Qt6 was not found. Please add Qt6 into the PATH environment variable")
+    elseif(Qt6_VERSION VERSION_LESS 6.2)
+        message("WARNING: Vulkan Configurator will be excluded because the found Qt version is too old. Vulkan Configurator requires version 6.2 and recommand version 6.5 but found version " ${Qt6_VERSION})
+    else()
 
-    if (WIN32)
-        # Minimize what Windows.h leaks
-        add_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN)
+        message(STATUS "INFO: Building Vulkan Configurator")
+
+        if (WIN32)
+            # Minimize what Windows.h leaks
+            add_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN)
+        endif()
+
+        add_subdirectory(vkconfig_core)
+        add_subdirectory(vkconfig_cmd)
+        add_subdirectory(vkconfig_gui)
     endif()
-
-    add_subdirectory(vkconfig_core)
-    add_subdirectory(vkconfig_cmd)
-    add_subdirectory(vkconfig_gui)
 endif()

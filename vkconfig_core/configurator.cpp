@@ -609,6 +609,7 @@ std::string Configurator::Log() const {
 
     log += format("%s %s - %s:\n", VKCONFIG_NAME, Version::VKCONFIG.str().c_str(), GetBuildDate().c_str());
     log += format(" - Build: %s %s\n", GetLabel(VKC_PLATFORM), build.c_str());
+    log += format(" - Qt version: %d.%d.%d\n", QT_VERSION_MAJOR, QT_VERSION_MINOR, QT_VERSION_PATCH);
     log += format(" - Vulkan API version: %s\n", Version::VKHEADER.str().c_str());
     if (Path(Path::SDK).Empty()) {
         log += " - ${VULKAN_SDK}: unset\n";
@@ -663,7 +664,8 @@ std::string Configurator::Log() const {
     log += format(" - Use layer developer mode: %s\n", this->use_layer_dev_mode ? "true" : "false");
     log += format(" - ${VULKAN_BIN}: %s\n", ::Path(Path::BIN).AbsolutePath().c_str());
     log += format(" - ${VULKAN_PROFILES}: %s\n", ::Path(Path::PROFILES).AbsolutePath().c_str());
-    log += format(" - ${VK_HOME}: %s\n", ::Path(Path::HOME).AbsolutePath().c_str());
+    log += format(" - ${VULKAN_HOME}: %s\n", ::Path(Path::HOME).AbsolutePath().c_str());
+    log += format(" - ${VULKAN_DOWNLOAD}: %s\n", ::Path(Path::DOWNLOAD).AbsolutePath().c_str());
     log += "\n";
 
     if (this->GetExecutableScope() == EXECUTABLE_ANY || this->GetExecutableScope() == EXECUTABLE_ALL) {
@@ -868,16 +870,24 @@ bool Configurator::Load() {
             const QJsonObject& json_object = json_interface_object.value(GetToken(TAB_PREFERENCES)).toObject();
 
             this->use_layer_dev_mode = json_object.value("use_layer_dev_mode").toBool();
-            this->latest_sdk_version = Version(json_object.value("latest_sdk_version").toString().toStdString().c_str());
 
             if (json_object.value("use_notify_releases") != QJsonValue::Undefined) {
                 this->use_notify_releases = json_object.value("use_notify_releases").toBool();
             }
 
+            this->latest_sdk_version = Version(json_object.value("latest_sdk_version").toString().toStdString().c_str());
+
+            if (json_object.value("last_vkconfig_version") != QJsonValue::Undefined) {
+                this->last_vkconfig_version = Version(json_object.value("last_vkconfig_version").toString().toStdString().c_str());
+            }
+
             this->use_system_tray = json_object.value("use_system_tray").toBool();
-            ::SetHomePath(json_object.value("VK_HOME").toString().toStdString());
-            if (json_object.value("VK_DOWNLOAD") != QJsonValue::Undefined) {
-                ::SetDownloadPath(json_object.value("VK_DOWNLOAD").toString().toStdString());
+
+            if (json_object.value("VULKAN_HOME") != QJsonValue::Undefined) {
+                ::SetHomePath(json_object.value("VULKAN_HOME").toString().toStdString());
+            }
+            if (json_object.value("VULKAN_DOWNLOAD") != QJsonValue::Undefined) {
+                ::SetDownloadPath(json_object.value("VULKAN_DOWNLOAD").toString().toStdString());
             }
         }
 
@@ -928,8 +938,9 @@ bool Configurator::Save() const {
         json_object.insert("use_layer_dev_mode", this->use_layer_dev_mode);
         json_object.insert("use_notify_releases", this->use_notify_releases);
         json_object.insert("latest_sdk_version", this->latest_sdk_version.str().c_str());
-        json_object.insert("VK_HOME", ::Path(Path::HOME).RelativePath().c_str());
-        json_object.insert("VK_DOWNLOAD", ::Path(Path::DOWNLOAD).RelativePath().c_str());
+        json_object.insert("last_vkconfig_version", Version::VKCONFIG.str().c_str());
+        json_object.insert("VULKAN_HOME", ::Path(Path::HOME).RelativePath().c_str());
+        json_object.insert("VULKAN_DOWNLOAD", ::Path(Path::DOWNLOAD).RelativePath().c_str());
         json_interface_object.insert(GetToken(TAB_PREFERENCES), json_object);
     }
 
@@ -992,6 +1003,11 @@ void Configurator::SetUseLayerDevMode(bool enabled) { this->use_layer_dev_mode =
 bool Configurator::GetUseNotifyReleases() const { return this->use_notify_releases; }
 
 void Configurator::SetUseNotifyReleases(bool enabled) { this->use_notify_releases = enabled; }
+
+bool Configurator::ShouldNotify() const {
+    return this->latest_sdk_version < this->online_sdk_version && this->online_sdk_version != Version::NONE &&
+           !(Version::VKCONFIG > this->last_vkconfig_version);
+}
 
 bool Configurator::HasActiveSettings() const {
     switch (this->executable_scope) {

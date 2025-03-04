@@ -1,3 +1,98 @@
+lunarg-tools (1.4.309.0~rc1-1lunarg24.04-1) noble; urgency=medium
+
+  [ Christophe ]
+  * vkconfig3: Add dark mode, using the OS style automatically
+  * vkconfig: Fix Qt6 detection
+  * vkconfig: refactor system tray message box
+  * vkconfig: Workaround loader message bug requiring layers override
+  * vkconfig: Update loader messages and default
+  * vkconfig: Fix context menu crash
+  * vkconfig: Fix miss match of selected layer version and display of layer settings
+  * vkconfig: Fix layer paths rebuild on enabling/disabling path
+  * vkconfig: fix blank unordered layers combobox
+  * vkconfig: Select the new configuration when it is created
+  * vkconfig: Clean up layer tab
+  * vkconfig: Fix layers paths updates
+  * vkconfig: add renaming configuration using double click
+  * vkconfig: SDK 1.4.304.1 bugfixing
+  * vkconfig: Replace specification link
+  * vkconfig3: Updated documentation
+  * vkconfig: SDK 304 bugfixing
+  * vkconfig: Fix warnings
+  * vkconfig: Clean up
+  * vkconfig: SDK 1.4.304.1 bugfixing
+
+  [ Juan Ramos ]
+  * cmake: Update minimum to 3.22.1
+
+  [ John Zupin ]
+  * vkconfig: update url to point to LunarG's latest public antora spec
+
+  [ Christophe ]
+  * vkconfig: v3.1 fix config icons
+  * vkconfig: SDK 304.1 test build bug fixes
+  * vkconfig: Notify running older version of vkconfig
+  * vkconfig: Fix version check
+  * vkconfig: Fix system tray closing after cancel
+  * vkconfig: Allow removing missing layers from configuration
+  * vkconfig: Fix cmd layer override configuration import
+  * vkconfig: Fix application arguments and env vars spliting
+  * vkconfig: Add loader messages configuration
+  * vkconfig: Fix layer settings crash when reordering layers
+  * vkconfig: Add 'vkconfig config' commands to import, export and use stored loader configuration
+  * vkconfig: Fix Updated C.I.
+  * vkconfig: Add layers --path command
+  * vkconfig: Install Qt on Windows GitHUb C.I.
+  * vkconfig: Slight improvement of outputs
+  * vkconfig: Fix unit test build
+  * vkconfig: Update macOS Github C.I.
+  * vkconfig: Add preferences tab
+  * vkconfig: Open export files
+  * vkconfig: Add Vulkan SDK release detection
+
+  [ Ashley Smith ]
+  * api_dump: Fix vkWaitSemaphoresKHR deadlock
+
+  [ Christophe ]
+  * vkconfig: Fix vulkaninfo missing on macOS
+
+  [ Charles Giessen ]
+  * build: Update to Vulkan-Header 1.4.309
+  * ci: Prevent double runs for branches in repo with PR's
+
+  [ Christophe ]
+  * vkconfig: Fix command line logging
+  * vkconfig: Fix command line logging
+  * vkconfig: Fix init of default executables
+  * vkconfig: Fix init of default executables
+  * vkconfig: Fix editing executable path crash
+  * vkconfig: Fix new release first launch
+  * vkconfig: Fix layer manifest validation log
+
+  [ John Zupin ]
+  * packaging: debian: update to use qt6
+
+  [ Richard S. Wright Jr ]
+  * cmake to allow for static RT for vkconfig
+  * tweaks based on feedback
+  * cmake to allow for static RT for vkconfig
+  * tweaks based on feedback
+
+  [ Christophe ]
+  * vkconfig: March 2025 SDK bugfixing
+  * vkconfig: March 2025 SDK bugfixing
+  * vkconfig: Add Qt version to diagnostic
+  * vkconfig: Clean up environment variables
+
+  [ John Zupin ]
+  * packaging: mirror upstream
+
+  [ Christophe ]
+  * vkconfig: March 2025 SDK fixes
+  * vkconfig: Update changelog to clarify dark mode support
+
+ -- john <john@odin>  Tue, 04 Mar 2025 10:10:15 -0700
+
 lunarg-tools (1.4.304.1~rc5-1lunarg24.04-1) noble; urgency=medium
 
   [ Christophe ]

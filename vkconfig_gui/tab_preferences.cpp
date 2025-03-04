@@ -102,7 +102,7 @@ void TabPreferences::on_vk_home_text_pressed() {
     } else {
         QMessageBox message;
         message.setIcon(QMessageBox::Critical);
-        message.setWindowTitle("Invalid ${VK_HOME} path...");
+        message.setWindowTitle("Invalid ${VULKAN_HOME} path...");
         message.setText(
             format("'%s' is not a valid, it doesn't exist.", this->ui->preferences_vk_home_text->text().toStdString().c_str())
                 .c_str());
@@ -115,7 +115,7 @@ void TabPreferences::on_vk_home_text_pressed() {
 
 void TabPreferences::on_vk_home_browse_pressed() {
     const QString selected_path = QFileDialog::getExistingDirectory(
-        this->ui->preferences_vk_home_browse, "Select the Vulkan Home Default Working Folder (Set ${VK_HOME} value)...",
+        this->ui->preferences_vk_home_browse, "Select the Vulkan Home Default Working Folder (Set ${VULKAN_HOME} value)...",
         ::Path(Path::HOME).AbsolutePath().c_str());
 
     if (!selected_path.isEmpty()) {
@@ -126,10 +126,10 @@ void TabPreferences::on_vk_home_browse_pressed() {
 }
 
 void TabPreferences::on_vk_download_browse_pressed() {
-    const QString selected_path =
-        QFileDialog::getExistingDirectory(this->ui->preferences_vk_download_browse,
-                                          "Select the Vulkan Configurator Download Default Folder (Set ${VK_DOWNLOAD} value)...",
-                                          ::Path(Path::DOWNLOAD).AbsolutePath().c_str());
+    const QString selected_path = QFileDialog::getExistingDirectory(
+        this->ui->preferences_vk_download_browse,
+        "Select the Vulkan Configurator Download Default Folder (Set ${VULKAN_DOWNLOAD} value)...",
+        ::Path(Path::DOWNLOAD).AbsolutePath().c_str());
 
     if (!selected_path.isEmpty()) {
         this->ui->preferences_vk_download_text->setText(selected_path);
@@ -202,7 +202,7 @@ void TabPreferences::on_release_downloaded(QNetworkReply *pReply) {
 
     pReply->deleteLater();
 
-    if (configurator.latest_sdk_version < configurator.online_sdk_version && configurator.online_sdk_version != Version::NONE) {
+    if (configurator.ShouldNotify()) {
         this->ui->preferences_download->setText(
             format("Download Latest Vulkan SDK %s", configurator.online_sdk_version.str().c_str()).c_str());
 
@@ -227,6 +227,11 @@ void TabPreferences::on_release_downloaded(QNetworkReply *pReply) {
         }
     } else {
         this->ui->preferences_download->setText("Open Vulkan SDK download directory...");
+    }
+
+    // Vulkan Configurator just got updated, the latest online sdk version is considered updated
+    if (configurator.last_vkconfig_version < Version::VKCONFIG) {
+        configurator.latest_sdk_version = configurator.online_sdk_version;
     }
 }
 

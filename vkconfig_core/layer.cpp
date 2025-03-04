@@ -195,7 +195,7 @@ SettingMeta* Layer::Instantiate(SettingMetaSet& meta_set, const std::string& key
 }
 
 LayerLoadStatus Layer::Load(const Path& full_path_to_file, LayerType type, bool request_validate_manifest,
-                            const std::map<Path, std::string>& layers_validated, ConfiguratorMode configurator_mode) {
+                            const std::map<Path, LayerStatus>& layers_found, ConfiguratorMode configurator_mode) {
     this->type = type;  // Set layer type, no way to know this from the json file
 
     if (full_path_to_file.Empty()) {
@@ -211,6 +211,14 @@ LayerLoadStatus Layer::Load(const Path& full_path_to_file, LayerType type, bool 
     file.close();
 
     this->manifest_path = full_path_to_file;
+    this->last_modified = full_path_to_file.LastModified();
+
+    auto it = layers_found.find(full_path_to_file.AbsolutePath().c_str());
+    if (it != layers_found.end()) {
+        if (it->second.disabled && it->second.last_modified == this->last_modified) {
+            return LAYER_LOAD_FAILED;
+        }
+    }
 
     // Convert the text to a JSON document & validate it.
     // It does need to be a valid json formatted file.
@@ -258,8 +266,6 @@ LayerLoadStatus Layer::Load(const Path& full_path_to_file, LayerType type, bool 
 
     const QJsonObject& json_layer_object = ReadObject(json_root_object, "layer");
 
-    const std::string& last_modified = full_path_to_file.LastModified();
-
     this->key = ReadStringValue(json_layer_object, "name");
 
     if (this->key == "VK_LAYER_LUNARG_override") {
@@ -271,16 +277,13 @@ LayerLoadStatus Layer::Load(const Path& full_path_to_file, LayerType type, bool 
     JsonValidator validator;
 
     std::string cached_last_modified;
-    auto it = layers_validated.find(this->manifest_path.AbsolutePath());
-    if (it != layers_validated.end()) {
-        cached_last_modified = it->second;
+    if (it != layers_found.end()) {
+        cached_last_modified = it->second.last_modified;
     }
-    const bool should_validate =
-        request_validate_manifest && last_modified != cached_last_modified && !this->manifest_path.IsBuiltIn();
+    const bool should_validate = request_validate_manifest && ((last_modified != cached_last_modified) || !it->second.validated);
     const bool is_valid = should_validate ? validator.Check(json_text) : true;
 
     if (!is_valid) {
-        this->validated_last_modified.clear();
         switch (configurator_mode) {
             default: {
             } break;
@@ -294,12 +297,22 @@ LayerLoadStatus Layer::Load(const Path& full_path_to_file, LayerType type, bool 
                 alert.setDefaultButton(QMessageBox::Yes);
                 int result = alert.exec();
                 if (result == QMessageBox::Yes) {
-                    const std::string& selected_path =
-                        QFileDialog::getSaveFileName(
-                            nullptr, format("Export %s validation log", full_path_to_file.AbsolutePath().c_str()).c_str(),
-                            AbsolutePath(Path::HOME).c_str(), "Log(*.txt)")
-                            .toStdString();
-                    QDesktopServices::openUrl(QUrl::fromLocalFile(selected_path.c_str()));
+                    const QString& selected_path = QFileDialog::getSaveFileName(
+                        nullptr, format("Export %s validation log", full_path_to_file.AbsolutePath().c_str()).c_str(),
+                        (AbsolutePath(Path::HOME) + "/" + full_path_to_file.Basename() + "_log.txt").c_str(), "Log(*.txt)");
+                    QFile log_file(selected_path);
+                    const bool result = log_file.open(QIODevice::WriteOnly | QIODevice::Text);
+                    if (result) {
+                        QDesktopServices::openUrl(QUrl::fromLocalFile(selected_path));
+                        log_file.write(validator.message.toStdString().c_str());
+                        log_file.close();
+                    } else {
+                        QMessageBox alert;
+                        alert.setWindowTitle("Failed to save layer manifest log...");
+                        alert.setText(format("Couldn't not open %s file...", selected_path.toStdString().c_str()).c_str());
+                        alert.setIcon(QMessageBox::Critical);
+                        alert.exec();
+                    }
                 }
             } break;
             case CONFIGURATOR_MODE_CMD: {
@@ -308,8 +321,6 @@ LayerLoadStatus Layer::Load(const Path& full_path_to_file, LayerType type, bool 
             } break;
         }
         return LAYER_LOAD_INVALID;
-    } else if (request_validate_manifest) {
-        this->validated_last_modified = last_modified;
     }
 
     const QJsonValue& json_library_path_value = json_layer_object.value("library_path");
@@ -435,6 +446,10 @@ void Layer::AddSettingsSet(SettingMetaSet& settings, const SettingMeta* parent, 
 
         const std::string desc = ReadStringValue(json_setting, "description");
         const SettingType type = GetSettingType(ReadStringValue(json_setting, "type").c_str());
+        if (type == SETTING_INVALID) {
+            continue;
+        }
+
         SettingView view = SETTING_VIEW_STANDARD;
         if (json_setting.value("view") != QJsonValue::Undefined) {
             view = GetSettingView(ReadStringValue(json_setting, "view").c_str());

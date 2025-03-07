@@ -1,3 +1,10 @@
+lunarg-tools (1.4.309.0~rc3-1lunarg24.04-1) noble; urgency=medium
+
+  [ John Zupin ]
+  * debian: packaging: update runtime deps for vkconfig
+
+ -- john <john@odin>  Fri, 07 Mar 2025 15:51:57 -0700
+
 lunarg-tools (1.4.309.0~rc2-1lunarg24.04-1) noble; urgency=medium
 
   [ Christophe ]

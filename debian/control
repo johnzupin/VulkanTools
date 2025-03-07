@@ -54,7 +54,12 @@ Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends},
  libvulkan-dev (>= 1.4.309.0~rc1),
  vulkan-validationlayers (>= 1.4.309.0~rc1),
- vulkan-tools (>= 1.4.309.0~rc1)
+ vulkan-tools (>= 1.4.309.0~rc1),
+ libqt6concurrent6,
+ libqt6opengl6,
+ libqt6openglwidgets6,
+ libqt6sql6-sqlite,
+ libqt6xml6
 Description: LunarG GUI tool to configure Vulkan layers
  The Vulkan configuration tool is a graphical application that allows a user to
  specify which layers will be loaded by Vulkan applications at runtime. It

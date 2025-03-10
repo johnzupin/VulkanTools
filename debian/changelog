@@ -1,3 +1,24 @@
+lunarg-tools (1.4.309.0~rc4-1lunarg24.04-1) noble; urgency=medium
+
+  [ John Zupin ]
+  * packaging: debian: add vkconfig runtime deps
+
+  [ Richard S. Wright Jr. ]
+  * Just fixes to some messages
+
+  [ Christophe ]
+  * vkconfig: Fix vkconfig.pro build on macOS
+  * vkconfig: Tentative fix for screenshot layer selection crash
+  * vkconfig: Delay dark mode to next SDK release...
+  * vkconfig: Clean up
+  * vkconfig: fix vkconfig gui command
+  * vkconfig: Fix reset main window geometry and state
+  * vkconfig: Improve executable options
+  * vkconfig: Fix launcher log speed
+  * vkconfig: Fix macOS exit crash
+
+ -- john <john@odin>  Mon, 10 Mar 2025 14:12:03 -0600
+
 lunarg-tools (1.4.309.0~rc3-1lunarg24.04-1) noble; urgency=medium
 
   [ John Zupin ]

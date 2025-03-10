@@ -1,3 +1,10 @@
+lunarg-tools (1.4.309.0~rc5-1lunarg22.04-1) jammy; urgency=medium
+
+  [ John Zupin ]
+  * packaging: debian: add new vkconfig runtime dep
+
+ -- john <john@odin>  Mon, 10 Mar 2025 16:41:19 -0600
+
 lunarg-tools (1.4.309.0~rc4-1lunarg22.04-1) jammy; urgency=medium
 
   [ John Zupin ]

@@ -1,6 +1,4 @@
-QT       += core gui
-
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets network
+QT       += core gui widgets network
 
 CONFIG += c++17
 CONFIG += sdk_no_version_check
@@ -206,7 +204,7 @@ macx: {
 #shellScript.files = $$files(macOS/vkconfig.sh)
 #shellScript.path = $$OUT_PWD/VkConfig.app/Contents/MacOS
 
-QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.10
+QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.15
 
 QMAKE_INFO_PLIST = macOS/Info.plist
 RC_FILE = macOS/Resources/VulkanIcon.icns

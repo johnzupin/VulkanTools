@@ -85,7 +85,7 @@
        <enum>QTabWidget::TabShape::Rounded</enum>
       </property>
       <property name="currentIndex">
-       <number>5</number>
+       <number>2</number>
       </property>
       <widget class="QWidget" name="tab_configurations">
        <attribute name="title">
@@ -1139,6 +1139,13 @@
               <number>0</number>
              </property>
              <item>
+              <widget class="QLabel" name="label_7">
+               <property name="text">
+                <string>Options: </string>
+               </property>
+              </widget>
+             </item>
+             <item>
               <widget class="QComboBox" name="launch_options_list">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -1514,7 +1521,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QTextBrowser" name="launch_log_text">
+           <widget class="QPlainTextEdit" name="launch_log_text">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
               <horstretch>0</horstretch>
@@ -1530,6 +1537,12 @@
             </property>
             <property name="lineWidth">
              <number>1</number>
+            </property>
+            <property name="readOnly">
+             <bool>true</bool>
+            </property>
+            <property name="centerOnScroll">
+             <bool>false</bool>
             </property>
            </widget>
           </item>

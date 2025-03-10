@@ -2,7 +2,6 @@
 [Vulkan SDK 1.4.3XX.0](https://github.com/LunarG/VulkanTools/tree/main)
 
 ### Features:
-- Add dark mode support, automatically matching the OS mode, when Qt dark mode is available on the OS
 - Add `vkconfig loader` commands to import, export, delete and use stored loader configurations
 - Add new Vulkan SDK notification and download
 
@@ -19,6 +18,7 @@
 ### Fixes:
 - Fix application arguments and environment variables splitting
 - Fix layer settings crash when reordering layers
+- Fix executable launcher log speed issue
 
 ---
 ## Vulkan Configurator 3.0.0 - February 2025

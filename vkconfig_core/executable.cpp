@@ -88,27 +88,18 @@ DefaultPath GetDefaultExecutablePath(const std::string& executable_name) {
 
     // Using VULKAN_SDK environement variable
     const Path vulkan_sdk_bin_path(Path::BIN);
-    if (!vulkan_sdk_bin_path.Empty()) {
-        if (is_app) {
-            Path search_path(vulkan_sdk_bin_path.RelativePath() + std::string("../Applications/") + executable_name);
-            if (search_path.Exists() && ExactExecutableFromAppBundle(search_path)) {
-                default_path.executable_path = search_path.AbsolutePath();
-                default_path.working_folder = search_path.AbsoluteDir();
-                return default_path;
-            }
-        } else {
-            const Path search_path(vulkan_sdk_bin_path.RelativePath() + "/" + executable_name);
-            if (search_path.Exists()) {
-                default_path.executable_path = search_path.AbsolutePath();
-                default_path.working_folder = search_path.AbsoluteDir();
-                return default_path;
-            }
+    if (!vulkan_sdk_bin_path.Empty() && !is_app) {
+        const Path search_path(vulkan_sdk_bin_path.RelativePath() + "/" + executable_name);
+        if (search_path.Exists()) {
+            default_path.executable_path = search_path.AbsolutePath();
+            default_path.working_folder = search_path.AbsoluteDir();
+            return default_path;
         }
     }
 
     // Search the default applications from package installation (Linux)
     if (is_app) {
-        Path search_path(std::string("/Applications") + executable_name);
+        Path search_path(std::string("/Applications/") + executable_name);
         if (search_path.Exists() && ExactExecutableFromAppBundle(search_path)) {
             default_path.executable_path = search_path.AbsolutePath();
             default_path.working_folder = search_path.AbsoluteDir();
@@ -160,21 +151,32 @@ Executable::Executable(const DefaultExecutable& default_executable) {
         Executable();  // application could not be found..
     }
 
-    ExecutableOptions options;
-    options.label = default_executable.label;
-    options.working_folder = default_paths.working_folder;
-    options.args.push_back(default_executable.arguments);
-
-    // On all operating systems, but Windows we keep running into problems with this ending up
-    // somewhere the user isn't allowed to create and write files. For consistncy sake, the log
-    // initially will be set to the users home folder across all OS's. This is highly visible
-    // in the application launcher and should not present a usability issue. The developer can
-    // easily change this later to anywhere they like.
-    options.log_file = std::string("${VULKAN_HOME}/") + default_executable.name + ".txt";
-
     this->path = default_paths.executable_path;
-    this->options_list.push_back(options);
-    this->active_options = options.label;
+
+    for (std::size_t i = 0, n = default_executable.options.size(); i < n; ++i) {
+        ExecutableOptions options;
+        options.label = default_executable.options[i].label;
+        if (default_executable.options[i].working_folder.Empty()) {
+            options.working_folder = default_paths.working_folder;
+        } else {
+            options.working_folder = default_executable.options[i].working_folder;
+        }
+        options.args = SplitSpace(default_executable.options[i].args);
+        options.envs = SplitSpace(default_executable.options[i].envs);
+
+        // On all operating systems, but Windows we keep running into problems with this ending up
+        // somewhere the user isn't allowed to create and write files. For consistncy sake, the log
+        // initially will be set to the users home folder across all OS's. This is highly visible
+        // in the application launcher and should not present a usability issue. The developer can
+        // easily change this later to anywhere they like.
+        options.log_file = std::string("${VULKAN_HOME}/") + default_executable.name + ".txt";
+
+        this->options_list.push_back(options);
+
+        if (i == 0) {
+            this->active_options = options.label;
+        }
+    }
 }
 
 Executable::Executable(const Path& executable_path) {

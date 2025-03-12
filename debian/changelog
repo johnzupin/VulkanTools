@@ -1,3 +1,12 @@
+lunarg-tools (1.4.309.0~rc6-1lunarg24.04-1) noble; urgency=medium
+
+  [ Christophe ]
+  * vkconfig: March SDK bugfixing
+  * vkconfig: Tentative fix of preference layout
+  * vkconfig: Clean up CMD log messages when missing layers
+
+ -- john <john@odin>  Wed, 12 Mar 2025 12:12:43 -0600
+
 lunarg-tools (1.4.309.0~rc5-1lunarg24.04-1) noble; urgency=medium
 
   [ John Zupin ]

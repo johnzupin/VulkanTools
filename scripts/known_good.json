@@ -136,7 +136,7 @@
             "cmake_options": [
                 "-DBUILD_GMOCK=OFF",
                 "-Dgtest_force_shared_crt=ON",
-                "-DBUILD_SHARED_LIBS=OFF"
+                "-DBUILD_SHARED_LIBS=ON"
             ],
             "commit": "v1.14.0",
             "optional": [

@@ -483,6 +483,12 @@ class GoodRepo(object):
                     install_dir=dep_commit[0].install_dir))
 
         # Add any CMake options
+        if self._args.disable_gtest_shared and self.name == "googletest":
+            # Remove any options that declare 'BUILD_SHARED_LIBS' or 'gtest_force_shared_crt' and add them back set to 'OFF'
+            self.cmake_options = [option for option in self.cmake_options if 'build_shared_libs' not in option.lower()
+                                  or 'gtest_force_shared_crt' not in option.lower()]
+            self.cmake_options.extend(['-DBUILD_SHARED_LIBS=OFF','-Dgtest_force_shared_crt=OFF'])
+            print('INFO: Setting -DBUILD_SHARED_LIBS=OFF and -Dgtest_force_shared_crt=OFF for googletest')
         for option in self.cmake_options:
             cmake_cmd.append(escape(option.format(**self.__dict__)))
 
@@ -713,6 +719,12 @@ def main():
         metavar='VAR[=VALUE]',
         help="Add CMake command line option -D'VAR'='VALUE' to the CMake generation command line; may be used multiple times",
         default=[])
+    parser.add_argument(
+        '--disable-gtest-shared',
+        dest='disable_gtest_shared',
+        action='store_true',
+        help="Ensure that googletest will build with the options -DBUILD_SHARED_LIBS=OFF and -Dgtest_force_shared_crt=OFF",
+        default=False)
 
     args = parser.parse_args()
     save_cwd = os.getcwd()

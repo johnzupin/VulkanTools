@@ -178,10 +178,3 @@ struct ConfiguratorGuard {
 
     Configurator& Get();
 };
-
-struct ConfiguratorGuard {
-    ConfiguratorGuard(ConfiguratorMode mode);
-    ~ConfiguratorGuard();
-
-    Configurator& Get();
-};

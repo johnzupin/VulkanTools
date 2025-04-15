@@ -1,5 +1,31 @@
+## Vulkan Configurator 3.2.0 - May 2025
+[Vulkan SDK 1.4.main](https://github.com/LunarG/VulkanTools/tree/main)
+
+### Features:
+- Add appearance selection: dark, light, device theme modes
+- Add muliple diagnostic modes
+- Add diagnostic logs export
+- Add search in diagnostic tab
+
+### Improvements:
+- Add Vulkan Header version used to build in about tab
+- Refactor layer version combobox
+- Clean up UI layout
+- Add button to remove missing layers
+- Improved generated layer documentation
+  - Add links within the documentation to reach detailed part of a setting documentation
+  - Clarify `VK_EXT_layer_settings` variable names
+  - Hide `advanced` settings, used only by layer developers
+  - Add setting dependences section
+  - Add support for Android system property prefix, eg `debug.vvl.validate_core` instead of `debug.vulkan.khronos_validation.validate_core`
+  - Fix broken generated layer doc links
+
+### Fixes:
+- Fix layer settings all display with the layer development status
+- Fix reset to default when stay in system tray is checked
+
 ## Vulkan Configurator 3.1.0 - March 2025
-[Vulkan SDK 1.4.3XX.0](https://github.com/LunarG/VulkanTools/tree/main)
+[Vulkan SDK 1.4.309.0](https://github.com/LunarG/VulkanTools/tree/vulkan-sdk-1.4.309)
 
 ### Features:
 - Add `vkconfig loader` commands to import, export, delete and use stored loader configurations

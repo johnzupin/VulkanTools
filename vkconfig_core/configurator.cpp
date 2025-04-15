@@ -34,10 +34,17 @@
 #include <QSettings>
 #include <QApplication>
 #include <QProcess>
+#include <QLibraryInfo>
+#include <QSysInfo>
+#include <QOperatingSystemVersion>
 
 #include <cassert>
 #include <cstdio>
 #include <algorithm>
+#include <thread>
+
+const char* MAINWINDOW_GEOMETRY = "vkconfig/mainwindow_geometry";
+const char* MAINWINDOW_STATE = "vkconfig/mainwindow_state";
 
 ConfiguratorGuard::ConfiguratorGuard(ConfiguratorMode mode) {
     Configurator& configurator = Configurator::Get();
@@ -529,6 +536,7 @@ void Configurator::Reset(bool hard) {
         this->configurations.RemoveConfigurationFiles();
     }
 
+    this->use_system_tray = false;  // This prevents Vulkan Configurator to abort the restart
     this->reset_hard = true;
 }
 
@@ -632,14 +640,33 @@ std::string Configurator::Log() const {
 #endif
 
     log += format("%s %s - %s:\n", VKCONFIG_NAME, Version::VKCONFIG.str().c_str(), GetBuildDate().c_str());
-    log += format(" - Build: %s %s\n", GetLabel(VKC_PLATFORM), build.c_str());
-    log += format(" - Qt version: %d.%d.%d\n", QT_VERSION_MAJOR, QT_VERSION_MINOR, QT_VERSION_PATCH);
     log += format(" - Vulkan API version: %s\n", Version::VKHEADER.str().c_str());
+    log += format(" - Build: %s %s\n", GetLabel(VKC_PLATFORM), build.c_str());
+#if QT_VERSION < QT_VERSION_CHECK(6, 5, 0)
+    log += format(" - Qt version: %s %s\n", QLibraryInfo::version().toString().toStdString().c_str(),
+                  QLibraryInfo::isDebugBuild() ? "Debug" : "Release");
+#else
+    log += format(" - Qt version: %s %s-%s\n", QLibraryInfo::version().toString().toStdString().c_str(),
+                  QLibraryInfo::isSharedBuild() ? "Shared" : "Static", QLibraryInfo::isDebugBuild() ? "Debug" : "Release");
+#endif
+
     if (Path(Path::SDK).Empty()) {
         log += " - ${VULKAN_SDK}: unset\n";
     } else {
         log += format(" - ${VULKAN_SDK}: %s\n", Path(Path::SDK).AbsolutePath().c_str());
     }
+    log += "\n";
+
+    log += "System Information:\n";
+#if QT_VERSION < QT_VERSION_CHECK(6, 1, 0)
+    log += format(" - %s\n", QSysInfo::prettyProductName().toStdString().c_str());
+#else
+    const QOperatingSystemVersion& current = QOperatingSystemVersion::current();
+    log += format(" - %s %s\n", current.name().toStdString().c_str(), current.version().toString().toStdString().c_str());
+#endif
+
+    log += format(" - CPU architechture: %s\n", QSysInfo::currentCpuArchitecture().toStdString().c_str());
+    log += format(" - Logical CPU core count: %d\n", std::thread::hardware_concurrency());
     log += "\n";
 
     log += format("%s Settings:\n", VKCONFIG_NAME);
@@ -780,6 +807,8 @@ std::string Configurator::Log() const {
     }
     if (qEnvironmentVariableIsSet("VK_INSTANCE_LAYERS")) {
         log += format("   * ${VK_INSTANCE_LAYERS}: %s\n", qgetenv("VK_INSTANCE_LAYERS").toStdString().c_str());
+    } else {
+        log += "   * ${VK_INSTANCE_LAYERS}: unset\n";
     }
     log += " - Vulkan Loader Drivers environment variables:\n";
     if (qEnvironmentVariableIsSet("VK_DRIVER_FILES")) {
@@ -827,8 +856,8 @@ bool Configurator::Load() {
         file.close();
 
         QSettings settings("LunarG", VKCONFIG_SHORT_NAME);
-        this->window_geometry = settings.value("vkconfig3/mainwindow/geometry").toByteArray();
-        this->window_state = settings.value("vkconfig3/mainwindow/state").toByteArray();
+        this->window_geometry = settings.value(MAINWINDOW_GEOMETRY).toByteArray();
+        this->window_state = settings.value(MAINWINDOW_STATE).toByteArray();
 
         const QJsonDocument& json_doc = QJsonDocument::fromJson(init_data.toLocal8Bit());
         const QJsonObject& json_root_object = json_doc.object();
@@ -886,30 +915,46 @@ bool Configurator::Load() {
         // TAB_LAYERS
         if (json_interface_object.value(GetToken(TAB_LAYERS)) != QJsonValue::Undefined) {
             const QJsonObject& json_object = json_interface_object.value(GetToken(TAB_LAYERS)).toObject();
+            (void)json_object;
         }
 
         // TAB_APPLICATIONS
         if (json_interface_object.value(GetToken(TAB_APPLICATIONS)) != QJsonValue::Undefined) {
             const QJsonObject& json_object = json_interface_object.value(GetToken(TAB_APPLICATIONS)).toObject();
+            (void)json_object;
         }
 
         // TAB_PREFERENCES
         if (json_interface_object.value(GetToken(TAB_PREFERENCES)) != QJsonValue::Undefined) {
             const QJsonObject& json_object = json_interface_object.value(GetToken(TAB_PREFERENCES)).toObject();
 
-            this->use_layer_dev_mode = json_object.value("use_layer_dev_mode").toBool();
+            if (json_object.value("theme_mode") != QJsonValue::Undefined) {
+                this->theme_mode = ::GetThemeMode(json_object.value("theme_mode").toString().toStdString().c_str());
+            }
+
+            if (json_object.value("use_layer_dev_mode") != QJsonValue::Undefined) {
+                this->use_layer_dev_mode = json_object.value("use_layer_dev_mode").toBool();
+            }
 
             if (json_object.value("use_notify_releases") != QJsonValue::Undefined) {
                 this->use_notify_releases = json_object.value("use_notify_releases").toBool();
             }
 
-            this->latest_sdk_version = Version(json_object.value("latest_sdk_version").toString().toStdString().c_str());
+            if (json_object.value("latest_sdk_version") != QJsonValue::Undefined) {
+                this->latest_sdk_version = Version(json_object.value("latest_sdk_version").toString().toStdString().c_str());
+            }
 
             if (json_object.value("last_vkconfig_version") != QJsonValue::Undefined) {
                 this->last_vkconfig_version = Version(json_object.value("last_vkconfig_version").toString().toStdString().c_str());
             }
 
-            this->use_system_tray = json_object.value("use_system_tray").toBool();
+            if (json_object.value("use_system_tray") != QJsonValue::Undefined) {
+                this->use_system_tray = json_object.value("use_system_tray").toBool();
+            }
+
+            if (json_object.value("show_diagnostic_search") != QJsonValue::Undefined) {
+                this->show_diagnostic_search = json_object.value("show_diagnostic_search").toBool();
+            }
 
             if (json_object.value("VULKAN_HOME") != QJsonValue::Undefined) {
                 ::SetHomePath(json_object.value("VULKAN_HOME").toString().toStdString());
@@ -935,8 +980,8 @@ bool Configurator::Load() {
 bool Configurator::Save() const {
     if (!this->window_geometry.isEmpty()) {
         QSettings settings("LunarG", VKCONFIG_SHORT_NAME);
-        settings.setValue("vkconfig3/mainwindow/geometry", this->window_geometry);
-        settings.setValue("vkconfig3/mainwindow/state", this->window_state);
+        settings.setValue(MAINWINDOW_GEOMETRY, this->window_geometry);
+        settings.setValue(MAINWINDOW_STATE, this->window_state);
     }
 
     QJsonObject json_root_object;
@@ -968,11 +1013,13 @@ bool Configurator::Save() const {
     // TAB_PREFERENCES
     {
         QJsonObject json_object;
+        json_object.insert("theme_mode", ::GetToken(this->theme_mode));
         json_object.insert("use_system_tray", this->use_system_tray);
         json_object.insert("use_layer_dev_mode", this->use_layer_dev_mode);
         json_object.insert("use_notify_releases", this->use_notify_releases);
         json_object.insert("latest_sdk_version", this->latest_sdk_version.str().c_str());
         json_object.insert("last_vkconfig_version", Version::VKCONFIG.str().c_str());
+        json_object.insert("show_diagnostic_search", this->show_diagnostic_search);
         json_object.insert("VULKAN_HOME", ::Path(Path::HOME).RelativePath().c_str());
         json_object.insert("VULKAN_DOWNLOAD", ::Path(Path::DOWNLOAD).RelativePath().c_str());
         json_interface_object.insert(GetToken(TAB_PREFERENCES), json_object);
@@ -1038,9 +1085,21 @@ bool Configurator::GetUseNotifyReleases() const { return this->use_notify_releas
 
 void Configurator::SetUseNotifyReleases(bool enabled) { this->use_notify_releases = enabled; }
 
+bool Configurator::GetShowDiagnosticSearch() const { return show_diagnostic_search; }
+
+void Configurator::SetShowDiagnosticSearch(bool enabled) { this->show_diagnostic_search = enabled; }
+
+ThemeMode Configurator::GetThemeMode() const { return this->theme_mode; }
+
+void Configurator::SetThemeMode(ThemeMode mode) { this->theme_mode = mode; }
+
 bool Configurator::ShouldNotify() const {
-    return this->latest_sdk_version < this->online_sdk_version && this->online_sdk_version != Version::NONE &&
-           !(Version::VKCONFIG > this->last_vkconfig_version) && (Version::VKHEADER < this->online_sdk_version);
+    // Notify if
+    return this->latest_sdk_version < this->online_sdk_version  // There is an online SDK version newer than the latest SDK version
+           && this->online_sdk_version != Version::NONE         // We could query the online SDK version
+           //        && Version::VKCONFIG < this->last_vkconfig_version // The Vulkan Configurator version
+           && Version::VKHEADER < this->online_sdk_version;  // The Vulkan Header version used to build Vulkan Configurator is older
+                                                             // than the online version
 }
 
 bool Configurator::HasActiveSettings() const {
@@ -1128,8 +1187,6 @@ std::string Configurator::GenerateVulkanStatus() const {
     log += this->layers.Log();
     log += this->configurations.Log();
     log += this->executables.Log();
-    // log += "Vulkan Loader Log:\n";
-    // log += ::GenerateLoaderLog();
 
     return log;
 }

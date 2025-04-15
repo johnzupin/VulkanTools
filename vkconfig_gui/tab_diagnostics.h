@@ -22,6 +22,10 @@
 
 #include "tab.h"
 
+#include "../vkconfig_core/type_diagnostic_mode.h"
+#include "../vkconfig_core/path.h"
+
+#include <QProcess>
 #include <QPushButton>
 
 class TabDiagnostics : public Tab {
@@ -36,12 +40,39 @@ class TabDiagnostics : public Tab {
     virtual bool EventFilter(QObject* target, QEvent* event) override;
 
    public Q_SLOTS:
-    void on_customContextMenuRequested(const QPoint& pos);
+    void on_context_menu(const QPoint& pos);
+    void on_mode_changed(int index);
+    void on_mode_options_changed(int index);
+    void on_export_folder();
+    void on_export_file();
+    void on_focus_search();
+    void on_search_textEdited(const QString& text);
+    void on_search_clear_pressed();
+    void on_search_next_pressed();
+    void on_search_prev_pressed();
+    void on_search_case_toggled(bool checked);
+    void on_search_whole_toggled(bool checked);
+    void on_search_regex_toggled(bool checked);
+    void on_search_case_activated();
+    void on_search_whole_activated();
+    void on_search_regex_activated();
+
+    void standardOutputAvailable();                                 // stdout output is available
+    void errorOutputAvailable();                                    // Layeroutput is available
+    void processClosed(int exitCode, QProcess::ExitStatus status);  // app died
 
    private:
-    QPushButton* widget_refresh = nullptr;
-    QPushButton* widget_export = nullptr;
+    Path log_path;
+    DiagnosticMode mode = DIAGNOSTIC_VULKAN_STATUS;
     std::string status;
+    std::string diagnostic_search_text;
+    bool search_case = false;
+    bool search_whole = false;
+    bool search_regex = false;
 
+    std::string BuildStatus(DiagnosticMode selected_mode, std::size_t mode_index);
     void UpdateStatus();
+    void SearchFind(bool prev);
+
+    std::unique_ptr<QProcess> process;  // Keeps track of the monitored app for diagnostic generation
 };

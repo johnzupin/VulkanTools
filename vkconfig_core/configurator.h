@@ -33,6 +33,8 @@
 #include "type_tab.h"
 #include "type_executable_mode.h"
 #include "type_configurator_mode.h"
+#include "type_diagnostic_mode.h"
+#include "type_theme_mode.h"
 #include "serialization.h"
 
 enum EnabledUI {
@@ -114,6 +116,12 @@ class Configurator {
     bool GetUseNotifyReleases() const;
     void SetUseNotifyReleases(bool enabled);
 
+    bool GetShowDiagnosticSearch() const;
+    void SetShowDiagnosticSearch(bool enabled);
+
+    ThemeMode GetThemeMode() const;
+    void SetThemeMode(ThemeMode mode);
+
     bool ShouldNotify() const;
 
     bool HasActiveSettings() const;
@@ -146,7 +154,7 @@ class Configurator {
     bool has_crashed = false;
     TabType active_tab = TAB_CONFIGURATIONS;
     bool advanced = true;
-    Path last_path_status = Path(Path::HOME).RelativePath() + "/vkconfig.txt";
+    Path last_path_status = Path(Path::HOME).AbsolutePath() + "/diagnostics";
     Version latest_sdk_version = Version::NONE;
     Version online_sdk_version = Version::NONE;
     Version last_vkconfig_version = Version::NONE;
@@ -158,8 +166,17 @@ class Configurator {
     bool use_system_tray = false;
     bool use_layer_dev_mode = false;
     bool use_notify_releases = true;
+    bool show_diagnostic_search = false;
     ExecutableScope executable_scope = EXECUTABLE_ANY;
     std::string selected_global_configuration = "Validation";
+    ThemeMode theme_mode = THEME_MODE_USE_DEVICE;
+};
+
+struct ConfiguratorGuard {
+    ConfiguratorGuard(ConfiguratorMode mode);
+    ~ConfiguratorGuard();
+
+    Configurator& Get();
 };
 
 struct ConfiguratorGuard {

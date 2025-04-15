@@ -1,3 +1,68 @@
+lunarg-tools (1.4.312.0~rc1-1lunarg24.04-1) noble; urgency=medium
+
+  [ Christophe ]
+  * vkconfig: Bump version
+  * vkconfig: Update changelog to clarify dark mode support
+
+  [ Juan Ramos ]
+  * cmake: Update jsoncpp to fix CMake 4.0 error
+
+  [ Christophe ]
+  * vkconfig: March SDK bugfixing
+
+  [ Richard S. Wright Jr. ]
+  * Just fixes to some messages
+
+  [ Christophe ]
+  * vkconfig: Fix vkconfig.pro build on macOS
+  * vkconfig: Tentative fix for screenshot layer selection crash
+  * vkconfig: Delay dark mode to next SDK release...
+  * vkconfig: Clean up
+  * vkconfig: fix vkconfig gui command
+  * vkconfig: Fix reset main window geometry and state
+  * vkconfig: Improve executable options
+  * vkconfig: Fix launcher log speed
+  * vkconfig: Fix macOS exit crash
+  * vkconfig: March SDK bugfixing
+  * vkconfig: Tentative fix of preference layout
+  * vkconfig: Clean up CMD log messages when missing layers
+  * vkconfig: Fix restart on macOS
+  * vkconfig: Add Vulkan Header version to about tab
+  * vkconfig: Clean up UI layout
+  * vkconfig: Add diagnostics search
+  * vkconfig: Fix stay in tray cancelling reset
+  * vkconfig: Fix splitter
+  * vkconfig: Fix links display in documentation tab
+  * vkconfig: Add appearance selection: dark, light, device theme modes
+  * vkconfig: Clean up release detection
+  * vkconfig: Restore default configurations when restarting and there are no configuration
+  * vkconfig: Add log bundle
+  * vkconfig: Add multiple GPUs and per-exec configuration diag
+  * vkconfig: Improved generated layer documentation
+  * vkconfig: Allow new setting using list type in validation layer
+  * vkconfig: Use table to display detail setting methods doc
+  * vkconfig: Add diagnostic file export
+  * vkconfig: doc generation show Android variable
+  * vkconfig: Add layer prefix for Android system properties
+  * vkconfig: VK_INSTANCE_LAYERS is not deprecated so is always displayed
+
+  [ christophe ]
+  * vkconfig: Clean up macOS warnings
+
+  [ Christophe ]
+  * vkconfig: Add diagnostic log bundles export
+
+  [ Charles Giessen ]
+  * build: Update known_good to 1.4.312
+
+  [ Christophe ]
+  * vkconfig: Fix layer ordering darg and drop
+
+  [ John Zupin ]
+  * packaging: fix merge
+
+ -- john <john@odin>  Tue, 15 Apr 2025 15:25:58 -0600
+
 lunarg-tools (1.4.309.0~rc6-1lunarg24.04-1) noble; urgency=medium
 
   [ Christophe ]

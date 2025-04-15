@@ -20,15 +20,26 @@
 
 #include "style.h"
 
+#include "../vkconfig_core/configurator.h"
+
 #include <QStyleHints>
 #include <QGuiApplication>
 
-#if true || QT_VERSION < QT_VERSION_CHECK(6, 5, 0)
+#if QT_VERSION < QT_VERSION_CHECK(6, 5, 0)
 static bool IsDarkMode() { return false; }
 #else
 static bool IsDarkMode() {
-    const auto scheme = QGuiApplication::styleHints()->colorScheme();
-    return scheme == Qt::ColorScheme::Dark;
+    Configurator& configurator = Configurator::Get();
+
+    switch (configurator.GetThemeMode()) {
+        default:
+        case THEME_MODE_USE_DEVICE:
+            return QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark;
+        case THEME_MODE_FORCE_LIGHT:
+            return false;
+        case THEME_MODE_FORCE_DARK:
+            return true;
+    }
 }
 #endif  // QT_VERSION
 
@@ -36,6 +47,13 @@ QIcon Get(Icon icon) {
     static const char* ICONS[] = {
         "clear.png",              // ICON_CLEAR
         "drag.png",               // ICON_DRAG
+        "next.png",               // ICON_NEXT
+        "prev.png",               // ICON_PREV
+        "down.png",               // ICON_MODE
+        "exit.png",               // ICON_EXIT
+        "search_case.png",        // ICON_SEARCH_CASE
+        "search_whole.png",       // ICON_SEARCH_WHOLE
+        "search_regex.png",       // ICON_SEARCH_REGEX
         "file_append.png",        // ICON_FILE_APPEND,
         "file_export.png",        // ICON_FILE_EXPORT,
         "file_remove.png",        // ICON_FILE_REMOVE,

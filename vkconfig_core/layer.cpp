@@ -334,6 +334,9 @@ LayerLoadStatus Layer::Load(const Path& full_path_to_file, LayerType type, bool 
         return LAYER_LOAD_INVALID;
     }
 
+    if (json_layer_object.value("prefix") != QJsonValue::Undefined) {
+        this->prefix = ReadStringValue(json_layer_object, "prefix");
+    }
     this->implementation_version = ReadStringValue(json_layer_object, "implementation_version");
     if (json_layer_object.value("status") != QJsonValue::Undefined) {
         this->status = GetStatusType(ReadStringValue(json_layer_object, "status").c_str());
@@ -369,7 +372,7 @@ LayerLoadStatus Layer::Load(const Path& full_path_to_file, LayerType type, bool 
         this->settings.clear();
         const QJsonValue& json_settings_value = json_features_object.value("settings");
         if (json_settings_value != QJsonValue::Undefined) {
-            AddSettingsSet(this->settings, nullptr, json_settings_value);
+            this->AddSettingsSet(this->settings, nullptr, json_settings_value);
         }
 
         // Load layer presets
@@ -383,13 +386,12 @@ LayerLoadStatus Layer::Load(const Path& full_path_to_file, LayerType type, bool 
 
                 LayerPreset preset;
                 preset.platform_flags = this->platforms;
-                preset.status = this->status;
-                LoadMetaHeader(preset, json_preset_object);
+                ::LoadMetaHeader(preset, json_preset_object);
 
                 const QJsonArray& json_setting_array = ReadArray(json_preset_object, "settings");
                 for (int setting_index = 0, setting_count = json_setting_array.size(); setting_index < setting_count;
                      ++setting_index) {
-                    AddSettingData((SettingDataSet&)preset.settings, json_setting_array[setting_index]);
+                    this->AddSettingData((SettingDataSet&)preset.settings, json_setting_array[setting_index]);
                 }
 
                 this->presets.push_back(preset);
@@ -453,6 +455,8 @@ void Layer::AddSettingsSet(SettingMetaSet& settings, const SettingMeta* parent, 
         SettingView view = SETTING_VIEW_STANDARD;
         if (json_setting.value("view") != QJsonValue::Undefined) {
             view = GetSettingView(ReadStringValue(json_setting, "view").c_str());
+        } else if (parent != nullptr) {
+            view = parent->view;
         }
         if (view == SETTING_VIEW_HIDDEN) {
             continue;
@@ -460,10 +464,8 @@ void Layer::AddSettingsSet(SettingMetaSet& settings, const SettingMeta* parent, 
 
         SettingMeta* setting_meta = Instantiate(settings, key, type);
         setting_meta->platform_flags = parent == nullptr ? this->platforms : parent->platform_flags;
-        setting_meta->status = parent == nullptr ? this->status : parent->status;
-        if (parent != nullptr) {
-            setting_meta->view = parent->view;
-        }
+        setting_meta->status = parent == nullptr ? STATUS_STABLE : parent->status;
+        setting_meta->view = view;
 
         LoadMetaHeader(*setting_meta, json_setting);
         if (json_setting.value("env") != QJsonValue::Undefined) {
@@ -517,7 +519,7 @@ void Layer::AddSettingData(SettingDataSet& settings_data, const QJsonValue& json
 
     const std::string& key = ReadStringValue(json_setting_object, "key");
 
-    SettingMeta* setting_meta = FindSetting(this->settings, key.c_str());
+    SettingMeta* setting_meta = ::FindSetting(this->settings, key.c_str());
     if (setting_meta == nullptr) {
         return;
     }

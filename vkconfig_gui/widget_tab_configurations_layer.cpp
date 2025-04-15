@@ -23,6 +23,7 @@
 #include "tab_configurations.h"
 #include "widget_resize_button.h"
 #include "combo_box.h"
+#include "style.h"
 
 #include "../vkconfig_core/configurator.h"
 
@@ -38,7 +39,8 @@ ConfigurationLayerWidget::ConfigurationLayerWidget(TabConfigurations *tab, const
     this->layer_remove->setMaximumWidth(32);
     this->layer_remove->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
     this->layer_remove->adjustSize();
-    this->layer_remove->setText("X");
+    this->layer_remove->setIcon(::Get(::ICON_EXIT));
+    this->layer_remove->setToolTip("Remove the missing layer");
     this->connect(this->layer_remove, SIGNAL(clicked()), this, SLOT(on_layer_remove_pressed()));
 
     const int first = parameter.builtin == LAYER_BUILTIN_UNORDERED ? LAYER_CONTROL_UNORDERED_FIRST : LAYER_CONTROL_FIRST;
@@ -73,13 +75,9 @@ ConfigurationLayerWidget::ConfigurationLayerWidget(TabConfigurations *tab, const
 
     if (layer != nullptr) {
         decorated_name += format(" - %s (%s)", layer->api_version.str().c_str(), ::GetToken(layer->type));
-
-        if (layer->status != STATUS_STABLE) {
-            decorated_name += format(" (%s)", GetToken(layer->status));
-        }
         this->layer_remove->setVisible(false);
     } else if (!layer_found) {
-        decorated_name += " - Missing";
+        decorated_name += " - (Missing)";
         this->layer_state->setVisible(false);
         this->layer_state->setToolTip("Remove the layer from the configuration");
     }

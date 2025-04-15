@@ -59,6 +59,7 @@ SOURCES += \
     ../vkconfig_core/setting_list.cpp \
     ../vkconfig_core/setting_string.cpp \
     ../vkconfig_core/type_configurator_mode.cpp \
+    ../vkconfig_core/type_diagnostic_mode.cpp \
     ../vkconfig_core/type_executable_mode.cpp \
     ../vkconfig_core/type_hide_message.cpp \
     ../vkconfig_core/type_layer_builtin.cpp \
@@ -70,6 +71,7 @@ SOURCES += \
     ../vkconfig_core/type_status.cpp \
     ../vkconfig_core/type_tab.cpp \
     ../vkconfig_core/type_override_area.cpp \
+    ../vkconfig_core/type_theme_mode.cpp \
     ../vkconfig_core/util.cpp \
     ../vkconfig_core/ui.cpp \
     ../vkconfig_core/version.cpp \
@@ -139,6 +141,7 @@ HEADERS += \
     ../vkconfig_core/setting_list.h \
     ../vkconfig_core/setting_string.h \
     ../vkconfig_core/type_configurator_mode.h \
+    ../vkconfig_core/type_diagnostic_mode.h \
     ../vkconfig_core/type_executable_mode.h \
     ../vkconfig_core/type_hide_message.h \
     ../vkconfig_core/type_layer_builtin.h \
@@ -150,6 +153,7 @@ HEADERS += \
     ../vkconfig_core/type_status.h \
     ../vkconfig_core/type_tab.h \
     ../vkconfig_core/type_override_area.h \
+    ../vkconfig_core/type_theme_mode.h \
     ../vkconfig_core/util.h \
     ../vkconfig_core/ui.h \
     ../vkconfig_core/version.h \

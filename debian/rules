@@ -25,6 +25,7 @@ override_dh_auto_configure:
 				-DCMAKE_BUILD_TYPE="RelWithDebInfo" \
 				-DVULKAN_HEADERS_INSTALL_DIR="/usr" \
 				-DBUILD_TESTS="OFF" \
-				-DINSTALL_GTEST="OFF"
+				-DINSTALL_GTEST="OFF" \
+				-DBUILD_VIA="OFF"
 
 override_dh_auto_test: ;

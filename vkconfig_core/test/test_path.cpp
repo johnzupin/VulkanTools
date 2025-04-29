@@ -20,6 +20,7 @@
 
 #include "../path.h"
 #include "../util.h"
+#include "../version.h"
 #include "../type_platform.h"
 
 #include <array>
@@ -40,6 +41,47 @@ TEST(test_path, native_path) {
             EXPECT_STREQ("\\vkconfig\\test\\path\\format\\", Path(test_case).RelativePath().c_str());
         } else {
             EXPECT_STREQ("/vkconfig/test/path/format/", Path(test_case).RelativePath().c_str());
+        }
+    }
+}
+
+TEST(test_path, native_compare) {
+    static const Path table[] = {
+        "/vkconfig/test\\path/format/",
+        "/vkconfig/test\\path/format\\",
+        "/vkconfig\\test/path/format/",
+        "/vkconfig\\test/path\\format/",
+        "/vkconfig/test/path/format/",
+        "\\vkconfig\\test/path\\format\\",
+        "/vkconfig/test\\path/format",
+        "/vkconfig/test\\path/format",
+        "/vkconfig\\test/path/format",
+        "/vkconfig\\test/path\\format",
+        "/vkconfig/test/path/format",
+        "\\vkconfig\\test/path\\format",
+#if (VKC_ENV == VKC_ENV_WIN32)  // Only on Windows the case doesn't matter for paths
+        "/vkConfig/test\\path/format/",
+        "/vkConfig/Test\\Path/Format\\",
+        "/vkconfig\\test/path/Format/",
+        "/vkConfig\\test/path\\format/",
+        "/vkConfig/Test/Path/Format/",
+        "\\vkconfig\\test/path\\Format\\",
+        "/vkConfig/test\\path/format",
+        "/vkConfig/Test\\Path/Format",
+        "/vkconfig\\test/path/Format",
+        "/vkConfig\\test/path\\format",
+        "/vkConfig/Test/Path/Format",
+        "\\vkconfig\\test/path\\Format"
+#endif
+    };
+
+    for (std::size_t j = 0, n = std::size(table); j < n; ++j) {
+        const Path testJ = table[j];
+        for (std::size_t i = 0, n = std::size(table); i < n; ++i) {
+            const Path testI = table[i];
+
+            EXPECT_TRUE(testI == testJ);
+            EXPECT_FALSE(testI < testJ);
         }
     }
 }
@@ -301,6 +343,13 @@ TEST(test_path, get_path_home_sdk) {
     qputenv("VULKAN_SDK", "~/VulkanSDK");
     const std::string value = AbsolutePath(Path::SDK);
     EXPECT_STREQ(Path("~/VulkanSDK").AbsolutePath().c_str(), value.c_str());
+}
+
+TEST(test_path, get_path_url_sdk) {
+    const std::string value = AbsolutePath(Path::URL_SDK, false);
+    const std::string expected = format("https://vulkan.lunarg.com/doc/sdk/%s.0/", Version::VKHEADER.str().c_str());
+
+    EXPECT_TRUE(value.find(expected) != std::string::npos);
 }
 
 TEST(test_path, collect_file_paths_success_set1) {

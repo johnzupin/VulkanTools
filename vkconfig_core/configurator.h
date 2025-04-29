@@ -34,7 +34,6 @@
 #include "type_executable_mode.h"
 #include "type_configurator_mode.h"
 #include "type_diagnostic_mode.h"
-#include "type_theme_mode.h"
 #include "serialization.h"
 
 enum EnabledUI {
@@ -119,9 +118,6 @@ class Configurator {
     bool GetShowDiagnosticSearch() const;
     void SetShowDiagnosticSearch(bool enabled);
 
-    ThemeMode GetThemeMode() const;
-    void SetThemeMode(ThemeMode mode);
-
     bool ShouldNotify() const;
 
     bool HasActiveSettings() const;
@@ -138,7 +134,7 @@ class Configurator {
     Configurator& operator=(const Configurator&) = delete;
 
     void BuildLoaderSettings(const std::string& configuration_key, const std::string& executable_path,
-                             std::vector<LoaderSettings>& loader_settings_array) const;
+                             std::vector<LoaderSettings>& loader_settings_array, bool full_loader_log) const;
 
     ConfiguratorMode init_mode = CONFIGURATOR_MODE_NONE;
 
@@ -150,6 +146,7 @@ class Configurator {
 
     const ConfiguratorMode& mode;
 
+    bool force_full_loader_log = false;
     bool reset_hard = false;
     bool has_crashed = false;
     TabType active_tab = TAB_CONFIGURATIONS;
@@ -169,7 +166,6 @@ class Configurator {
     bool show_diagnostic_search = false;
     ExecutableScope executable_scope = EXECUTABLE_ANY;
     std::string selected_global_configuration = "Validation";
-    ThemeMode theme_mode = THEME_MODE_USE_DEVICE;
 };
 
 struct ConfiguratorGuard {

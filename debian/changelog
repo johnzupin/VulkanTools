@@ -1,3 +1,35 @@
+lunarg-tools (1.4.313.0~rc1-1lunarg24.04-1) noble; urgency=medium
+
+  [ Christophe ]
+  * vkconfig: Fix layer ordering darg and drop
+  * vkconfig: Clean up dead code
+  * vkconfig: Fix saving layer ordering
+  * vkconfig: Fix equivalent paths
+  * vkconfig: Fix profile diagnostics when only a single device is available
+  * vkconfig: Show all loader information in loader diagnostic
+  * vkconfig: Interpret LUNARG_SDK var in layers URL
+
+  [ Charles Giessen ]
+  * build: Update known_good to 1.4.313
+
+  [ John Zupin ]
+  * packaging: debian: disable building VIA
+
+  [ Charles Giessen ]
+  * build: Drop Volk dependency
+
+  [ Christophe ]
+  * vkconfig: Fix SDK doc conversion from markdown to html
+  * vkconfig: Workaround Qt 5.13 and below build, 5.14 stricly required
+  * vkconfig: Update changelog for SDK 1.4.313 release
+  * vkconfig: Fix QtCreator Linux build
+  * vkconfig: Detect OS theme change event
+
+  [ John Zupin ]
+  * packaging: debian: remove packaging vkvia
+
+ -- john <john@odin>  Tue, 29 Apr 2025 10:33:22 -0600
+
 lunarg-tools (1.4.312.0~rc1-1lunarg24.04-1) noble; urgency=medium
 
   [ Christophe ]

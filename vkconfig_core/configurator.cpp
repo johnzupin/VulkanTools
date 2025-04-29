@@ -159,7 +159,7 @@ static QJsonObject CreateJsonSettingObject(const Configurator::LoaderSettings& l
 }
 
 void Configurator::BuildLoaderSettings(const std::string& configuration_key, const std::string& executable_path,
-                                       std::vector<LoaderSettings>& loader_settings_array) const {
+                                       std::vector<LoaderSettings>& loader_settings_array, bool full_loader_log) const {
     if (configuration_key.empty()) {
         return;
     }
@@ -173,7 +173,7 @@ void Configurator::BuildLoaderSettings(const std::string& configuration_key, con
     result.executable_path = executable_path;
     result.override_loader = configuration->override_loader;
     result.override_layers = configuration->override_layers;
-    result.stderr_log_flags = configuration->loader_log_messages_flags;
+    result.stderr_log_flags = full_loader_log ? ~0 : configuration->loader_log_messages_flags;
 
     for (std::size_t i = 0, n = configuration->parameters.size(); i < n; ++i) {
         LoaderLayerSettings loader_layer_settings;
@@ -223,7 +223,7 @@ bool Configurator::WriteLoaderSettings(OverrideArea override_area, const Path& l
 
         switch (this->executable_scope) {
             case EXECUTABLE_ANY:
-                this->BuildLoaderSettings(configuration, "", loader_settings_array);
+                this->BuildLoaderSettings(configuration, "", loader_settings_array, this->force_full_loader_log);
                 break;
             case EXECUTABLE_ALL:
             case EXECUTABLE_PER: {
@@ -237,7 +237,8 @@ bool Configurator::WriteLoaderSettings(OverrideArea override_area, const Path& l
                         configuration = executables[i].configuration;
                     }
 
-                    this->BuildLoaderSettings(configuration, executables[i].path.AbsolutePath(), loader_settings_array);
+                    this->BuildLoaderSettings(configuration, executables[i].path.AbsolutePath(), loader_settings_array,
+                                              this->force_full_loader_log);
                 }
                 break;
             }
@@ -928,10 +929,6 @@ bool Configurator::Load() {
         if (json_interface_object.value(GetToken(TAB_PREFERENCES)) != QJsonValue::Undefined) {
             const QJsonObject& json_object = json_interface_object.value(GetToken(TAB_PREFERENCES)).toObject();
 
-            if (json_object.value("theme_mode") != QJsonValue::Undefined) {
-                this->theme_mode = ::GetThemeMode(json_object.value("theme_mode").toString().toStdString().c_str());
-            }
-
             if (json_object.value("use_layer_dev_mode") != QJsonValue::Undefined) {
                 this->use_layer_dev_mode = json_object.value("use_layer_dev_mode").toBool();
             }
@@ -1013,7 +1010,6 @@ bool Configurator::Save() const {
     // TAB_PREFERENCES
     {
         QJsonObject json_object;
-        json_object.insert("theme_mode", ::GetToken(this->theme_mode));
         json_object.insert("use_system_tray", this->use_system_tray);
         json_object.insert("use_layer_dev_mode", this->use_layer_dev_mode);
         json_object.insert("use_notify_releases", this->use_notify_releases);
@@ -1088,10 +1084,6 @@ void Configurator::SetUseNotifyReleases(bool enabled) { this->use_notify_release
 bool Configurator::GetShowDiagnosticSearch() const { return show_diagnostic_search; }
 
 void Configurator::SetShowDiagnosticSearch(bool enabled) { this->show_diagnostic_search = enabled; }
-
-ThemeMode Configurator::GetThemeMode() const { return this->theme_mode; }
-
-void Configurator::SetThemeMode(ThemeMode mode) { this->theme_mode = mode; }
 
 bool Configurator::ShouldNotify() const {
     // Notify if

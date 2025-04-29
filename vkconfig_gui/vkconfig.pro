@@ -3,9 +3,9 @@ QT       += core gui widgets network
 CONFIG += c++17
 CONFIG += sdk_no_version_check
 
+INCLUDEPATH += ../external/Debug/64/Vulkan-Headers/include
 INCLUDEPATH += ../external/Vulkan-Headers/include
 INCLUDEPATH += ../Vulkan-Headers/include
-INCLUDEPATH += ../external/Debug/64/Vulkan-Headers/include
 
 # Ignore JSON validation
 DEFINES += JSON_VALIDATION_OFF
@@ -39,7 +39,6 @@ SOURCES += \
     ../vkconfig_core/executable.cpp \
     ../vkconfig_core/executable_manager.cpp \
     ../vkconfig_core/header.cpp \
-    ../vkconfig_core/help.cpp \
     ../vkconfig_core/json.cpp \
     ../vkconfig_core/json_validator.cpp \
     ../vkconfig_core/layer.cpp \
@@ -121,7 +120,6 @@ HEADERS += \
     ../vkconfig_core/executable.h \
     ../vkconfig_core/executable_manager.h \
     ../vkconfig_core/header.h \
-    ../vkconfig_core/help.h \
     ../vkconfig_core/json.h \
     ../vkconfig_core/json_validator.h \
     ../vkconfig_core/layer.h \

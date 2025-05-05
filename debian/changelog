@@ -1,3 +1,20 @@
+lunarg-tools (1.4.313.0~rc2-1lunarg22.04-1) jammy; urgency=medium
+
+  [ Christophe ]
+  * vkconfig: Fix reset all configuration
+  * vkconfig: Tweak dark mode
+  * vkconfig: Only support dark mode on Ubuntu
+  * vkconfig: Fix Windows dark mode
+  * vkconfig: Disable external control of Qt theme
+  * vkconfig: Require Qt 6.9.0 for Linux
+  * vkconfig: Fix Linux icon update
+  * vkconfig: Disable dark mode detection on Linux
+  * vkconfig: Fix build
+  * vkconfig: Fix configuration ordering when resetting
+  * Revert "vkconfig: Fix configuration ordering when resetting"
+
+ -- john <john@odin>  Mon, 05 May 2025 14:54:31 -0600
+
 lunarg-tools (1.4.313.0~rc1-1lunarg22.04-1) jammy; urgency=medium
 
   [ Christophe ]

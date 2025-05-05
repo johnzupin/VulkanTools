@@ -32,11 +32,11 @@
 TabPreferences::TabPreferences(MainWindow &window, std::shared_ptr<Ui::MainWindow> ui) : Tab(TAB_DIAGNOSTIC, window, ui) {
     Configurator &configurator = Configurator::Get();
 
-#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
-    this->window.app.setStyle("Fusion");
-#else
+#if QT_VERSION < QT_VERSION_CHECK(6, 5, 0)
     this->ui->preferences_theme_mode->setToolTip(
         "Vulkan Configurator must be build with Qt 6.8 or newer to support UI appearance control.");
+#else
+    window.app.setStyle("fusion");
 #endif
 
     this->connect(this->ui->preferences_keep_running, SIGNAL(toggled(bool)), this, SLOT(on_keep_running_toggled(bool)));
@@ -107,7 +107,7 @@ bool TabPreferences::EventFilter(QObject *target, QEvent *event) {
 void TabPreferences::on_theme_mode_changed() {
     const ThemeMode mew_theme_mode = ::IsDarkMode() ? THEME_MODE_FORCE_DARK : THEME_MODE_FORCE_LIGHT;
     if (this->current_theme_mode == mew_theme_mode) {
-        return;
+        // return;
     }
 
     // Configurations
@@ -145,25 +145,25 @@ void TabPreferences::on_theme_mode_changed() {
 
     this->current_theme_mode = mew_theme_mode;
 
-    /*
+    //this->window.update();
+    //this->window.app.styleHints()->setColorScheme(Qt::ColorScheme::Light);
+/*
     #if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
-        switch (mode) {
-            case THEME_MODE_USE_DEVICE:
-                this->window.app.styleHints()->unsetColorScheme();
-                break;
+        switch (mew_theme_mode) {
+            default:
             case THEME_MODE_FORCE_LIGHT:
-                if (this->window.app.styleHints()->colorScheme() != Qt::ColorScheme::Light) {
+                //if (this->window.app.styleHints()->colorScheme() != Qt::ColorScheme::Light) {
                     this->window.app.styleHints()->setColorScheme(Qt::ColorScheme::Light);
-                }
+                //}
                 break;
             case THEME_MODE_FORCE_DARK:
-                if (this->window.app.styleHints()->colorScheme() != Qt::ColorScheme::Dark) {
+                //if (this->window.app.styleHints()->colorScheme() != Qt::ColorScheme::Dark) {
                     this->window.app.styleHints()->setColorScheme(Qt::ColorScheme::Dark);
-                }
+                //}
                 break;
         }
     #endif
-    */
+*/
 }
 
 void TabPreferences::on_keep_running_toggled(bool checked) {

@@ -19,6 +19,11 @@ cmake_minimum_required(VERSION 3.22.1)
 # The VERSION field is generated with the "--generated-version" flag in the generate_source.py script
 project(VULKAN_TOOLS VERSION 1.4.363 LANGUAGES CXX)
 
+find_package(Qt6 COMPONENTS Core Gui Widgets Network QUIET)
+if(Qt6_FOUND)
+  get_target_property(QT_TARGET_TYPE Qt6::Core TYPE)
+endif()
+
 add_subdirectory(scripts)
 
 find_package(VulkanHeaders ${PROJECT_VERSION} REQUIRED CONFIG)
@@ -31,11 +36,6 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL AppleClang AND TARGET Vulkan::Headers AND TAR
     set_target_properties(Vulkan::Headers PROPERTIES SYSTEM OFF)
     set_target_properties(Vulkan::UtilityHeaders PROPERTIES SYSTEM OFF)
     set_target_properties(Vulkan::LayerSettings PROPERTIES SYSTEM OFF)
-endif()
-
-find_package(Qt6 COMPONENTS Core Gui Widgets Network QUIET)
-if(Qt6_FOUND)
-  get_target_property(QT_TARGET_TYPE Qt6::Core TYPE)
 endif()
 
 set(CMAKE_CXX_STANDARD 17)

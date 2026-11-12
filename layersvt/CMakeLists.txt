@@ -135,6 +135,9 @@ if(BUILD_MONITOR)
         json/VkLayer_monitor.json.in
     )
     target_link_libraries(VkLayer_monitor PRIVATE VkLayer_monitor_core)
+    if(WIN32 AND (QT_TARGET_TYPE STREQUAL STATIC_LIBRARY))
+        set_property(TARGET VkLayer_monitor_core VkLayer_monitor PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    endif()
 endif ()
 
 if(BUILD_SCREENSHOT)

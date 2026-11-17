@@ -42,6 +42,10 @@ function(vkConfigTest NAME)
     endif()
 
     add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
+
+    if(WIN32 AND (QT_TARGET_TYPE STREQUAL STATIC_LIBRARY))
+        set_property(TARGET ${TEST_NAME} PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    endif()
 endfunction()
 
 vkConfigTest(test_date)

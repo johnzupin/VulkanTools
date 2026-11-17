@@ -135,6 +135,9 @@ if(BUILD_MONITOR)
         json/VkLayer_monitor.json.in
     )
     target_link_libraries(VkLayer_monitor PRIVATE VkLayer_monitor_core)
+    if(WIN32 AND BUILD_TESTS AND (QT_TARGET_TYPE STREQUAL STATIC_LIBRARY))
+        set_property(TARGET VkLayer_monitor VkLayer_monitor_core PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    endif()
 endif ()
 
 if(BUILD_SCREENSHOT)
@@ -161,6 +164,10 @@ foreach(layer ${TOOL_LAYERS})
     endif()
 
     message(DEBUG "Configuring Vulkan layer ${layer}")
+
+    if(WIN32 AND BUILD_TESTS AND (QT_TARGET_TYPE STREQUAL STATIC_LIBRARY))
+        set_property(TARGET ${layer} PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    endif()
 
     target_link_Libraries(${layer} PRIVATE Vulkan::Headers Vulkan::UtilityHeaders Vulkan::LayerSettings)
 

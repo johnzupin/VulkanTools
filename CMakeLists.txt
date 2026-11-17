@@ -24,10 +24,8 @@ if(Qt6_FOUND)
   get_target_property(QT_TARGET_TYPE Qt6::Core TYPE)
 endif()
 
-if(WIN32 AND (QT_TARGET_TYPE STREQUAL STATIC_LIBRARY))
-  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-  message(STATUS "INFO: linking against static runtime")
-endif()
+option(BUILD_TESTS "Build tests")
+option(RUN_ON_CI "Build only tests that can run on C.I." ON)
 
 add_subdirectory(scripts)
 
@@ -59,16 +57,14 @@ if (BUILD_WERROR)
     add_compile_options("$<IF:$<CXX_COMPILER_ID:MSVC>,/WX,-Werror>")
 endif()
 
-option(BUILD_TESTS "Build tests")
-option(RUN_ON_CI "Build only tests that can run on C.I." ON)
+if (WIN32 AND BUILD_TESTS AND (QT_TARGET_TYPE STREQUAL STATIC_LIBRARY) AND (NOT UPDATE_DEPS))
+    message(WARNING "Static Qt detected! Dependencies must use the static runtime too. "
+      "Please re-run update_deps.py with:  '--gtest-shared-libs=OFF', "
+      "'--gtest-force-shared-crt=OFF' and "
+      "'--cmake_var 'CMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>''")
+endif()
 
 if(BUILD_TESTS)
-    if (WIN32 AND (QT_TARGET_TYPE STREQUAL STATIC_LIBRARY) AND (NOT UPDATE_DEPS))
-        message(WARNING "Static Qt detected! Dependencies must use the static runtime too. "
-          "Please re-run update_deps.py with:  '--gtest-shared-libs=OFF', "
-          "'--gtest-force-shared-crt=OFF' and "
-          "'--cmake_var 'CMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>''")
-    endif()
     enable_testing()
     find_package(GTest REQUIRED CONFIG)
 endif()
@@ -143,5 +139,10 @@ if(BUILD_LAYERMGR)
         add_subdirectory(vkconfig_core)
         add_subdirectory(vkconfig_cmd)
         add_subdirectory(vkconfig_gui)
+
+        if(WIN32 AND (QT_TARGET_TYPE STREQUAL STATIC_LIBRARY))
+            set_property(TARGET vkconfig-gui vkconfig-cmd vkconfig-core PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+            message(STATUS "INFO: vkconfig will link against static runtime")
+        endif()
     endif()
 endif()
